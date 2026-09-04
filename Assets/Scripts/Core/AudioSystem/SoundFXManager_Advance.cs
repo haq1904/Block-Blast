@@ -22,6 +22,11 @@ public class SoundFXManager : MonoBehaviour, ISoundFXService
         DontDestroyOnLoad(gameObject);
     }
 
+    private void OnDestroy()
+    {
+        ServiceLocator.Unregister<ISoundFXService>();
+    }
+
 #if UNITY_EDITOR
     private void OnValidate()
     {

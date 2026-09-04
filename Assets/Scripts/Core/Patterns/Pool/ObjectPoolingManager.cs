@@ -23,9 +23,16 @@ public class ObjectPoolingManager : MonoBehaviour, IPoolService
 
     protected void Awake()
     {
+        ServiceLocator.Register<IPoolService>(this);
+        
         _objectPools = new Dictionary<GameObject, ObjectPool<GameObject>>();
         _cloneToPrefabMap = new Dictionary<GameObject, GameObject>();
         SetupEmpties();
+    }
+
+    private void OnDestroy()
+    {
+        ServiceLocator.Unregister<IPoolService>();
     }
 
     private void SetupEmpties()

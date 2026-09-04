@@ -17,6 +17,11 @@ public class SoundAudioMixerManager : MonoBehaviour, IAudioMixerService
         ServiceLocator.Register<IAudioMixerService>(this);
     }
 
+    private void OnDestroy()
+    {
+        ServiceLocator.Unregister<IAudioMixerService>();
+    }
+
     public void ChangeChannelVolume(AudioChannels channel, float volume)
     {
         // Prevent log(0) which is -Infinity

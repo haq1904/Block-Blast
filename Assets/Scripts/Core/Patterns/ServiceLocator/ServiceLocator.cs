@@ -33,6 +33,12 @@ public static class ServiceLocator
 
         if (_services.TryGetValue(type, out var service))
         {
+            if (service is UnityEngine.Object unityObj && unityObj == null)
+            {
+                _services.Remove(type);
+                Debug.LogWarning($"[ServiceLocator] Service {type.Name} was destroyed but not unregistered. Auto-removing.");
+                return default;
+            }
             return (T)service;
         }
 
