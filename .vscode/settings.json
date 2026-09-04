@@ -34,6 +34,7 @@
         "Build/": true,
         "Builds/": true,
         "**/*.csproj": true,
-        ".git/": true
+        ".git/": true,
+        "**/*.asmdef": true
     }
 }

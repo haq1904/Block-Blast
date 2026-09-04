@@ -10,7 +10,7 @@ public enum PoolType
     SoundFX
 }
 
-public class ObjectPoolingManager : MonoBehaviour
+public class ObjectPoolingManager : MonoBehaviour, IPoolService
 {
 
     private GameObject _emptyHolder;
