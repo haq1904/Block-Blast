@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class SoundTypeGameEventListenter : BaseGameEventListenerGeneric<SoundType>
+public class SoundTypeGameEventListenter : BaseGameEventListenerGeneric<SoundFXType>
 {
-   
+
 }

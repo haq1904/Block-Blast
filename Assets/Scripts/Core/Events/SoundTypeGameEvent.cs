@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "SoundTypeGameEvent", menuName = "Events/SoundTypeEvent")]
-public class SoundTypeGameEvent : BaseGameEventGeneric<SoundType>
+public class SoundTypeGameEvent : BaseGameEventGeneric<SoundFXType>
 {
-    
+
 }

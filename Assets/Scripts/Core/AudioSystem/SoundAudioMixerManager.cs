@@ -1,26 +1,39 @@
-
 using UnityEngine;
 using UnityEngine.Audio;
 
-public class SoundAudioMixerManager : MonoBehaviour
+public enum AudioChannels
+{
+    MasterVolume,
+    SoundFXVolume,
+    MusicVolume
+}
+
+public class SoundAudioMixerManager : MonoBehaviour, IAudioMixerService
 {
     [SerializeField] private AudioMixer audioMixer;
 
-
-    public void ChangeMasterVolume(float value)
+    private void Awake()
     {
-        audioMixer.SetFloat("masterVolume", Mathf.Log10(value) * 20f);
+        ServiceLocator.Register<IAudioMixerService>(this);
     }
 
-    public void ChangeSoundFXVolume(float value)
+    public void ChangeChannelVolume(AudioChannels channel, float volume)
     {
-        audioMixer.SetFloat("soundFXVolume", Mathf.Log10(value) * 20f);
+        // Prevent log(0) which is -Infinity
+        float clampedVolume = Mathf.Clamp(volume, 0.0001f, 1f);
+        float dbValue = Mathf.Log10(clampedVolume) * 20f;
+
+        switch (channel)
+        {
+            case AudioChannels.MasterVolume:
+                audioMixer.SetFloat("masterVolume", dbValue);
+                break;
+            case AudioChannels.SoundFXVolume:
+                audioMixer.SetFloat("soundFXVolume", dbValue);
+                break;
+            case AudioChannels.MusicVolume:
+                audioMixer.SetFloat("musicVolume", dbValue);
+                break;
+        }
     }
-
-    public void ChangeMusicVolume(float value)
-    {
-        audioMixer.SetFloat("musicVolume", Mathf.Log10(value) * 20f);
-    }
-
-
 }

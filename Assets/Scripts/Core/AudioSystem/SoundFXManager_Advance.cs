@@ -1,25 +1,31 @@
 using System;
 using UnityEngine;
 
-public enum SoundType
+public enum SoundFXType
 {
+    Click,
+    BlockSpawn,
+    BlockPlace,
+    LineClear,
+    GameOver
 }
 
 [RequireComponent(typeof(AudioSource)), ExecuteInEditMode]
-public class SoundFXManager_Advance : MonoBehaviour
+public class SoundFXManager : MonoBehaviour, ISoundFXService
 {
     [SerializeField] private SoundList[] soundList;
     private AudioSource audioSource;
 
     private void Awake()
     {
+        ServiceLocator.Register<ISoundFXService>(this);
         DontDestroyOnLoad(gameObject);
     }
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        string[] name = Enum.GetNames(typeof(SoundType));
+        string[] name = Enum.GetNames(typeof(SoundFXType));
 
         if (soundList == null)
         {
@@ -44,7 +50,7 @@ public class SoundFXManager_Advance : MonoBehaviour
 
 
 
-    public void PlaySound(SoundType soundType)
+    public void PlaySound(SoundFXType soundType)
     {
         float volume = 1;
         AudioClip[] clips = soundList[(int)soundType].Sounds;
