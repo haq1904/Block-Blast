@@ -1,5 +1,39 @@
 {
     "dotrush.roslyn.projectOrSolutionFiles": [
         "d:\\Dev game\\Project\\Block Blast\\Block Blast.slnx"
-    ]
+    ],
+    "files.exclude": {
+        "**/*.meta": true,
+        "**/*.unity": true,
+        "**/*.prefab": true,
+        "**/*.mat": true,
+        "**/*.asset": true,
+        "**/*.controller": true,
+        "**/*.anim": true,
+        "**/*.physicMaterial": true,
+        "**/*.physicsMaterial2D": true,
+        "**/*.png": true,
+        "**/*.jpg": true,
+        "**/*.wav": true,
+        "**/*.mp3": true,
+        "**/*.cginc": true,
+        "**/*.shader": true,
+        "**/*.overrideController": true,
+        "**/*.guiskin": true,
+        "**/*.ttf": true,
+        "**/*.mixer": true,
+        "**/*.fbx": true,
+        "**/*.obj": true,
+        "Library/": true,
+        "Logs/": true,
+        "obj/": true,
+        "Temp/": true,
+        "UserSettings/": true,
+        "ProjectSettings/": true,
+        "MemoryCaptures/": true,
+        "Build/": true,
+        "Builds/": true,
+        "**/*.csproj": true,
+        ".git/": true
+    }
 }
