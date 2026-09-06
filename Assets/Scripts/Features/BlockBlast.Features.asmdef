@@ -1,3 +1,17 @@
 {
-	"name": "BlockBlast.Feature"
+    "name": "BlockBlast.Feature",
+    "rootNamespace": "",
+    "references": [
+        "GUID:388217bc777637447858ae8c194fc442",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
