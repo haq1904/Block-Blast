@@ -1,8 +1,10 @@
 ﻿<Solution>
   <Project Path="Unity.PlayerPrefsEditor.Editor.csproj" />
+  <Project Path="BlockBlast.Feature.csproj" />
   <Project Path="BlockBlast.Core.csproj" />
   <Project Path="DOTween.Modules.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="BlockBlast.FeaturesGridSystem.Test.csproj" />
   <Project Path="Unity.PlayerPrefsEditor.Samples.SampleScene.csproj" />
   <Project Path="Unity.PlayerPrefsEditor.EditorResources.csproj" />
 </Solution>
