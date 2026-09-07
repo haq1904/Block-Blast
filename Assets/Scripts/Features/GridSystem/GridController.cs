@@ -38,7 +38,7 @@ public class GridController : MonoBehaviour, IGridService
         return new Vector3(x, -1, z);
     }
 
-    private bool CanPlaceBlocks(List<Vector2Int> gridPositions)
+    public bool CanPlaceBlocks(List<Vector2Int> gridPositions)
     {
         foreach (Vector2Int pos in gridPositions)
         {

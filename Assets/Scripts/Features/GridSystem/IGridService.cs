@@ -12,6 +12,7 @@ public interface IGridService
     // --- COMMANDS (Dành cho Block/Input gọi) ---
     Vector2Int GetGridPositionFromWorld(Vector3 worldPos);
     Vector3 GetWorldPositionFromGrid(Vector2Int gridPos);
+    bool CanPlaceBlocks(List<Vector2Int> gridPositions);
     void RequestPreview(List<Vector2Int> gridPositions);
     void PlaceBlocks(List<Vector2Int> gridPositions);
 }
