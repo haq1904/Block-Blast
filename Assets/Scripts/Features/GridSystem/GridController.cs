@@ -13,6 +13,9 @@ public class GridController : MonoBehaviour, IGridService
     public event Action<List<Vector2Int>> OnBlockPlaced;
     public event Action<List<int>, List<int>> OnLinesCleared;
 
+    public int GridWidth => model.Cols;
+    public int GridHeight => model.Rows;
+
     private void Awake()
     {
         model = new GridModel(8, 8);

@@ -10,40 +10,30 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Camera mainCamera;
 
     // Tọa độ gốc trên Khay để bay về nếu thả trượt (Chỉ view Controller mới quan tâm tọa độ thực)
-
     private Vector3 trayPosition;
+    private int slotIndex;
 
     private IPoolService poolService;
 
     // Lắng nghe sự kiện để View biết phải vẽ hình gì
     public event Action<List<(int x, int y)>> OnShapeAssigned;
 
-    // Đổi lại thành Start để tránh lỗi Execution Order khi game vừa bật lên (các Manager chưa kịp đăng ký vào ServiceLocator).
-    // Sau này làm Hệ thống Khay (Tray), ta sẽ viết hàm public void Setup() riêng để gọi lúc lấy ra từ Pool.
-    private void Start()
+    private void Awake()
     {
         mainCamera = Camera.main;
         gridService = ServiceLocator.Get<IGridService>();
         poolService = ServiceLocator.Get<IPoolService>();
+    }
 
-        // Lấy hình dáng ngẫu nhiên
-
-        IBlockService blockService = ServiceLocator.Get<IBlockService>();
-        model = blockService.GetRandomShape();
-
-        // Báo cho View biết hình dáng để nó vẽ
-
-        OnShapeAssigned?.Invoke(model.ShapeOffsets);
-
-        // Lưu lại vị trí trên khay để bay về nếu thả trật
-
-        trayPosition = transform.position;
-
-        // Ép Scale nhỏ lại 0.75 khi nằm trên Khay
+    public void Setup(BlockModel newModel, Vector3 trayPos, int slotId)
+    {
+        model = newModel;
+        trayPosition = trayPos;
+        slotIndex = slotId;
+        transform.position = trayPosition;
         transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
 
-        // Ở đây Sếp sẽ tự code phần View (vẽ các cục gạch con) dựa trên model.ShapeOffsets
-        // Hoặc tự kéo thả Prefab gạch con vào GameObject này cho lẹ.
+        OnShapeAssigned?.Invoke(model.ShapeOffsets);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -132,15 +122,18 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // Xử lý kết quả sau khi thả
         if (isPlaced)
         {
-            // // TẠM THỜI: Vì cục gạch đang đặt tay trong Scene, nó không thuộc về Pool nên trả về sẽ báo lỗi chữ Vàng.
-            // // Nếu có lỗi này, ta tạm thời Destroy nó. Sau này có Tray System đẻ ra từ Pool thì xài ReturnObjectToPool.
-            try
+            // Báo cho SpawnService biết là slot này đã trống
+            var spawnService = ServiceLocator.Get<ISpawnService>();
+            if (spawnService != null)
+            {
+                spawnService.MarkSlotEmpty(slotIndex);
+            }
 
+            try
             {
                 poolService.ReturnObjectToPool(gameObject);
             }
             catch
-
             {
                 Destroy(gameObject);
             }

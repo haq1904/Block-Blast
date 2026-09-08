@@ -4,6 +4,10 @@ using UnityEngine;
 
 public interface IGridService
 {
+    // --- PROPERTIES ---
+    int GridWidth { get; }
+    int GridHeight { get; }
+
     // --- EVENTS (Dành cho View lắng nghe) ---
     event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
     event Action<List<Vector2Int>> OnBlockPlaced;
