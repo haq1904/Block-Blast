@@ -53,3 +53,15 @@ The State Machine must be designed using Generics `<T>` to ensure flexibility an
 *   **Brevity First:** Answer directly and straight to the point. Eliminate conversational filler, pleasantries, and unnecessary characters.
 *   **Token Saving:** Treat tokens as a strictly limited resource. Provide exactly what is needed to solve the task, nothing more.
 *   **Efficient Code Edits:** Never dump full file contents into the chat unless explicitly requested. Use precise tool calls to modify code quietly and summarize actions briefly.
+
+## 7. MVC Pattern Guidelines
+*   **Model**: The Model's core responsibility is to store data and state. It is perfectly acceptable and encouraged to use `UnityEngine` to store math/data structs like `Vector2Int`, `Vector3`, `Color`, etc. However, a Model MUST NOT store references to Scene components like `GameObject`, `Transform`, `MonoBehaviour`, etc.
+*   **View**: Handles rendering and user input.
+*   **Controller**: Handles game logic, processes inputs from the View, updates the Model, and broadcasts events.
+
+## 8. Code Style & Documentation
+*   **English Only**: All code comments, `[Tooltip]` attributes, debug logs, and variable/method names MUST be written entirely in English.
+
+## 9. Planning Language
+*   **Vietnamese for Implementation Plans**: Whenever creating or updating an implementation plan (`implementation_plan.md`), ALWAYS write the plan in Vietnamese. Technical terms, file names, code snippets, and identifiers must remain in English.
+

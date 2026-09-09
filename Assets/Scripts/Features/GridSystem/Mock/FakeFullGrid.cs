@@ -13,6 +13,8 @@ namespace BlockBlast.Mocking
     {
         public int GridWidth => 8;
         public int GridHeight => 8;
+        public int OccupiedCellCount => 64;
+        public float OccupancyRatio => 1f;
 
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
@@ -23,6 +25,9 @@ namespace BlockBlast.Mocking
             // Forces the system to believe the grid cannot accommodate the blocks
             return false;
         }
+
+        public bool IsCellOccupied(int col, int row) => true;
+
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
         public Vector3 GetWorldPositionFromGrid(Vector2Int gridPos) => Vector3.zero;

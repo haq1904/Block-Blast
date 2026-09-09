@@ -15,6 +15,8 @@ public class GridController : MonoBehaviour, IGridService
 
     public int GridWidth => model.Cols;
     public int GridHeight => model.Rows;
+    public int OccupiedCellCount => model.GetOccupiedCount();
+    public float OccupancyRatio => (model.Cols * model.Rows) > 0 ? (float)model.GetOccupiedCount() / (model.Cols * model.Rows) : 0f;
 
     private void Awake()
     {
@@ -50,6 +52,13 @@ public class GridController : MonoBehaviour, IGridService
         }
         return true;
     }
+
+    public bool IsCellOccupied(int col, int row)
+    {
+        if (model == null || !model.IsWithinBounds(col, row)) return false;
+        return model.IsOccupied(col, row);
+    }
+
 
     public void RequestPreview(List<Vector2Int> gridPositions)
     {

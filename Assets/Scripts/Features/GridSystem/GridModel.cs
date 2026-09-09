@@ -59,4 +59,21 @@ public class GridModel
             gridOccupied[col, row] = false;
         }
     }
+
+    public int GetOccupiedCount()
+    {
+        int count = 0;
+        for (int col = 0; col < Cols; col++)
+        {
+            for (int row = 0; row < Rows; row++)
+            {
+                if (gridOccupied[col, row])
+                {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
 }
+

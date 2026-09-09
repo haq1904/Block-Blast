@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+name: blockblast-architecture
 description: Architectural guidelines and coding standards for the Block Blast project.
 ---
 
@@ -32,9 +32,7 @@ The system utilizes a combination of the **Service Locator** and **Event-Driven*
 ### 2.2. Asynchronous Communication (One-Way Notification)
 *   Use **Game Events** (Broadcast paradigm).
 *   Apply this when a state change occurs and multiple unrelated systems need to react (e.g., Game Start, Score updated, Block successfully placed).
-*   **Rule:** The emitter (Controller) MUST NOT know who is listening. It simply broadcasts the event (`OnBlockPlaced.Raise()`), and interested systems subscribe and react independently.
-*   **Rule:** The Modle must not broadcasts the event. It's just pure c# class to store data.
-
+*   **Rule:** The emitter (Manager/Model) MUST NOT know who is listening. It simply broadcasts the event (`OnBlockPlaced.Raise()`), and interested systems subscribe and react independently.
 
 ## 3. Generic State Machine
 
