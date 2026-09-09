@@ -5,9 +5,6 @@ using UnityEngine;
 public class ShapeData : ScriptableObject
 {
     [Header("Basic Info")]
-    [Tooltip("Difficulty tier of the shape (1: Easy, 2: Med, 3: Hard)")]
-    public int tier = 1;
-    
     [Tooltip("Allow auto-generating rotated variants?")]
     public bool canRotate = true;
 

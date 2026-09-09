@@ -11,7 +11,6 @@ public class ShapeDataEditor : Editor
         Undo.RecordObject(shape, "Shape Modification");
 
         // Draw basic parameters
-        shape.tier = EditorGUILayout.IntSlider("Tier (Difficulty)", shape.tier, 1, 3);
         shape.canRotate = EditorGUILayout.Toggle("Allow Rotation (Auto-gen)", shape.canRotate);
 
         EditorGUILayout.Space(10);

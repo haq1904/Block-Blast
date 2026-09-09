@@ -12,11 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3327227337885441b782e108b9dea8e, type: 3}
   m_Name: MasterShapeDatabase
   m_EditorClassIdentifier: BlockBlast.Feature::ShapeDatabase
-  tier1Shapes:
-  - {fileID: 11400000, guid: 5b5652546ad3c994799ef06a7aed546f, type: 2}
+  shapes:
   - {fileID: 11400000, guid: 349f5c97b3e29ee4881c4a783c6e8bb7, type: 2}
   - {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}
-  tier2Shapes:
   - {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
   - {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
   - {fileID: 11400000, guid: f0b8f60355309df4ab69954790e79f77, type: 2}
@@ -25,7 +23,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3059ba6875922454c87740c0aaff596c, type: 2}
   - {fileID: 11400000, guid: fd0289987a36c1d44a80f2e3ad175d04, type: 2}
   - {fileID: 11400000, guid: fb7482625b13da0439a4215370b23f64, type: 2}
-  tier3Shapes:
   - {fileID: 11400000, guid: 8a4365aa4785d9f40b54cc386d5f50e7, type: 2}
   - {fileID: 11400000, guid: 212e2e8c95840964ea43889d71a674eb, type: 2}
   - {fileID: 11400000, guid: 26a09c903755cfe4fa657159e0a63427, type: 2}
+  - {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}

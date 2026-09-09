@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c21dfbb1ef967b84383ea3dd26cd3372, type: 3}
   m_Name: 3_Square_3x3
   m_EditorClassIdentifier: BlockBlast.Feature::ShapeData
-  tier: 3
   canRotate: 0
   grid: 00000000000001010100000101010000010101000000000000
   baseOffsets:
