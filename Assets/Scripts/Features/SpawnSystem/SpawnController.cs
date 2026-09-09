@@ -7,6 +7,7 @@ public class SpawnController : MonoBehaviour, ISpawnService
     private SpawnModel model;
     
     public event Action<BlockModel[], Vector3[]> OnBatchSpawned;
+    public event Action OnNoMovesLeft;
 
     private void Awake()
     {
@@ -59,6 +60,9 @@ public class SpawnController : MonoBehaviour, ISpawnService
 
         // Bắn sự kiện cho View
         OnBatchSpawned?.Invoke(model.CurrentBatch, model.TrayPositions);
+
+        // Kiểm tra xem có bị Game Over ngay lúc mới sinh gạch không
+        CheckGameOver();
     }
 
     public void MarkSlotEmpty(int slotIndex)
@@ -70,6 +74,36 @@ public class SpawnController : MonoBehaviour, ISpawnService
         {
             // Tạm thời truyền điểm = 0. Sau này điểm sẽ lấy từ GameFlowController hoặc ScoreService
             SpawnBatch(0);
+        }
+        else
+        {
+            // Kiểm tra xem các gạch còn lại trên khay có thể đặt được không
+            CheckGameOver();
+        }
+    }
+
+    private void CheckGameOver()
+    {
+        IGridService gridService = ServiceLocator.Get<IGridService>();
+        if (gridService == null) return;
+
+        bool canPlaceAny = false;
+        for (int i = 0; i < 3; i++)
+        {
+            if (!model.IsSlotEmpty[i] && model.CurrentBatch[i] != null)
+            {
+                if (CanPlaceBlockAnywhere(model.CurrentBatch[i], gridService))
+                {
+                    canPlaceAny = true;
+                    break;
+                }
+            }
+        }
+
+        if (!canPlaceAny)
+        {
+            OnNoMovesLeft?.Invoke();
+            Debug.Log("Game over.");
         }
     }
 
