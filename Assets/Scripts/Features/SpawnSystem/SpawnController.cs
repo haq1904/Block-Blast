@@ -32,7 +32,7 @@ public class SpawnController : MonoBehaviour, ISpawnService
         ShapeDatabase db = ServiceLocator.Get<ShapeDatabase>();
         IGridService gridService = ServiceLocator.Get<IGridService>();
 
-        BlockModel[] newBatch = BlockSpawnGenerator.GenerateBatch(score, gridService, db, config);
+        BlockModel[] newBatch = BlockSpawnGenerator.GenerateBatch(score, gridService, db, config, model);
 
         // Update model
         model.SetBatch(newBatch);

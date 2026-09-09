@@ -40,4 +40,14 @@ public class SpawnModel
     {
         return IsSlotEmpty[0] && IsSlotEmpty[1] && IsSlotEmpty[2];
     }
+
+    // Scenario Sequence State (< 200,000 points)
+    public int ActiveScenarioId { get; set; } = -1;
+    public int ScenarioStepIndex { get; set; } = 0;
+
+    public void ResetScenario()
+    {
+        ActiveScenarioId = -1;
+        ScenarioStepIndex = 0;
+    }
 }
