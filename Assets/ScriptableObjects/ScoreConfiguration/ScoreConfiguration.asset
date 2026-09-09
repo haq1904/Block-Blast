@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34d1bebe213f2da49ab24f84fd5b1cdb, type: 3}
+  m_Name: ScoreConfiguration
+  m_EditorClassIdentifier: BlockBlast.Feature::ScoreConfiguration
+  pointsPerTile: 1
+  points1Line: 10
+  points2Lines: 30
+  points3Lines: 60
+  points4Lines: 100
+  points5Lines: 150
+  pointsPerExtraLine: 30
+  comboBonusStep: 10
+  allClearBonus: 300
+  highScoreSaveKey: BLOCK_BLAST_HIGH_SCORE
