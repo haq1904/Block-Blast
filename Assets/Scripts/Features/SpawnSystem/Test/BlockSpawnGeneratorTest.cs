@@ -1254,6 +1254,15 @@ public class BlockSpawnGeneratorTest
         UnityEngine.Object.DestroyImmediate(config);
     }
 
+    [Test]
+    public void ScoreView_ComponentCanBeInstantiated()
+    {
+        GameObject go = new GameObject("ScoreViewTest");
+        ScoreView view = go.AddComponent<ScoreView>();
+        Assert.IsNotNull(view);
+        UnityEngine.Object.DestroyImmediate(go);
+    }
+
     private class MockScoreTestGrid : IGridService
     {
         public int GridWidth => 8;

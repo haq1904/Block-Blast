@@ -3,7 +3,9 @@
     "rootNamespace": "",
     "references": [
         "GUID:388217bc777637447858ae8c194fc442",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
