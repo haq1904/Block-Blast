@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class ScoreView : MonoBehaviour
 {
-    [Header("UI Text Displays")]
-    [SerializeField] private TextMeshProUGUI currentScoreText;
-    [SerializeField] private TextMeshProUGUI highScoreText;
-    [SerializeField] private TextMeshProUGUI comboText;
+    [Header("Text Displays (Supports both 3D World TextMeshPro & Canvas TextMeshProUGUI)")]
+    [SerializeField] private TMP_Text currentScoreText;
+    [SerializeField] private TMP_Text highScoreText;
+    [SerializeField] private TMP_Text comboText;
     [SerializeField] private GameObject comboContainer;
 
     [Header("Animation Settings")]
