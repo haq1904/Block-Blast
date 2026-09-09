@@ -323,6 +323,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -358,6 +359,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -686,6 +688,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -724,6 +727,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -759,6 +763,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -796,6 +801,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -871,6 +877,7 @@ public class BlockSpawnGeneratorTest
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
@@ -983,5 +990,296 @@ public class BlockSpawnGeneratorTest
         UnityEngine.Object.DestroyImmediate(db);
         UnityEngine.Object.DestroyImmediate(line2);
     }
+
+    // ==========================================
+    // SCORE SYSTEM & INTEGRATION TESTS
+    // ==========================================
+
+    [Test]
+    public void Score_Placement_AddsTileCountScore_WithoutAffectingCombo()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        int scoreEventCurrent = -1, scoreEventGained = -1;
+        controller.OnScoreChanged += (curr, gained) =>
+        {
+            scoreEventCurrent = curr;
+            scoreEventGained = gained;
+        };
+
+        // Place 4 tiles, 0 lines cleared, not all clear
+        controller.HandlePlacementResolved(4, 0, false);
+
+        Assert.AreEqual(4, controller.CurrentScore);
+        Assert.AreEqual(0, controller.CurrentCombo);
+        Assert.AreEqual(4, scoreEventCurrent);
+        Assert.AreEqual(4, scoreEventGained);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_LineClear_SingleLine_AddsBasePointsAndComboBonus()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        int comboEventFired = -1;
+        controller.OnComboChanged += c => comboEventFired = c;
+
+        // Place 2 tiles, clear 1 line
+        // Expected: 2 (placement) + 10 (1 line) + 10 (combo 1 * 10) = 22
+        controller.HandlePlacementResolved(2, 1, false);
+
+        Assert.AreEqual(22, controller.CurrentScore);
+        Assert.AreEqual(1, controller.CurrentCombo);
+        Assert.AreEqual(1, comboEventFired);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_LineClear_MultiLines_AppliesCorrectLineClearPoints()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points2Lines = 30;
+        config.comboBonusStep = 10;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Place 3 tiles, clear 2 lines simultaneously
+        // Expected: 3 (placement) + 30 (2 lines) + 10 (combo 1 * 10) = 43
+        controller.HandlePlacementResolved(3, 2, false);
+
+        Assert.AreEqual(43, controller.CurrentScore);
+        Assert.AreEqual(1, controller.CurrentCombo);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ComboStreak_ConsecutiveClears_IncrementsComboAndMultiplier()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Turn 1: 1 line clear -> combo 1 (+10)
+        // Score: 1 + 10 + 10 = 21
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+        Assert.AreEqual(21, controller.CurrentScore);
+
+        // Turn 2: 1 line clear -> combo 2 (+20 combo bonus)
+        // Turn 2 points: 1 (tile) + 10 (1 line) + 20 (combo 2 * 10) = 31
+        // Total score: 21 + 31 = 52
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.AreEqual(2, controller.CurrentCombo);
+        Assert.AreEqual(2, controller.MaxCombo);
+        Assert.AreEqual(52, controller.CurrentScore);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ComboStreak_ZeroClearTurn_ResetsComboToZero()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        controller.HandlePlacementResolved(2, 1, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+
+        bool comboResetFired = false;
+        controller.OnComboChanged += c =>
+        {
+            if (c == 0) comboResetFired = true;
+        };
+
+        // Turn 2: place 3 tiles with 0 lines cleared -> combo resets to 0
+        controller.HandlePlacementResolved(3, 0, false);
+        Assert.AreEqual(0, controller.CurrentCombo);
+        Assert.IsTrue(comboResetFired, "Combo reset event must be triggered when a turn clears no lines.");
+        Assert.AreEqual(1, controller.MaxCombo, "MaxCombo should preserve the highest streak achieved.");
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_AllClear_GrantsLargeBonus()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.allClearBonus = 300;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Place 2 tiles, clear 1 line, and board is completely emptied (All Clear)
+        // Expected: 2 (placement) + 10 (1 line) + 10 (combo 1) + 300 (All Clear) = 322
+        controller.HandlePlacementResolved(2, 1, true);
+
+        Assert.AreEqual(322, controller.CurrentScore);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_HighScore_UpdatesAndPersists_WhenExceeded()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        int newHighFired = -1;
+        controller.OnHighScoreChanged += high => newHighFired = high;
+
+        controller.HandlePlacementResolved(50, 0, false);
+
+        Assert.AreEqual(50, controller.CurrentScore);
+        Assert.AreEqual(50, controller.HighScore);
+        Assert.AreEqual(50, newHighFired);
+        Assert.AreEqual(50, PlayerPrefs.GetInt(config.highScoreSaveKey));
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ResetScore_ResetsCurrentScoreAndCombo_RetainsHighScore()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        controller.HandlePlacementResolved(100, 0, false);
+        Assert.AreEqual(100, controller.CurrentScore);
+        Assert.AreEqual(100, controller.HighScore);
+
+        controller.ResetScore();
+        Assert.AreEqual(0, controller.CurrentScore);
+        Assert.AreEqual(0, controller.CurrentCombo);
+        Assert.AreEqual(100, controller.HighScore, "ResetScore must retain the existing HighScore.");
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_GridEvent_OnPlacementResolved_InvokesScoreCalculation()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        grid.TriggerPlacementResolved(3, 1, false);
+
+        // Expected: 3 + 10 + 10 = 23
+        Assert.AreEqual(23, controller.CurrentScore);
+        Assert.AreEqual(1, controller.CurrentCombo);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    private class MockScoreTestGrid : IGridService
+    {
+        public int GridWidth => 8;
+        public int GridHeight => 8;
+        public int OccupiedCellCount => 0;
+        public float OccupancyRatio => 0f;
+
+#pragma warning disable CS0067
+        public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
+        public event Action<List<Vector2Int>> OnBlockPlaced;
+        public event Action<List<int>, List<int>> OnLinesCleared;
+#pragma warning restore CS0067
+        public event Action<int, int, bool> OnPlacementResolved;
+
+        public void TriggerPlacementResolved(int tiles, int lines, bool allClear)
+        {
+            OnPlacementResolved?.Invoke(tiles, lines, allClear);
+        }
+
+        public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
+        public Vector3 GetWorldPositionFromGrid(Vector2Int gridPos) => Vector3.zero;
+        public bool CanPlaceBlocks(List<Vector2Int> gridPositions) => true;
+        public bool IsCellOccupied(int col, int row) => false;
+        public void RequestPreview(List<Vector2Int> gridPositions) { }
+        public void PlaceBlocks(List<Vector2Int> gridPositions) { }
+    }
 }
+
 

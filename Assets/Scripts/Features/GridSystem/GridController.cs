@@ -12,6 +12,7 @@ public class GridController : MonoBehaviour, IGridService
     public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
     public event Action<List<Vector2Int>> OnBlockPlaced;
     public event Action<List<int>, List<int>> OnLinesCleared;
+    public event Action<int, int, bool> OnPlacementResolved;
 
     public int GridWidth => model.Cols;
     public int GridHeight => model.Rows;
@@ -119,5 +120,10 @@ public class GridController : MonoBehaviour, IGridService
 
             OnLinesCleared?.Invoke(clearedRows, clearedCols);
         }
+
+        // 4. Broadcast placement resolution for ScoreSystem and game flow
+        int totalLinesCleared = clearedRows.Count + clearedCols.Count;
+        bool isAllClear = model.GetOccupiedCount() == 0;
+        OnPlacementResolved?.Invoke(gridPositions.Count, totalLinesCleared, isAllClear);
     }
 }

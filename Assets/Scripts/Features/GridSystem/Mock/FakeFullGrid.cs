@@ -19,6 +19,7 @@ namespace BlockBlast.Mocking
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 
         public bool CanPlaceBlocks(List<Vector2Int> gridPositions)
         {

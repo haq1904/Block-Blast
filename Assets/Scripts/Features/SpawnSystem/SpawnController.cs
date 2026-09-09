@@ -19,7 +19,8 @@ public class SpawnController : MonoBehaviour, ISpawnService
     private void Start()
     {
         // Initial spawn for the first batch
-        SpawnBatch(0);
+        int initialScore = ServiceLocator.Get<IScoreService>()?.CurrentScore ?? 0;
+        SpawnBatch(initialScore);
     }
 
     private void OnDestroy()
@@ -48,11 +49,11 @@ public class SpawnController : MonoBehaviour, ISpawnService
     {
         model.MarkSlotEmpty(slotIndex);
 
-        // If tray is completely empty, spawn a new batch
+        // If tray is completely empty, spawn a new batch with current score
         if (model.IsTrayEmpty())
         {
-            // Score can be fetched from GameFlowController/ScoreService in future iterations
-            SpawnBatch(0);
+            int currentScore = ServiceLocator.Get<IScoreService>()?.CurrentScore ?? 0;
+            SpawnBatch(currentScore);
         }
         else
         {

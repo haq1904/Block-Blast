@@ -347,6 +347,7 @@ public static class BlockSpawnGenerator
         public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
         public event Action<List<Vector2Int>> OnBlockPlaced;
         public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;

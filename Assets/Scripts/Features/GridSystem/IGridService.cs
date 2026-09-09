@@ -14,6 +14,7 @@ public interface IGridService
     event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
     event Action<List<Vector2Int>> OnBlockPlaced;
     event Action<List<int>, List<int>> OnLinesCleared;
+    event Action<int, int, bool> OnPlacementResolved; // (tilesPlaced, totalLinesCleared, isAllClear)
 
     // --- COMMANDS (Invoked by Block/Input) ---
     Vector2Int GetGridPositionFromWorld(Vector3 worldPos);
