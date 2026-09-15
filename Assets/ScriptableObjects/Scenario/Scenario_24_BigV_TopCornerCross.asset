@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c638fecccdc1af846a5a202f42b778d7, type: 3}
+  m_Name: Scenario_24_BigV_TopCornerCross
+  m_EditorClassIdentifier: BlockBlast.Feature::ScenarioData
+  scenarioName: Big V Top Corner Cross
+  scenarioType: 0
+  allowRotation: 1
+  allowMirror: 1
+  setupBatch:
+    note: 'Setup: Line 4, Dot 1x1 on Row 7 and Line 5 on Col 7 leaving 3x3 top corner
+      for Big V'
+    slot0: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
+    slot1: {fileID: 11400000, guid: 5b5652546ad3c994799ef06a7aed546f, type: 2}
+    slot2: {fileID: 11400000, guid: 212e2e8c95840964ea43889d71a674eb, type: 2}
+  targetBoard: 00000000000000010000000000000001000000000000000100000000000000010000000000000001000000000000000000000000000000000101010101000000
+  matchTolerance: 1
+  requiredTargetCoords:
+  - {x: 7, y: 0}
+  - {x: 7, y: 1}
+  - {x: 7, y: 2}
+  - {x: 7, y: 3}
+  - {x: 7, y: 4}
+  - {x: 0, y: 7}
+  - {x: 1, y: 7}
+  - {x: 2, y: 7}
+  - {x: 3, y: 7}
+  - {x: 4, y: 7}
+  finisherBatch:
+    note: 'Finisher: Drop Big V into top-right corner to clear Row 7 and Col 7 for
+      100% ALL CLEAR!'
+    slot0: {fileID: 11400000, guid: 26a09c903755cfe4fa657159e0a63427, type: 2}
+    slot1: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
+    slot2: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}

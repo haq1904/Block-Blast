@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c638fecccdc1af846a5a202f42b778d7, type: 3}
+  m_Name: Scenario_04_TripleLineStorm
+  m_EditorClassIdentifier: BlockBlast.Feature::ScenarioData
+  scenarioName: Triple Line Storm
+  scenarioType: 1
+  allowRotation: 1
+  allowMirror: 1
+  setupBatch:
+    note: 'Setup: 4x3 block in bottom-left leaving 4-wide gap on right'
+    slot0: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
+    slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
+    slot2: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
+  targetBoard: 01010101000000000101010100000000010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  matchTolerance: 1
+  requiredTargetCoords:
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 2, y: 0}
+  - {x: 3, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  - {x: 2, y: 1}
+  - {x: 3, y: 1}
+  - {x: 0, y: 2}
+  - {x: 1, y: 2}
+  - {x: 2, y: 2}
+  - {x: 3, y: 2}
+  finisherBatch:
+    note: 'Finisher: Chained Line 4 blocks for 100% ALL CLEAR triple storm!'
+    slot0: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
+    slot1: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
+    slot2: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}

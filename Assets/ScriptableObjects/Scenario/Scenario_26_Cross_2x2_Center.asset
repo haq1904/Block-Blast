@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c638fecccdc1af846a5a202f42b778d7, type: 3}
+  m_Name: Scenario_26_Cross_2x2_Center
+  m_EditorClassIdentifier: BlockBlast.Feature::ScenarioData
+  scenarioName: Cross 2x2 Center
+  scenarioType: 0
+  allowRotation: 1
+  allowMirror: 1
+  setupBatch:
+    note: 'Setup: Build left, right, and bottom arms of 2x2 center cross using three
+      Rect 2x3'
+    slot0: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot1: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot2: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+  targetBoard: 00000001010000000000000101000000000000010100000001010100000101010101010000010101000000000000000000000000000000000000000000000000
+  matchTolerance: 1
+  requiredTargetCoords:
+  - {x: 3, y: 0}
+  - {x: 4, y: 0}
+  - {x: 3, y: 1}
+  - {x: 4, y: 1}
+  - {x: 3, y: 2}
+  - {x: 4, y: 2}
+  - {x: 0, y: 3}
+  - {x: 1, y: 3}
+  - {x: 2, y: 3}
+  - {x: 5, y: 3}
+  - {x: 6, y: 3}
+  - {x: 7, y: 3}
+  - {x: 0, y: 4}
+  - {x: 1, y: 4}
+  - {x: 2, y: 4}
+  - {x: 5, y: 4}
+  - {x: 6, y: 4}
+  - {x: 7, y: 4}
+  finisherBatch:
+    note: 'Finisher: Place Rect 2x3 in top arm, then drop Square 2x2 into center
+      core to blast 4 lines simultaneously for 100% ALL CLEAR!'
+    slot0: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
+    slot2: {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}

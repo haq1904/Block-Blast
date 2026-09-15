@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c638fecccdc1af846a5a202f42b778d7, type: 3}
+  m_Name: Scenario_32_Cross_3x2_Left
+  m_EditorClassIdentifier: BlockBlast.Feature::ScenarioData
+  scenarioName: Cross 3x2 Left
+  scenarioType: 0
+  allowRotation: 1
+  allowMirror: 1
+  setupBatch:
+    note: 'Setup: Square 3x3 in middle wing, vertical Rect 2x3 in top arm, Square
+      2x2 in bottom arm'
+    slot0: {fileID: 11400000, guid: 8a4365aa4785d9f40b54cc386d5f50e7, type: 2}
+    slot1: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot2: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
+  targetBoard: 01010000000000000101000000000000000001010100000000000101010000000000010101000000010100000000000001010000000000000101000000000000
+  matchTolerance: 1
+  requiredTargetCoords:
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  - {x: 2, y: 2}
+  - {x: 3, y: 2}
+  - {x: 4, y: 2}
+  - {x: 2, y: 3}
+  - {x: 3, y: 3}
+  - {x: 4, y: 3}
+  - {x: 2, y: 4}
+  - {x: 3, y: 4}
+  - {x: 4, y: 4}
+  - {x: 0, y: 5}
+  - {x: 1, y: 5}
+  - {x: 0, y: 6}
+  - {x: 1, y: 6}
+  - {x: 0, y: 7}
+  - {x: 1, y: 7}
+  finisherBatch:
+    note: 'Finisher: Place Square 3x3 in far right wing, then drop vertical Rect
+      2x3 into left intersection to blast 5 lines simultaneously for 100% ALL CLEAR!'
+    slot0: {fileID: 11400000, guid: 8a4365aa4785d9f40b54cc386d5f50e7, type: 2}
+    slot1: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot2: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
