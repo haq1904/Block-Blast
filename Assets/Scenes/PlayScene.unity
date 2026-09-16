@@ -1842,7 +1842,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ceeeed1c68decd43a764632a711c72d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::SpawnView
-  blockPrefab: {fileID: 8558676841371472084, guid: b378e2d28e407bf4285c58e5f26adb85, type: 3}
 --- !u!114 &476233552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3081,6 +3080,51 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 371b20816dc08c94daef2e533d1121c0, type: 3}
+--- !u!1 &904713652
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 904713654}
+  - component: {fileID: 904713653}
+  m_Layer: 0
+  m_Name: BlockManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &904713653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 904713652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3d501cc27b778749a1829b7a27f48b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockManager
+  blockPrefab: {fileID: 8558676841371472084, guid: b378e2d28e407bf4285c58e5f26adb85, type: 3}
+--- !u!4 &904713654
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 904713652}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &922866469
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5783,51 +5827,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
   m_PrefabInstance: {fileID: 1676411351}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1686691068
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1686691070}
-  - component: {fileID: 1686691069}
-  m_Layer: 0
-  m_Name: ShapeDatabase
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1686691069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1686691068}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed9924b65ddb2d74195e75917c685efd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: BlockBlast.Feature::ShapeDBService
-  shapeDatabase: {fileID: 11400000, guid: 6217d9ef986b12f4caf4b77059ae70ee, type: 2}
---- !u!4 &1686691070
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1686691068}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1732741563
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7273,8 +7272,8 @@ SceneRoots:
   - {fileID: 918031982385502178}
   - {fileID: 841357946}
   - {fileID: 476233553}
-  - {fileID: 1686691070}
   - {fileID: 1047244956}
+  - {fileID: 904713654}
   - {fileID: 799443228}
   - {fileID: 463399293}
   - {fileID: 1312089138}

@@ -12,11 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aa32f022af5c154096bbb5c3f5794ab, type: 3}
   m_Name: DefaultSpawnConfiguration
   m_EditorClassIdentifier: BlockBlast.Feature::SpawnConfiguration
-  comboPhaseScoreThreshold: 200000
-  comboAssistanceRate: 1
-  enableSynergisticBatches: 1
-  synergyRateUnderThreshold: 1
+  shapeDatabase: {fileID: 11400000, guid: 6217d9ef986b12f4caf4b77059ae70ee, type: 2}
+  comboPhaseScoreThreshold: 250000
+  scenarioDatabase: {fileID: 11400000, guid: 697617898c4d30347bb6415b7edd9369, type: 2}
   enableScenarioChains: 1
-  preventDuplicatesInBatch: 1
-  ultraSmallShapeChance: 0.02
   enableMercyMode: 1
+  highScoreBulkyPieceChance: 0.4

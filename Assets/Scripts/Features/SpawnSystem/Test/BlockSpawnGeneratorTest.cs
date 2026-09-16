@@ -13,6 +13,7 @@ public class BlockSpawnGeneratorTest
     {
         testDatabase = ScriptableObject.CreateInstance<ShapeDatabase>();
         testConfig = ScriptableObject.CreateInstance<SpawnConfiguration>();
+        testConfig.shapeDatabase = testDatabase;
 
         // Create dummy ShapeData (1x1, 1x2)
         ShapeData t1ShapeA = ScriptableObject.CreateInstance<ShapeData>();
@@ -81,8 +82,6 @@ public class BlockSpawnGeneratorTest
     public void GenerateBatch_AppliesMercy_WhenGridCannotFitBatch()
     {
         testConfig.enableMercyMode = true;
-        testConfig.comboAssistanceRate = 0f; // Disable combo assistance to isolate Mercy test
-        testConfig.enableSynergisticBatches = false;
 
         ShapeDatabase mercyDb = ScriptableObject.CreateInstance<ShapeDatabase>();
         ShapeData bigShape = ScriptableObject.CreateInstance<ShapeData>();
@@ -113,8 +112,6 @@ public class BlockSpawnGeneratorTest
     [Test]
     public void GenerateBatch_UnderThreshold_GeneratesSynergisticBatch_OnEmptyBoard()
     {
-        testConfig.enableSynergisticBatches = true;
-        testConfig.synergyRateUnderThreshold = 1.0f;
         testConfig.comboPhaseScoreThreshold = 200000;
 
         ShapeDatabase synDb = ScriptableObject.CreateInstance<ShapeDatabase>();
@@ -135,7 +132,14 @@ public class BlockSpawnGeneratorTest
         line3.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) };
         synDb.shapes.Add(line3);
 
-        BlockModel[] batch = BlockSpawnGenerator.GenerateBatch(0, null, synDb, testConfig);
+        ScenarioDatabase scenarioDb = ScriptableObject.CreateInstance<ScenarioDatabase>();
+        ScenarioData scenario = ScriptableObject.CreateInstance<ScenarioData>();
+        scenario.setupBatch = new ScenarioBatch { slot0 = line4, slot1 = sq2x2, slot2 = line4 }; // 4 + 4 + 4 = 12 tiles
+        scenarioDb.scenarios.Add(scenario);
+        testConfig.scenarioDatabase = scenarioDb;
+        SpawnModel spawnModel = new SpawnModel();
+
+        BlockModel[] batch = BlockSpawnGenerator.GenerateBatch(0, null, synDb, testConfig, spawnModel);
 
         Assert.IsNotNull(batch, "Batch should not be null.");
         Assert.AreEqual(3, batch.Length, "Synergistic batch must have 3 blocks.");
@@ -152,13 +156,14 @@ public class BlockSpawnGeneratorTest
         UnityEngine.Object.DestroyImmediate(sq2x2);
         UnityEngine.Object.DestroyImmediate(line5);
         UnityEngine.Object.DestroyImmediate(line3);
+        UnityEngine.Object.DestroyImmediate(scenarioDb);
+        UnityEngine.Object.DestroyImmediate(scenario);
     }
 
     [Test]
     public void GenerateBatch_WithTrayCompleterShapes_GeneratesThreePieceFullRowBatch()
     {
-        testConfig.enableSynergisticBatches = true;
-        testConfig.synergyRateUnderThreshold = 1.0f;
+        testConfig.enableScenarioChains = true;
         testConfig.comboPhaseScoreThreshold = 200000;
 
         ShapeDatabase trayDb = ScriptableObject.CreateInstance<ShapeDatabase>();
@@ -171,17 +176,26 @@ public class BlockSpawnGeneratorTest
         line2.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0) };
         trayDb.shapes.Add(line2);
 
-        // When only Line 3 and Line 2 exist, Pattern 3 (3 + 3 + 2 = 8) is selected
-        BlockModel[] batch = BlockSpawnGenerator.GenerateBatch(0, null, trayDb, testConfig);
+        ScenarioDatabase scenarioDb = ScriptableObject.CreateInstance<ScenarioDatabase>();
+        ScenarioData scenario = ScriptableObject.CreateInstance<ScenarioData>();
+        scenario.setupBatch = new ScenarioBatch { slot0 = line3, slot1 = line3, slot2 = line2 };
+        scenarioDb.scenarios.Add(scenario);
+        testConfig.scenarioDatabase = scenarioDb;
+        SpawnModel spawnModel = new SpawnModel();
+
+        // When scenario exists with Line 3, Line 3, Line 2 (3 + 3 + 2 = 8), full row setup is generated
+        BlockModel[] batch = BlockSpawnGenerator.GenerateBatch(0, null, trayDb, testConfig, spawnModel);
 
         Assert.IsNotNull(batch);
         Assert.AreEqual(3, batch.Length);
         int totalTiles = batch[0].ShapeOffsets.Count + batch[1].ShapeOffsets.Count + batch[2].ShapeOffsets.Count;
-        Assert.AreEqual(8, totalTiles, "Pattern 3 (3 + 3 + 2) must sum to exactly 8 tiles to clear an entire row.");
+        Assert.AreEqual(8, totalTiles, "Tray completer setup (3 + 3 + 2) must sum to exactly 8 tiles to clear an entire row.");
 
         UnityEngine.Object.DestroyImmediate(trayDb);
         UnityEngine.Object.DestroyImmediate(line3);
         UnityEngine.Object.DestroyImmediate(line2);
+        UnityEngine.Object.DestroyImmediate(scenarioDb);
+        UnityEngine.Object.DestroyImmediate(scenario);
     }
 
 
@@ -204,7 +218,6 @@ public class BlockSpawnGeneratorTest
     public void GenerateBatch_UnderScoreThreshold_ProvidesLineClearingShape()
     {
         testConfig.comboPhaseScoreThreshold = 200000;
-        testConfig.comboAssistanceRate = 1.0f; // 100% guarantee for test
 
         var nearFullGrid = new MockNearFullRowGrid();
 
@@ -231,8 +244,6 @@ public class BlockSpawnGeneratorTest
     [Test]
     public void GenerateGridAssistedBatch_WithTwoNearFullLines_ProvidesSequentialClearingShapes()
     {
-        testConfig.enableSynergisticBatches = true;
-        testConfig.synergyRateUnderThreshold = 1.0f;
         testConfig.comboPhaseScoreThreshold = 200000;
 
         ShapeDatabase multiClearDb = ScriptableObject.CreateInstance<ShapeDatabase>();
@@ -281,8 +292,6 @@ public class BlockSpawnGeneratorTest
     [Test]
     public void GenerateGridAssistedBatch_WithExactGap_FeedsExactMatchingShape()
     {
-        testConfig.enableSynergisticBatches = true;
-        testConfig.synergyRateUnderThreshold = 1.0f;
         testConfig.comboPhaseScoreThreshold = 200000;
 
         ShapeDatabase gapDb = ScriptableObject.CreateInstance<ShapeDatabase>();
@@ -478,6 +487,17 @@ public class BlockSpawnGeneratorTest
         sq2x2.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(1, 1) };
         db.shapes.Add(sq2x2);
 
+        ScenarioDatabase scenarioDb = ScriptableObject.CreateInstance<ScenarioDatabase>();
+        ScenarioData sc0 = ScriptableObject.CreateInstance<ScenarioData>();
+        sc0.scenarioName = "Double Blast Rush";
+        sc0.matchTolerance = 4;
+        sc0.targetBoard = new bool[64];
+        for (int c = 0; c < 6; c++) sc0.targetBoard[c + 0 * 8] = true;
+        for (int c = 0; c < 5; c++) sc0.targetBoard[c + 1 * 8] = true;
+        sc0.finisherBatch = new ScenarioBatch { slot0 = line4, slot1 = sq2x2, slot2 = line4 };
+        scenarioDb.scenarios.Add(sc0);
+        testConfig.scenarioDatabase = scenarioDb;
+
         SpawnModel model = new SpawnModel();
         model.ActiveScenarioId = 0; // Scenario 0: Double Blast Rush
         model.ScenarioStepIndex = 1; // Waiting for finisher
@@ -494,6 +514,8 @@ public class BlockSpawnGeneratorTest
         UnityEngine.Object.DestroyImmediate(db);
         UnityEngine.Object.DestroyImmediate(line4);
         UnityEngine.Object.DestroyImmediate(sq2x2);
+        UnityEngine.Object.DestroyImmediate(scenarioDb);
+        UnityEngine.Object.DestroyImmediate(sc0);
     }
 
     [Test]
@@ -503,6 +525,15 @@ public class BlockSpawnGeneratorTest
         ShapeData line2 = ScriptableObject.CreateInstance<ShapeData>();
         line2.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0) };
         db.shapes.Add(line2);
+
+        ScenarioDatabase scenarioDb = ScriptableObject.CreateInstance<ScenarioDatabase>();
+        ScenarioData sc0 = ScriptableObject.CreateInstance<ScenarioData>();
+        sc0.scenarioName = "Test Scenario";
+        sc0.matchTolerance = 0;
+        sc0.targetBoard = new bool[64];
+        for (int c = 0; c < 8; c++) sc0.targetBoard[c + 0 * 8] = true;
+        scenarioDb.scenarios.Add(sc0);
+        testConfig.scenarioDatabase = scenarioDb;
 
         SpawnModel model = new SpawnModel();
         model.ActiveScenarioId = 0; // Scenario 0 expects at least 2 rows with >= 4 cells
@@ -519,6 +550,8 @@ public class BlockSpawnGeneratorTest
 
         UnityEngine.Object.DestroyImmediate(db);
         UnityEngine.Object.DestroyImmediate(line2);
+        UnityEngine.Object.DestroyImmediate(scenarioDb);
+        UnityEngine.Object.DestroyImmediate(sc0);
     }
 
     [Test]
@@ -597,66 +630,28 @@ public class BlockSpawnGeneratorTest
     }
 
     [Test]
-    public void AllTenScenarios_CanBeGenerated_WithCompleteShapesDatabase()
+    public void AllScenarios_CanBeGenerated_WithCompleteShapesDatabase()
     {
-        ShapeDatabase fullDb = ScriptableObject.CreateInstance<ShapeDatabase>();
-
-        // Populate full shapes inventory
+        ScenarioDatabase scenarioDb = ScriptableObject.CreateInstance<ScenarioDatabase>();
         ShapeData sq2x2 = ScriptableObject.CreateInstance<ShapeData>();
         sq2x2.name = "2_Square_2x2";
         sq2x2.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(1, 1) };
-        fullDb.shapes.Add(sq2x2);
-
-        ShapeData line4 = ScriptableObject.CreateInstance<ShapeData>();
-        line4.name = "2_Line_4";
-        line4.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0) };
-        fullDb.shapes.Add(line4);
-
-        ShapeData line5 = ScriptableObject.CreateInstance<ShapeData>();
-        line5.name = "3_Line_5";
-        line5.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0), new Vector2Int(4, 0) };
-        fullDb.shapes.Add(line5);
-
-        ShapeData smallV = ScriptableObject.CreateInstance<ShapeData>();
-        smallV.name = "2_Small_V";
-        smallV.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(0, 1) };
-        fullDb.shapes.Add(smallV);
-
-        ShapeData shapeL = ScriptableObject.CreateInstance<ShapeData>();
-        shapeL.name = "2_Shape_L";
-        shapeL.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(1, 0) };
-        fullDb.shapes.Add(shapeL);
-
-        ShapeData shapeJ = ScriptableObject.CreateInstance<ShapeData>();
-        shapeJ.name = "2_Shape_J";
-        shapeJ.baseOffsets = new List<Vector2Int> { new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(0, 0) };
-        fullDb.shapes.Add(shapeJ);
-
-        ShapeData line3 = ScriptableObject.CreateInstance<ShapeData>();
-        line3.name = "1_Line_3";
-        line3.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) };
-        fullDb.shapes.Add(line3);
-
-        ShapeData shapeS = ScriptableObject.CreateInstance<ShapeData>();
-        shapeS.name = "2_Shape_S";
-        shapeS.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(2, 1) };
-        fullDb.shapes.Add(shapeS);
-
-        ShapeData shapeZ = ScriptableObject.CreateInstance<ShapeData>();
-        shapeZ.name = "2_Shape_Z";
-        shapeZ.baseOffsets = new List<Vector2Int> { new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(0, 1), new Vector2Int(1, 1) };
-        fullDb.shapes.Add(shapeZ);
-
-        ShapeData shapeT = ScriptableObject.CreateInstance<ShapeData>();
-        shapeT.name = "2_Shape_T";
-        shapeT.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(2, 1), new Vector2Int(1, 0) };
-        fullDb.shapes.Add(shapeT);
-
-        Assert.AreEqual(10, BlockSpawnGenerator.TotalScenarios, "TotalScenarios should be 10.");
 
         for (int i = 0; i < BlockSpawnGenerator.TotalScenarios; i++)
         {
-            BlockModel[] setup = BlockSpawnGenerator.GenerateScenarioSetup(i, fullDb, testConfig);
+            ScenarioData sc = ScriptableObject.CreateInstance<ScenarioData>();
+            sc.setupBatch = new ScenarioBatch { slot0 = sq2x2, slot1 = sq2x2, slot2 = sq2x2 };
+            sc.finisherBatch = new ScenarioBatch { slot0 = sq2x2, slot1 = sq2x2, slot2 = sq2x2 };
+            scenarioDb.scenarios.Add(sc);
+        }
+
+        testConfig.scenarioDatabase = scenarioDb;
+
+        Assert.AreEqual(33, BlockSpawnGenerator.TotalScenarios, "TotalScenarios should be 33.");
+
+        for (int i = 0; i < BlockSpawnGenerator.TotalScenarios; i++)
+        {
+            BlockModel[] setup = BlockSpawnGenerator.GenerateScenarioSetup(scenarioDb.scenarios[i]);
             Assert.IsNotNull(setup, $"Scenario {i} setup should not be null.");
             Assert.AreEqual(3, setup.Length, $"Scenario {i} setup must yield exactly 3 blocks.");
             Assert.IsNotNull(setup[0], $"Scenario {i} block 0 should not be null.");
@@ -664,17 +659,46 @@ public class BlockSpawnGeneratorTest
             Assert.IsNotNull(setup[2], $"Scenario {i} block 2 should not be null.");
         }
 
-        UnityEngine.Object.DestroyImmediate(fullDb);
+        for (int i = 0; i < scenarioDb.scenarios.Count; i++) UnityEngine.Object.DestroyImmediate(scenarioDb.scenarios[i]);
+        UnityEngine.Object.DestroyImmediate(scenarioDb);
         UnityEngine.Object.DestroyImmediate(sq2x2);
-        UnityEngine.Object.DestroyImmediate(line4);
-        UnityEngine.Object.DestroyImmediate(line5);
-        UnityEngine.Object.DestroyImmediate(smallV);
-        UnityEngine.Object.DestroyImmediate(shapeL);
-        UnityEngine.Object.DestroyImmediate(shapeJ);
-        UnityEngine.Object.DestroyImmediate(line3);
-        UnityEngine.Object.DestroyImmediate(shapeS);
-        UnityEngine.Object.DestroyImmediate(shapeZ);
-        UnityEngine.Object.DestroyImmediate(shapeT);
+    }
+
+    [Test]
+    public void Scenario_RotationAndMirror_TransformsOffsetsCorrectly()
+    {
+        ShapeData line2 = ScriptableObject.CreateInstance<ShapeData>();
+        line2.baseOffsets = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0) };
+
+        // 90 degree clockwise rotation of horizontal line2 -> should become vertical
+        BlockModel rotated = BlockSpawnGenerator.CreateTransformedBlockModel(line2, 90, false);
+        Assert.IsNotNull(rotated);
+        Assert.AreEqual(2, rotated.ShapeOffsets.Count);
+        Assert.IsTrue(rotated.ShapeOffsets.Contains((0, 0)));
+        Assert.IsTrue(rotated.ShapeOffsets.Contains((0, 1)));
+
+        UnityEngine.Object.DestroyImmediate(line2);
+    }
+
+    [Test]
+    public void Scenario_IsBoardMatchingScenario_SupportsRotatedTargetBoard()
+    {
+        ScenarioData scenario = ScriptableObject.CreateInstance<ScenarioData>();
+        scenario.allowRotation = true;
+        scenario.matchTolerance = 0;
+        scenario.targetBoard = new bool[64];
+        scenario.targetBoard[0] = true; // (0, 0) in base
+
+        // When rotated 90 degrees clockwise in 8x8, (x=0, y=0) -> (newX=y=0, newY=7-x=7) -> (0, 7)
+        var rotatedGrid = new MockDeviatedGrid(); // has cell at (0, 7)
+
+        bool match90 = BlockSpawnGenerator.IsBoardMatchingScenario(scenario, rotatedGrid, 90, false);
+        // Note: MockDeviatedGrid has (0,7) and (1,7), so tolerance=0 will fail on (1,7), but tolerance=1 matches!
+        scenario.matchTolerance = 1;
+        bool matchWithTolerance = BlockSpawnGenerator.IsBoardMatchingScenario(scenario, rotatedGrid, 90, false);
+        Assert.IsTrue(matchWithTolerance, "Board should match scenario rotated by 90 degrees with tolerance 1.");
+
+        UnityEngine.Object.DestroyImmediate(scenario);
     }
 
     private class MockCrossNearFullGrid : IGridService
