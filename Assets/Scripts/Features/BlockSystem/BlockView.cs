@@ -46,6 +46,8 @@ public class BlockView : MonoBehaviour
             return;
         }
 
+        Vector2 center = blockController != null ? blockController.CenterOffset : Vector2.zero;
+
         foreach (var offset in offsets)
         {
             // Bốc 1 cục gạch con từ kho
@@ -59,11 +61,10 @@ public class BlockView : MonoBehaviour
             cell.transform.localScale = Vector3.one;
 
             // Quy đổi tọa độ: X của mảng 2D -> X của Unity 3D, Y của mảng 2D -> Z của Unity 3D
-
-            cell.transform.localPosition = new Vector3(offset.x, 0, offset.y);
+            // Trừ đi center để căn giữa tâm khối gạch vào tâm GameObject
+            cell.transform.localPosition = new Vector3(offset.x - center.x, 0, offset.y - center.y);
 
             // Lưu lại để xíu nữa trả về kho
-
             activeCells.Add(cell);
         }
     }

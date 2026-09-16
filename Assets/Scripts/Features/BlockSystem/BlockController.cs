@@ -17,6 +17,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     // Lắng nghe sự kiện để View biết phải vẽ hình gì
     public event Action<List<(int x, int y)>> OnShapeAssigned;
+    public Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
 
     private void Awake()
     {
@@ -54,33 +55,35 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
 
         // Cập nhật vị trí hiển thị cục gạch (luôn giữ offset y=1 và z=z+2 so với ngón tay)
-
         transform.position = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
 
-        // DÙNG TỌA ĐỘ CỦA BLOCK ĐỂ TÍNH TOÁN
-
         Vector3 blockPos = transform.position;
+        Vector2 center = CenterOffset;
+        Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
+        Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
 
-        // 2. Kiểm tra vùng an toàn (Xét theo tọa độ của Block)
-        if (blockPos.x >= -3.5f && blockPos.x <= 3.5f && blockPos.z >= 1.5f && blockPos.z <= 8.5f)
+        List<Vector2Int> occupiedPositions = new List<Vector2Int>();
+        bool allInBounds = true;
+
+        if (model != null && model.ShapeOffsets != null)
         {
-            // 3. Tính toán ô mà Block đang nằm lên
-            Vector2Int centerGridPos = gridService.GetGridPositionFromWorld(blockPos);
-            List<Vector2Int> occupiedPositions = new List<Vector2Int>();
-
-
             foreach (var offset in model.ShapeOffsets)
             {
-                occupiedPositions.Add(centerGridPos + new Vector2Int(offset.x, offset.y));
+                Vector2Int pos = originGridPos + new Vector2Int(offset.x, offset.y);
+                if (pos.x < 0 || pos.x >= gridService.GridWidth || pos.y < 0 || pos.y >= gridService.GridHeight)
+                {
+                    allInBounds = false;
+                }
+                occupiedPositions.Add(pos);
             }
+        }
 
-            // Yêu cầu Grid bật bóng mờ
-
+        if (allInBounds)
+        {
             gridService.RequestPreview(occupiedPositions);
         }
         else
         {
-            // Nếu Block nằm ngoài vùng an toàn -> Tắt bóng mờ
             gridService.RequestPreview(new List<Vector2Int>());
         }
     }
@@ -94,29 +97,35 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
         transform.position = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
 
-
         Vector3 blockPos = transform.position;
+        Vector2 center = CenterOffset;
+        Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
+        Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
+
+        List<Vector2Int> occupiedPositions = new List<Vector2Int>();
+        bool allInBounds = true;
+
+        if (model != null && model.ShapeOffsets != null)
+        {
+            foreach (var offset in model.ShapeOffsets)
+            {
+                Vector2Int pos = originGridPos + new Vector2Int(offset.x, offset.y);
+                if (pos.x < 0 || pos.x >= gridService.GridWidth || pos.y < 0 || pos.y >= gridService.GridHeight)
+                {
+                    allInBounds = false;
+                }
+                occupiedPositions.Add(pos);
+            }
+        }
+
         bool isPlaced = false;
 
         // 2. Xét đặt gạch theo tọa độ của Block
-        if (blockPos.x >= -3.5f && blockPos.x <= 3.5f && blockPos.z >= 1.5f && blockPos.z <= 8.5f)
+        if (allInBounds && gridService.CanPlaceBlocks(occupiedPositions))
         {
-            Vector2Int centerGridPos = gridService.GetGridPositionFromWorld(blockPos);
-            List<Vector2Int> occupiedPositions = new List<Vector2Int>();
-
-
-            foreach (var offset in model.ShapeOffsets)
-            {
-                occupiedPositions.Add(centerGridPos + new Vector2Int(offset.x, offset.y));
-            }
-
-            // Hỏi ý kiến Sếp Grid xem chỗ này có trống không
-            if (gridService.CanPlaceBlocks(occupiedPositions))
-            {
-                // Chốt đơn!
-                gridService.PlaceBlocks(occupiedPositions);
-                isPlaced = true;
-            }
+            // Chốt đơn!
+            gridService.PlaceBlocks(occupiedPositions);
+            isPlaced = true;
         }
 
         // Xử lý kết quả sau khi thả
