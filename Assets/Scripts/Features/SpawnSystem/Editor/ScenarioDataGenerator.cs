@@ -103,7 +103,7 @@ public static class ScenarioDataGenerator
                 (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0),
                 (1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1)
             ),
-            new ScenarioBatch { note = "Finisher: Drop vertical Line 2 into Col 0 for 100% ALL CLEAR!", slot0 = line2, slot1 = square2x2, slot2 = smallV }
+            new ScenarioBatch { note = "Finisher: Drop vertical Line 3 into Col 0 for 100% ALL CLEAR!", slot0 = line3, slot1 = square2x2, slot2 = smallV }
         ));
 
         // ======================================================================
@@ -165,7 +165,7 @@ public static class ScenarioDataGenerator
                 (0, 4), (1, 4), (2, 4), (6, 4), (7, 4),
                 (0, 5), (1, 5), (2, 5), (6, 5), (7, 5)
             ),
-            new ScenarioBatch { note = "Finisher: Drop Square 3x3 into center crater for 100% ALL CLEAR!", slot0 = square3x3, slot1 = square2x2, slot2 = line2 }
+            new ScenarioBatch { note = "Finisher: Drop Square 3x3 into center crater for 100% ALL CLEAR!", slot0 = square3x3, slot1 = square2x2, slot2 = line3 }
         ));
 
         // 10. Rect 2x3 Triple Column (MultiLineClear) - 100% All Clear
@@ -194,7 +194,7 @@ public static class ScenarioDataGenerator
             "Scenario_11_Rect3x2DualRowBlast",
             "Rect 3x2 Dual Row Blast",
             ScenarioType.MultiLineClear,
-            new ScenarioBatch { note = "Setup: Two Square 2x2 and vertical Line 2 in Rows 0-1 leaving 3x2 gap", slot0 = square2x2, slot1 = square2x2, slot2 = line2 },
+            new ScenarioBatch { note = "Setup: Square 2x2 and two Line 3 in Rows 0-1 leaving 3x2 gap", slot0 = square2x2, slot1 = line3, slot2 = line3 },
             CreateCoords(
                 (0, 0), (1, 0), (2, 0), (3, 0), (4, 0),
                 (0, 1), (1, 1), (2, 1), (3, 1), (4, 1)
@@ -207,7 +207,7 @@ public static class ScenarioDataGenerator
             "Scenario_12_Rect2x3DualColumnCrush",
             "Rect 2x3 Dual Column Crush",
             ScenarioType.MultiLineClear,
-            new ScenarioBatch { note = "Setup: Two Square 2x2 and horizontal Line 2 in Cols 0-1 leaving 2x3 gap", slot0 = square2x2, slot1 = square2x2, slot2 = line2 },
+            new ScenarioBatch { note = "Setup: Square 2x2 and two Line 3 in Cols 0-1 leaving 2x3 gap", slot0 = square2x2, slot1 = line3, slot2 = line3 },
             CreateCoords(
                 (0, 0), (1, 0),
                 (0, 1), (1, 1),
@@ -223,7 +223,7 @@ public static class ScenarioDataGenerator
             "Scenario_13_CenterDualRowRectBlast",
             "Center Dual Row Rect Blast",
             ScenarioType.MultiLineClear,
-            new ScenarioBatch { note = "Setup: Two Square 2x2 and vertical Line 2 in Rows 3-4 leaving 3x2 gap", slot0 = square2x2, slot1 = square2x2, slot2 = line2 },
+            new ScenarioBatch { note = "Setup: Square 2x2 and two Line 3 in Rows 3-4 leaving 3x2 gap", slot0 = square2x2, slot1 = line3, slot2 = line3 },
             CreateCoords(
                 (0, 3), (1, 3), (2, 3), (3, 3), (4, 3),
                 (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)
@@ -236,7 +236,7 @@ public static class ScenarioDataGenerator
             "Scenario_14_CenterDualColumnCrush",
             "Center Dual Column Crush",
             ScenarioType.MultiLineClear,
-            new ScenarioBatch { note = "Setup: Two Square 2x2 and horizontal Line 2 in Cols 3-4 leaving 2x3 gap", slot0 = square2x2, slot1 = square2x2, slot2 = line2 },
+            new ScenarioBatch { note = "Setup: Square 2x2 and two Line 3 in Cols 3-4 leaving 2x3 gap", slot0 = square2x2, slot1 = line3, slot2 = line3 },
             CreateCoords(
                 (3, 0), (4, 0),
                 (3, 1), (4, 1),
@@ -252,7 +252,7 @@ public static class ScenarioDataGenerator
             "Scenario_15_TopDualRowRectBlast",
             "Top Dual Row Rect Blast",
             ScenarioType.MultiLineClear,
-            new ScenarioBatch { note = "Setup: Two Square 2x2 and vertical Line 2 in Rows 6-7 leaving 3x2 gap", slot0 = square2x2, slot1 = square2x2, slot2 = line2 },
+            new ScenarioBatch { note = "Setup: Square 2x2 and two Line 3 in Rows 6-7 leaving 3x2 gap", slot0 = square2x2, slot1 = line3, slot2 = line3 },
             CreateCoords(
                 (0, 6), (1, 6), (2, 6), (3, 6), (4, 6),
                 (0, 7), (1, 7), (2, 7), (3, 7), (4, 7)
@@ -428,7 +428,7 @@ public static class ScenarioDataGenerator
                 (3, 2), (4, 2), (5, 2), (6, 2), (7, 2),
                 (1, 3), (1, 4), (1, 5), (1, 6), (1, 7)
             ),
-            new ScenarioBatch { note = "Finisher: Complete Col 2 with Line 5, then drop Square 2x2 into intersection for 4-line blast & 100% ALL CLEAR!", slot0 = line5, slot1 = square2x2, slot2 = line2 }
+            new ScenarioBatch { note = "Finisher: Complete Col 2 with Line 5, then drop Square 2x2 into intersection for 4-line blast & 100% ALL CLEAR!", slot0 = line5, slot1 = square2x2, slot2 = line4 }
         ));
 
         // 28. Cross 2x2 Top Right (CrossClear) - 4 Lines Simultaneous Clear
@@ -442,7 +442,7 @@ public static class ScenarioDataGenerator
                 (0, 6), (1, 6), (2, 6), (3, 6), (4, 6),
                 (5, 0), (5, 1), (5, 2), (5, 3), (5, 4)
             ),
-            new ScenarioBatch { note = "Finisher: Complete Col 6 with Line 5, then drop Square 2x2 into intersection for 4-line blast & 100% ALL CLEAR!", slot0 = line5, slot1 = square2x2, slot2 = line2 }
+            new ScenarioBatch { note = "Finisher: Complete Col 6 with Line 5, then drop Square 2x2 into intersection for 4-line blast & 100% ALL CLEAR!", slot0 = line5, slot1 = square2x2, slot2 = line4 }
         ));
 
         // 29. Cross 2x3 Center (CrossClear) - 5 Lines Simultaneous Clear (2 Rows x 3 Cols)

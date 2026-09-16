@@ -17,10 +17,10 @@ MonoBehaviour:
   allowRotation: 1
   allowMirror: 1
   setupBatch:
-    note: 'Setup: Two Square 2x2 and vertical Line 2 in Rows 6-7 leaving 3x2 gap'
+    note: 'Setup: Square 2x2 and two Line 3 in Rows 6-7 leaving 3x2 gap'
     slot0: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot2: {fileID: 11400000, guid: 349f5c97b3e29ee4881c4a783c6e8bb7, type: 2}
+    slot1: {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}
+    slot2: {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}
   targetBoard: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010000000101010101000000
   matchTolerance: 1
   requiredTargetCoords:

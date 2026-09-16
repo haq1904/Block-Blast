@@ -12,17 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c638fecccdc1af846a5a202f42b778d7, type: 3}
   m_Name: Scenario_05_CornerTwinRowBlast
   m_EditorClassIdentifier: BlockBlast.Feature::ScenarioData
-  scenarioName: Corner Twin Row Blast
+  scenarioName: Corner Triple Row Blast
   scenarioType: 1
   allowRotation: 1
   allowMirror: 1
   setupBatch:
-    note: 'Setup: Rect 2x3 and two Square 2x2 in Rows 0-1 leaving 1x2 vertical slot
-      at Col 0'
+    note: 'Setup: Two Rect 2x3 and Square 3x3 in Rows 0-2 leaving 1x3 vertical slot at Col 0'
     slot0: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
-    slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot2: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-  targetBoard: 00010101010101010001010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+    slot1: {fileID: 11400000, guid: 45f7e88cbe064b28adaa7d548852457f, type: 2}
+    slot2: {fileID: 11400000, guid: 8a4365aa4785d9f40b54cc386d5f50e7, type: 2}
+  targetBoard: 00010101010101010001010101010101000101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000
   matchTolerance: 1
   requiredTargetCoords:
   - {x: 1, y: 0}
@@ -39,8 +38,15 @@ MonoBehaviour:
   - {x: 5, y: 1}
   - {x: 6, y: 1}
   - {x: 7, y: 1}
+  - {x: 1, y: 2}
+  - {x: 2, y: 2}
+  - {x: 3, y: 2}
+  - {x: 4, y: 2}
+  - {x: 5, y: 2}
+  - {x: 6, y: 2}
+  - {x: 7, y: 2}
   finisherBatch:
-    note: 'Finisher: Drop vertical Line 2 into Col 0 for 100% ALL CLEAR!'
-    slot0: {fileID: 11400000, guid: 349f5c97b3e29ee4881c4a783c6e8bb7, type: 2}
+    note: 'Finisher: Drop vertical Line 3 into Col 0 for 100% ALL CLEAR triple row blast!'
+    slot0: {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}
     slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot2: {fileID: 11400000, guid: fb7482625b13da0439a4215370b23f64, type: 2}
+    slot2: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}

@@ -44,4 +44,4 @@ MonoBehaviour:
     note: 'Finisher: Drop Square 3x3 into center crater for 100% ALL CLEAR!'
     slot0: {fileID: 11400000, guid: 8a4365aa4785d9f40b54cc386d5f50e7, type: 2}
     slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot2: {fileID: 11400000, guid: 349f5c97b3e29ee4881c4a783c6e8bb7, type: 2}
+    slot2: {fileID: 11400000, guid: 2373f6cfcfef8db4a920b00359211a5c, type: 2}

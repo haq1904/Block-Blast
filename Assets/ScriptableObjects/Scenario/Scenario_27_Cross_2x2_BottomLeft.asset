@@ -44,4 +44,4 @@ MonoBehaviour:
       for 4-line blast & 100% ALL CLEAR!'
     slot0: {fileID: 11400000, guid: 212e2e8c95840964ea43889d71a674eb, type: 2}
     slot1: {fileID: 11400000, guid: eada6484a789f534ca3c7af73502fa02, type: 2}
-    slot2: {fileID: 11400000, guid: 349f5c97b3e29ee4881c4a783c6e8bb7, type: 2}
+    slot2: {fileID: 11400000, guid: 96dfdf78ab5a37c4e96244e58936acf0, type: 2}
