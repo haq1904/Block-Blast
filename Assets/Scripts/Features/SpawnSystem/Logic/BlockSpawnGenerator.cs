@@ -5,7 +5,7 @@ using Random = UnityEngine.Random;
 
 public static class BlockSpawnGenerator
 {
-    public const int TotalScenarios = 10;
+    public const int TotalScenarios = 33;
 
     public static BlockModel[] GenerateBatch(
         int score,
@@ -42,12 +42,6 @@ public static class BlockSpawnGenerator
                 BlockModel[] progressionBatch = HandleEarlyGameProgression(score, gridService, shapeDatabase, config, spawnModel);
                 if (progressionBatch != null && progressionBatch.Length == 3 && (gridService == null || CanPlaceAny(progressionBatch, gridService)))
                     return progressionBatch;
-            }
-            else if (config.enableSynergisticBatches && (gridService == null || gridService.OccupiedCellCount == 0))
-            {
-                BlockModel[] synBatch = TryGenerateSynergisticBatch(score, gridService, shapeDatabase, config);
-                if (synBatch != null && synBatch.Length == 3 && (gridService == null || CanPlaceAny(synBatch, gridService)))
-                    return synBatch;
             }
         }
         else
@@ -111,6 +105,48 @@ public static class BlockSpawnGenerator
         return new BlockModel(pureOffsets);
     }
 
+    public static BlockModel CreateTransformedBlockModel(ShapeData data, int angle, bool mirrorX)
+    {
+        if (data == null || data.baseOffsets == null || data.baseOffsets.Count == 0)
+            return new BlockModel(new List<(int x, int y)> { (0, 0) });
+
+        List<Vector2Int> transformed = new List<Vector2Int>(data.baseOffsets.Count);
+        int rotations = ((angle % 360) + 360) % 360 / 90;
+
+        for (int i = 0; i < data.baseOffsets.Count; i++)
+        {
+            int x = data.baseOffsets[i].x;
+            int y = data.baseOffsets[i].y;
+
+            if (mirrorX) x = -x;
+
+            for (int r = 0; r < rotations; r++)
+            {
+                int temp = x;
+                x = y;
+                y = -temp;
+            }
+            transformed.Add(new Vector2Int(x, y));
+        }
+
+        List<(int x, int y)> normalized = NormalizeOffsets(transformed);
+        return new BlockModel(normalized);
+    }
+
+    public static BlockModel[] MakeTransformedBatch(ShapeData s1, ShapeData s2, ShapeData s3, int angle, bool mirrorX)
+    {
+        if (s1 != null && s2 != null && s3 != null)
+        {
+            return new BlockModel[]
+            {
+                CreateTransformedBlockModel(s1, angle, mirrorX),
+                CreateTransformedBlockModel(s2, angle, mirrorX),
+                CreateTransformedBlockModel(s3, angle, mirrorX)
+            };
+        }
+        return null;
+    }
+
     public static bool CanPlaceAny(BlockModel[] batch, IGridService grid)
     {
         if (batch == null || grid == null) return false;
@@ -163,98 +199,6 @@ public static class BlockSpawnGenerator
             }
         }
         return false;
-    }
-
-    public static bool CanPlaceBlockAt(BlockModel block, int originX, int originY, IGridService grid)
-    {
-        if (block == null || grid == null) return false;
-        var offsets = block.ShapeOffsets;
-        for (int i = 0; i < offsets.Count; i++)
-        {
-            int gx = originX + offsets[i].x;
-            int gy = originY + offsets[i].y;
-            if (gx < 0 || gx >= grid.GridWidth || gy < 0 || gy >= grid.GridHeight) return false;
-            if (grid.IsCellOccupied(gx, gy)) return false;
-        }
-        return true;
-    }
-
-    public static int CountLinesClearedIfPlaced(BlockModel block, int originX, int originY, IGridService grid)
-    {
-        CalculateRemainingCellsAfterPlacement(block, originX, originY, grid, out int linesCleared);
-        return linesCleared;
-    }
-
-    public static int CalculateRemainingCellsAfterPlacement(
-        BlockModel block,
-        int originX,
-        int originY,
-        IGridService grid,
-        out int linesCleared)
-    {
-        linesCleared = 0;
-        if (block == null || grid == null) return grid != null ? grid.OccupiedCellCount : 0;
-
-        ulong blockMask = 0;
-        byte rowsAffected = 0;
-        byte colsAffected = 0;
-        var offsets = block.ShapeOffsets;
-        int count = offsets.Count;
-
-        for (int i = 0; i < count; i++)
-        {
-            int gx = originX + offsets[i].x;
-            int gy = originY + offsets[i].y;
-            if (gx < 0 || gx >= grid.GridWidth || gy < 0 || gy >= grid.GridHeight) return grid.OccupiedCellCount;
-            if (grid.IsCellOccupied(gx, gy)) return grid.OccupiedCellCount;
-
-            blockMask |= 1UL << (gx + (gy << 3));
-            rowsAffected |= (byte)(1 << gy);
-            colsAffected |= (byte)(1 << gx);
-        }
-
-        int rowsCleared = 0;
-        for (int r = 0; r < grid.GridHeight; r++)
-        {
-            if ((rowsAffected & (1 << r)) != 0)
-            {
-                bool full = true;
-                for (int c = 0; c < grid.GridWidth; c++)
-                {
-                    if (!grid.IsCellOccupied(c, r) && (blockMask & (1UL << (c + (r << 3)))) == 0)
-                    {
-                        full = false;
-                        break;
-                    }
-                }
-                if (full) rowsCleared++;
-            }
-        }
-
-        int colsCleared = 0;
-        for (int c = 0; c < grid.GridWidth; c++)
-        {
-            if ((colsAffected & (1 << c)) != 0)
-            {
-                bool full = true;
-                for (int r = 0; r < grid.GridHeight; r++)
-                {
-                    if (!grid.IsCellOccupied(c, r) && (blockMask & (1UL << (c + (r << 3)))) == 0)
-                    {
-                        full = false;
-                        break;
-                    }
-                }
-                if (full) colsCleared++;
-            }
-        }
-
-        linesCleared = rowsCleared + colsCleared;
-        if (linesCleared == 0) return grid.OccupiedCellCount + count;
-
-        int clearedCellsCount = (rowsCleared * grid.GridWidth) + (colsCleared * grid.GridHeight) - (rowsCleared * colsCleared);
-        int remaining = grid.OccupiedCellCount + count - clearedCellsCount;
-        return Mathf.Max(0, remaining);
     }
 
     public static int PopCount(ulong x)
@@ -329,65 +273,37 @@ public static class BlockSpawnGenerator
         }
     }
 
-    private class SimulatedGrid : IGridService
+    public static int CountLinesClearedIfPlaced(BlockModel block, int originX, int originY, IGridService grid)
     {
-        private GridBitboard _board;
+        CalculateRemainingCellsAfterPlacement(block, originX, originY, grid, out int linesCleared);
+        return linesCleared;
+    }
 
-        public int GridWidth => 8;
-        public int GridHeight => 8;
-        public int OccupiedCellCount => _board.Count;
-        public float OccupancyRatio => _board.Count / 64f;
+    public static int CalculateRemainingCellsAfterPlacement(
+        BlockModel block,
+        int originX,
+        int originY,
+        IGridService grid,
+        out int linesCleared)
+    {
+        linesCleared = 0;
+        if (block == null || grid == null) return grid != null ? grid.OccupiedCellCount : 0;
 
-        public SimulatedGrid(IGridService source)
+        GridBitboard board = new GridBitboard(grid);
+        ulong blockMask = 0;
+        byte rows = 0, cols = 0;
+        var offsets = block.ShapeOffsets;
+
+        for (int i = 0; i < offsets.Count; i++)
         {
-            _board = source is SimulatedGrid sim ? sim._board : new GridBitboard(source);
+            int gx = originX + offsets[i].x, gy = originY + offsets[i].y;
+            if ((uint)gx >= 8 || (uint)gy >= 8 || board.IsCellOccupied(gx, gy)) return grid.OccupiedCellCount;
+            blockMask |= 1UL << (gx + (gy << 3));
+            rows |= (byte)(1 << gy);
+            cols |= (byte)(1 << gx);
         }
 
-#pragma warning disable CS0067
-        public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
-        public event Action<List<Vector2Int>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
-        public event Action<int, int, bool> OnPlacementResolved;
-#pragma warning restore CS0067
-
-        public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
-        public Vector3 GetWorldPositionFromGrid(Vector2Int gridPos) => Vector3.zero;
-        public void RequestPreview(List<Vector2Int> gridPositions) { }
-        public void PlaceBlocks(List<Vector2Int> gridPositions) { }
-
-        public bool IsCellOccupied(int col, int row) => _board.IsCellOccupied(col, row);
-
-        public bool CanPlaceBlocks(List<Vector2Int> gridPositions)
-        {
-            if (gridPositions == null || gridPositions.Count == 0) return false;
-            for (int i = 0; i < gridPositions.Count; i++)
-            {
-                var pos = gridPositions[i];
-                if ((uint)pos.x >= 8 || (uint)pos.y >= 8 || _board.IsCellOccupied(pos.x, pos.y)) return false;
-            }
-            return true;
-        }
-
-        public void SimulatePlaceAndClear(BlockModel block, int originX, int originY)
-        {
-            if (block == null) return;
-            ulong blockMask = 0;
-            byte rowsAffected = 0;
-            byte colsAffected = 0;
-            var offsets = block.ShapeOffsets;
-            for (int i = 0; i < offsets.Count; i++)
-            {
-                int gx = originX + offsets[i].x;
-                int gy = originY + offsets[i].y;
-                if ((uint)gx < 8 && (uint)gy < 8)
-                {
-                    blockMask |= 1UL << (gx + (gy << 3));
-                    rowsAffected |= (byte)(1 << gy);
-                    colsAffected |= (byte)(1 << gx);
-                }
-            }
-            _board = _board.PlaceAndClear(blockMask, rowsAffected, colsAffected, out _);
-        }
+        return board.PlaceAndClear(blockMask, rows, cols, out linesCleared).Count;
     }
 
     private static BlockModel[] HandleEarlyGameProgression(
@@ -397,197 +313,143 @@ public static class BlockSpawnGenerator
         SpawnConfiguration config,
         SpawnModel model)
     {
-        if (db == null) return null;
-
-        if (model != null && model.ActiveScenarioId >= 0 && model.ScenarioStepIndex > 0)
+        if (config == null || score >= config.comboPhaseScoreThreshold)
         {
-            if (IsBoardMatchingScenario(model.ActiveScenarioId, model.ScenarioStepIndex, grid))
+            if (model != null && model.ActiveScenarioId >= 0)
             {
-                BlockModel[] finisherBatch = GenerateScenarioFinisher(model.ActiveScenarioId, db, grid, config);
                 model.ResetScenario();
-                if (finisherBatch != null) return finisherBatch;
+            }
+            return null;
+        }
+
+        ScenarioDatabase scenarioDb = GetScenarioDatabase(config);
+
+        // Phase 2: Check active scenario for completion or deviation
+        if (model != null && model.ActiveScenarioId >= 0 && model.ScenarioStepIndex == 1)
+        {
+            ScenarioData activeScenario = (scenarioDb != null && scenarioDb.scenarios != null && model.ActiveScenarioId < scenarioDb.scenarios.Count)
+                ? scenarioDb.scenarios[model.ActiveScenarioId]
+                : null;
+
+            if (activeScenario != null && IsBoardMatchingScenario(activeScenario, grid, model.ActiveScenarioAngle, model.ActiveScenarioMirror))
+            {
+                BlockModel[] finisherBatch = GenerateScenarioFinisher(activeScenario, model.ActiveScenarioAngle, model.ActiveScenarioMirror);
+                model.ResetScenario();
+                if (finisherBatch != null && finisherBatch.Length == 3) return finisherBatch;
             }
             else
             {
+                // Player deviated from scenario -> Reset cleanly and fallback to adaptive solver
                 model.ResetScenario();
+                if (grid != null && grid.OccupiedCellCount > 0)
+                {
+                    return GenerateIntelligentBatch(db, grid, config, score);
+                }
             }
         }
 
-        if (grid != null && grid.OccupiedCellCount > 0) return GenerateGridAssistedBatch(db, grid, config);
-
-        if (config.enableScenarioChains && model != null)
-        {
-            int scenarioId = Random.Range(0, TotalScenarios);
-            BlockModel[] setupBatch = GenerateScenarioSetup(scenarioId, db, config);
-            if (setupBatch != null)
-            {
-                model.ActiveScenarioId = scenarioId;
-                model.ScenarioStepIndex = 1;
-                return setupBatch;
-            }
-        }
-
-        return TryGenerateSynergisticBatch(score, grid, db, config);
-    }
-
-    public static bool IsBoardMatchingScenario(int scenarioId, int stepIndex, IGridService grid)
-    {
-        if (grid == null || grid.OccupiedCellCount == 0) return false;
-
-        int nearFullRows = 0, nearFullCols = 0;
-        for (int i = 0; i < 8; i++)
-        {
-            int rOcc = 0, cOcc = 0;
-            for (int j = 0; j < 8; j++)
-            {
-                if (grid.IsCellOccupied(j, i)) rOcc++;
-                if (grid.IsCellOccupied(i, j)) cOcc++;
-            }
-            if (rOcc >= 4) nearFullRows++;
-            if (cOcc >= 4) nearFullCols++;
-        }
-
-        if (scenarioId == 0) return nearFullRows >= 2;
-        if (scenarioId == 1 || scenarioId == 5 || scenarioId == 8) return nearFullRows >= 1 && nearFullCols >= 1;
-        if (scenarioId == 2) return nearFullRows >= 2 || nearFullCols >= 2;
-        return nearFullRows >= 1 || nearFullCols >= 1;
-    }
-
-    private static BlockModel[] MakeBatch(ShapeData s1, ShapeData s2, ShapeData s3)
-    {
-        if (s1 != null && s2 != null && s3 != null)
-            return new BlockModel[] { CreateBlockModel(s1), CreateBlockModel(s2), CreateBlockModel(s3) };
-        return null;
-    }
-
-    public static BlockModel[] GenerateScenarioSetup(int scenarioId, ShapeDatabase db, SpawnConfiguration config)
-    {
-        if (db == null) return null;
-
-        switch (scenarioId)
-        {
-            case 0: return MakeBatch(FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 4, 1));
-            case 1: return MakeBatch(FindShapeByBounds(db, 5, 5, 1), FindShapeByBounds(db, 4, 4, 1), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2));
-            case 2: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_L", 4, 2, 3), FindShapeByNameOrBounds(db, "Shape_J", 4, 2, 3), FindShapeByBounds(db, 4, 4, 1));
-            case 3: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_L", 4, 2, 3), FindShapeByNameOrBounds(db, "Shape_J", 4, 2, 3), FindShapeByBounds(db, 3, 3, 1));
-            case 4: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_S", 4, 3, 2), FindShapeByNameOrBounds(db, "Shape_Z", 4, 3, 2), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2));
-            case 5: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_T", 4, 3, 2), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2), FindShapeByBounds(db, 4, 4, 1));
-            case 6: return MakeBatch(FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2), FindShapeByBounds(db, 4, 4, 1));
-            case 7: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_L", 4, 2, 3), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2), FindShapeByNameOrBounds(db, "Shape_T", 4, 3, 2));
-            case 8: return MakeBatch(FindShapeByBounds(db, 4, 2, 2), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2), FindShapeByNameOrBounds(db, "Shape_L", 4, 2, 3));
-            case 9: return MakeBatch(FindShapeByBounds(db, 4, 4, 1), FindShapeByBounds(db, 4, 4, 1), FindShapeByNameOrBounds(db, "Small_V", 3, 2, 2));
-        }
-        return null;
-    }
-
-    public static BlockModel[] GenerateScenarioFinisher(int scenarioId, ShapeDatabase db, IGridService grid, SpawnConfiguration config)
-    {
-        return GenerateGridAssistedBatch(db, grid, config);
-    }
-
-    public static BlockModel[] TryGenerateSynergisticBatch(
-        int score,
-        IGridService grid,
-        ShapeDatabase db,
-        SpawnConfiguration config)
-    {
-        if (db == null) return null;
-
+        // If grid has existing blocks not matching a scenario, assist with normal play
         if (grid != null && grid.OccupiedCellCount > 0)
         {
-            BlockModel[] dynamicBatch = GenerateGridAssistedBatch(db, grid, config);
-            if (dynamicBatch != null && dynamicBatch.Length == 3) return dynamicBatch;
+            return GenerateIntelligentBatch(db, grid, config, score);
         }
 
-        int startPattern = Random.Range(0, 9);
-        for (int i = 0; i < 9; i++)
+        // Phase 1: Setup Trigger (Only when board is clean/empty and scenarios enabled)
+        if (config.enableScenarioChains && model != null && scenarioDb != null && scenarioDb.scenarios != null && scenarioDb.scenarios.Count > 0)
         {
-            int pattern = (startPattern + i) % 9;
-            BlockModel[] result = TryBuildSynergyPattern(pattern, db);
-            if (result != null && result.Length == 3) return result;
-        }
-
-        return null;
-    }
-
-    private static BlockModel[] TryBuildSynergyPattern(int pattern, ShapeDatabase db)
-    {
-        ShapeData fallback = GetAllPlayableShapes(db).Count > 0 ? GetAllPlayableShapes(db)[0] : null;
-        switch (pattern)
-        {
-            case 0: return MakeBatch(FindShapeByBounds(db, 4, 4, 1), FindShapeByBounds(db, 4, 4, 1), FindShapeByBounds(db, 4, 2, 2) ?? fallback);
-            case 1: return MakeBatch(FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 4, 1));
-            case 2: return MakeBatch(FindShapeByBounds(db, 5, 5, 1), FindShapeByBounds(db, 3, 3, 1), FindShapeByBounds(db, 4, 2, 2) ?? FindShapeByBounds(db, 4, 4, 1) ?? fallback);
-            case 3: return MakeBatch(FindShapeByBounds(db, 3, 3, 1), FindShapeByBounds(db, 3, 3, 1), FindShapeByBounds(db, 2, 2, 1));
-            case 4: return MakeBatch(FindShapeByBounds(db, 5, 5, 1), FindShapeByBounds(db, 4, 4, 1), FindShapeByBounds(db, 4, 4, 1));
-            case 5: return MakeBatch(FindShapeByNameOrBounds(db, "Shape_L", 4, 2, 3), FindShapeByNameOrBounds(db, "Shape_J", 4, 2, 3), FindShapeByBounds(db, 4, 4, 1) ?? FindShapeByBounds(db, 4, 2, 2));
-            case 6: return MakeBatch(FindShapeByNameOrBounds(db, "Big_V", 5, 3, 3), FindShapeByBounds(db, 5, 5, 1), FindShapeByBounds(db, 5, 5, 1) ?? FindShapeByBounds(db, 3, 3, 1));
-            case 7: return MakeBatch(FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 2, 2), FindShapeByBounds(db, 4, 2, 2));
-            case 8: return MakeBatch(FindShapeByBounds(db, 6, 2, 3) ?? FindShapeByBounds(db, 6, 3, 2), FindShapeByBounds(db, 5, 5, 1), FindShapeByBounds(db, 3, 3, 1));
-        }
-        return null;
-    }
-
-    private static ShapeData FindShapeByNameOrBounds(ShapeDatabase db, string nameKeyword, int tileCount, int width, int height)
-    {
-        if (db == null) return null;
-        List<ShapeData> allShapes = db.shapes ?? new List<ShapeData>();
-
-        if (!string.IsNullOrEmpty(nameKeyword))
-        {
-            for (int i = 0; i < allShapes.Count; i++)
+            int scenarioIndex = Random.Range(0, scenarioDb.scenarios.Count);
+            ScenarioData scenario = scenarioDb.scenarios[scenarioIndex];
+            if (scenario != null && scenario.setupBatch != null && scenario.setupBatch.HasAnyShape)
             {
-                var s = allShapes[i];
-                if (s != null && s.name != null && s.name.IndexOf(nameKeyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return s;
+                int angle = scenario.allowRotation ? Random.Range(0, 4) * 90 : 0;
+                bool mirror = scenario.allowMirror && Random.value > 0.5f;
+
+                BlockModel[] setupBatch = GenerateScenarioSetup(scenario, angle, mirror);
+                if (setupBatch != null && setupBatch.Length == 3)
+                {
+                    model.ActiveScenarioId = scenarioIndex;
+                    model.ScenarioStepIndex = 1;
+                    model.ActiveScenarioAngle = angle;
+                    model.ActiveScenarioMirror = mirror;
+                    return setupBatch;
+                }
             }
         }
 
-        return FindShapeByBounds(db, tileCount, width, height);
+        return GenerateIntelligentBatch(db, grid, config, score);
     }
 
-    private static ShapeData FindShapeByBounds(ShapeDatabase db, int tileCount, int width, int height)
+    public static bool IsBoardMatchingScenario(ScenarioData scenario, IGridService grid, int angle = 0, bool mirror = false)
     {
-        if (db == null) return null;
-        List<ShapeData> allShapes = db.shapes ?? new List<ShapeData>();
+        if (scenario == null || grid == null || scenario.targetBoard == null) return false;
 
-        for (int i = 0; i < allShapes.Count; i++)
+        bool[] expected = (angle != 0 || mirror)
+            ? ScenarioData.TransformGrid(scenario.targetBoard, angle, mirror)
+            : scenario.targetBoard;
+
+        int mismatch = 0;
+        int targetOccupied = 0;
+        for (int y = 0; y < 8; y++)
         {
-            var s = allShapes[i];
-            if (s == null || s.baseOffsets == null || s.baseOffsets.Count != tileCount) continue;
-
-            int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
-            for (int j = 0; j < s.baseOffsets.Count; j++)
+            for (int x = 0; x < 8; x++)
             {
-                var off = s.baseOffsets[j];
-                if (off.x < minX) minX = off.x;
-                if (off.x > maxX) maxX = off.x;
-                if (off.y < minY) minY = off.y;
-                if (off.y > maxY) maxY = off.y;
+                bool exp = expected[y * 8 + x];
+                if (exp) targetOccupied++;
+                bool act = grid.IsCellOccupied(x, y);
+                if (exp != act)
+                {
+                    mismatch++;
+                    if (mismatch > scenario.matchTolerance) return false;
+                }
             }
-            int w = maxX - minX + 1;
-            int h = maxY - minY + 1;
+        }
 
-            if ((w == width && h == height) || (w == height && h == width)) return s;
+        // If premature clear occurred, grid occupied count will be significantly lower than target
+        if (grid.OccupiedCellCount < targetOccupied - scenario.matchTolerance) return false;
+
+        return mismatch <= scenario.matchTolerance;
+    }
+
+    public static BlockModel[] GenerateScenarioSetup(ScenarioData scenario, int angle = 0, bool mirror = false)
+    {
+        if (scenario == null || scenario.setupBatch == null) return null;
+        return MakeTransformedBatch(
+            scenario.setupBatch.slot0,
+            scenario.setupBatch.slot1,
+            scenario.setupBatch.slot2,
+            angle,
+            mirror);
+    }
+
+    public static BlockModel[] GenerateScenarioFinisher(ScenarioData scenario, int angle = 0, bool mirror = false)
+    {
+        if (scenario == null || scenario.finisherBatch == null) return null;
+        return MakeTransformedBatch(
+            scenario.finisherBatch.slot0,
+            scenario.finisherBatch.slot1,
+            scenario.finisherBatch.slot2,
+            angle,
+            mirror);
+    }
+
+    private static ScenarioDatabase GetScenarioDatabase(SpawnConfiguration config)
+    {
+        if (config != null && config.scenarioDatabase != null)
+        {
+            return config.scenarioDatabase;
+        }
+        if (ServiceLocator.TryGet<ScenarioDatabase>(out var db))
+        {
+            return db;
         }
         return null;
     }
 
-    public static BlockModel[] GenerateGridAssistedBatch(
-        ShapeDatabase db,
-        IGridService grid,
-        SpawnConfiguration config)
-    {
-        return GenerateIntelligentBatch(db, grid, config, 0);
-    }
+    public static BlockModel[] GenerateGridAssistedBatch(ShapeDatabase db, IGridService grid, SpawnConfiguration config) =>
+        GenerateIntelligentBatch(db, grid, config, 0);
 
-    public static BlockModel[] GenerateIntelligentBatch(
-        ShapeDatabase db,
-        IGridService grid,
-        SpawnConfiguration config)
-    {
-        return GenerateIntelligentBatch(db, grid, config, 0);
-    }
+    public static BlockModel[] GenerateIntelligentBatch(ShapeDatabase db, IGridService grid, SpawnConfiguration config) =>
+        GenerateIntelligentBatch(db, grid, config, 0);
 
     public static BlockModel[] GenerateIntelligentBatch(
         ShapeDatabase db,
@@ -603,23 +465,7 @@ public static class BlockSpawnGenerator
         bool isUnderThreshold = score < config.comboPhaseScoreThreshold;
         float occupancyRatio = grid != null ? grid.OccupancyRatio : 0f;
 
-        // 1. Board Shutdown Engine
-        // Under threshold: 100% chance to run shutdown solver when occupied cells exist.
-        // Above threshold: run with probability highScoreAssistanceRate, OR when board is critical (>= 70%) for clutch comeback.
-        bool shouldAttemptShutdown = isUnderThreshold
-            || (Random.value < config.highScoreAssistanceRate)
-            || (occupancyRatio >= 0.70f);
-
-        if (grid != null && grid.OccupiedCellCount > 0 && shouldAttemptShutdown)
-        {
-            if (TrySolveBoardShutdown(db, grid, config, out BlockModel[] shutdownBatch))
-            {
-                if (shutdownBatch != null && shutdownBatch.Length == 3 && CanPlaceAny(shutdownBatch, grid))
-                    return shutdownBatch;
-            }
-        }
-
-        SimulatedGrid sim = new SimulatedGrid(grid);
+        GridBitboard board = new GridBitboard(grid);
         BlockModel[] batch = new BlockModel[3];
         HashSet<ShapeData> chosenInBatch = new HashSet<ShapeData>();
 
@@ -627,14 +473,18 @@ public static class BlockSpawnGenerator
             && (occupancyRatio <= 0.40f)
             && (Random.value < config.highScoreBulkyPieceChance);
         bool bulkyAlreadySelected = false;
+        bool tinyAlreadySelected = false;
+        bool allowTinyInBatch = (occupancyRatio >= 0.65f) || (Random.value < 0.10f);
 
         for (int slot = 0; slot < 3; slot++)
         {
             BlockModel bestModel = null;
             ShapeData bestShapeData = null;
-            int bestX = -1, bestY = -1;
+            ulong bestMask = 0;
+            byte bestRowsAff = 0, bestColsAff = 0;
             int bestScore = int.MinValue;
             bool allowBulkyCandidate = allowBulkyInBatch && !bulkyAlreadySelected;
+            bool allowTinyCandidate = allowTinyInBatch && !tinyAlreadySelected;
 
             List<ShapeData> candidatePool = new List<ShapeData>(allShapes);
             ShuffleList(candidatePool);
@@ -645,54 +495,44 @@ public static class BlockSpawnGenerator
                 if (shapeData == null) continue;
                 bool isAlreadyInBatch = chosenInBatch.Contains(shapeData);
 
-                int maxRot = shapeData.canRotate ? 4 : 1;
-                ulong seen0 = 0, seen1 = 0, seen2 = 0, seen3 = 0;
-
-                for (int rot = 0; rot < maxRot; rot++)
+                List<BlockModel> uniqueRotations = GetUniqueRotations(shapeData);
+                for (int r = 0; r < uniqueRotations.Count; r++)
                 {
-                    List<Vector2Int> offsets = shapeData.canRotate
-                        ? shapeData.GetRotatedOffsets(rot * 90)
-                        : shapeData.baseOffsets;
-
-                    if (offsets == null || offsets.Count == 0) continue;
-
-                    int minOx = int.MaxValue, minOy = int.MaxValue;
-                    for (int i = 0; i < offsets.Count; i++)
-                    {
-                        if (offsets[i].x < minOx) minOx = offsets[i].x;
-                        if (offsets[i].y < minOy) minOy = offsets[i].y;
-                    }
-                    ulong normMask = 0;
-                    for (int i = 0; i < offsets.Count; i++)
-                    {
-                        normMask |= 1UL << ((offsets[i].x - minOx) + ((offsets[i].y - minOy) << 3));
-                    }
-                    if (rot == 0) seen0 = normMask;
-                    else if (rot == 1) { if (normMask == seen0) continue; seen1 = normMask; }
-                    else if (rot == 2) { if (normMask == seen0 || normMask == seen1) continue; seen2 = normMask; }
-                    else if (rot == 3) { if (normMask == seen0 || normMask == seen1 || normMask == seen2) continue; seen3 = normMask; }
-
-                    List<(int x, int y)> pureOffsets = new List<(int x, int y)>(offsets.Count);
-                    for (int i = 0; i < offsets.Count; i++) pureOffsets.Add((offsets[i].x, offsets[i].y));
-
-                    BlockModel candidate = new BlockModel(pureOffsets);
+                    BlockModel candidate = uniqueRotations[r];
+                    var offsets = candidate.ShapeOffsets;
 
                     for (int x = 0; x < 8; x++)
                     {
                         for (int y = 0; y < 8; y++)
                         {
-                            if (!CanPlaceBlockAt(candidate, x, y, sim)) continue;
+                            ulong bMask = 0;
+                            byte rowsAff = 0, colsAff = 0;
+                            bool outOfBounds = false;
 
-                            int placementScore = EvaluatePlacement(shapeData, candidate, x, y, sim, isAlreadyInBatch, isUnderThreshold, allowBulkyCandidate, out _);
-                            int jitterScore = placementScore + Random.Range(0, 20);
+                            for (int i = 0; i < offsets.Count; i++)
+                            {
+                                int gx = x + offsets[i].x;
+                                int gy = y + offsets[i].y;
+                                if ((uint)gx >= 8 || (uint)gy >= 8) { outOfBounds = true; break; }
+                                bMask |= 1UL << (gx + (gy << 3));
+                                rowsAff |= (byte)(1 << gy);
+                                colsAff |= (byte)(1 << gx);
+                            }
+
+                            if (outOfBounds || !board.CanPlace(bMask)) continue;
+
+                            GridBitboard nextBoard = board.PlaceAndClear(bMask, rowsAff, colsAff, out int linesCleared);
+                            int placementScore = EvaluatePlacement(shapeData, candidate, x, y, board, nextBoard, linesCleared, isAlreadyInBatch, isUnderThreshold, allowBulkyCandidate, bulkyAlreadySelected, tinyAlreadySelected, allowTinyCandidate);
+                            int jitterScore = placementScore + Random.Range(0, 45);
 
                             if (jitterScore > bestScore)
                             {
                                 bestScore = jitterScore;
                                 bestModel = candidate;
                                 bestShapeData = shapeData;
-                                bestX = x;
-                                bestY = y;
+                                bestMask = bMask;
+                                bestRowsAff = rowsAff;
+                                bestColsAff = colsAff;
                             }
                         }
                     }
@@ -704,17 +544,13 @@ public static class BlockSpawnGenerator
                 batch[slot] = bestModel;
                 if (bestShapeData != null) chosenInBatch.Add(bestShapeData);
                 if (bestModel.ShapeOffsets.Count >= 5) bulkyAlreadySelected = true;
-                if (bestX >= 0 && bestY >= 0) sim.SimulatePlaceAndClear(bestModel, bestX, bestY);
+                if (bestModel.ShapeOffsets.Count <= 2) tinyAlreadySelected = true;
+                board = board.PlaceAndClear(bestMask, bestRowsAff, bestColsAff, out _);
             }
             else
             {
-                BlockModel fallback = FindPlayableShape(db, sim, out bestX, out bestY);
-                if (fallback != null)
-                {
-                    batch[slot] = fallback;
-                    if (bestX >= 0 && bestY >= 0) sim.SimulatePlaceAndClear(fallback, bestX, bestY);
-                }
-                else batch[slot] = new BlockModel(new List<(int x, int y)> { (0, 0) });
+                BlockModel fallback = FindPlayableShape(db, grid);
+                batch[slot] = fallback ?? new BlockModel(new List<(int x, int y)> { (0, 0) });
             }
         }
 
@@ -727,274 +563,44 @@ public static class BlockSpawnGenerator
         return batch;
     }
 
-    private struct ShutdownMove
+    private static List<BlockModel> GetUniqueRotations(ShapeData shapeData)
     {
-        public ShapeData shapeData;
-        public BlockModel model;
-        public ulong blockMask;
-        public byte rowsAffected;
-        public byte colsAffected;
-        public int remainingCells;
-        public int linesCleared;
-        public int score;
-    }
+        List<BlockModel> list = new List<BlockModel>();
+        if (shapeData == null) return list;
+        int maxRot = shapeData.canRotate ? 4 : 1;
+        ulong seen0 = 0, seen1 = 0, seen2 = 0, seen3 = 0;
 
-    private static bool TrySolveBoardShutdown(
-        ShapeDatabase db,
-        IGridService grid,
-        SpawnConfiguration config,
-        out BlockModel[] batch)
-    {
-        batch = null;
-        if (db == null || grid == null || grid.OccupiedCellCount == 0) return false;
-
-        List<ShapeData> pool = GetAllPlayableShapes(db);
-        if (pool.Count == 0) return false;
-
-        GridBitboard rootBoard = new GridBitboard(grid);
-        List<ShutdownMove> slot0Moves = GetShutdownMoves(pool, rootBoard, prioritizeClearsOnly: false);
-        if (slot0Moves.Count == 0) return false;
-
-        slot0Moves.Sort((a, b) => b.score.CompareTo(a.score));
-
-        BlockModel[] bestBatch = null;
-        int bestRemaining = int.MaxValue;
-        int bestTotalClears = -1;
-
-        int limit0 = Mathf.Min(4, slot0Moves.Count);
-        for (int i0 = 0; i0 < limit0; i0++)
+        for (int rot = 0; rot < maxRot; rot++)
         {
-            ShutdownMove m0 = slot0Moves[i0];
-            if (m0.remainingCells == 0 && m0.linesCleared > 0)
+            List<Vector2Int> offsets = shapeData.canRotate
+                ? shapeData.GetRotatedOffsets(rot * 90)
+                : shapeData.baseOffsets;
+
+            if (offsets == null || offsets.Count == 0) continue;
+
+            int minOx = int.MaxValue, minOy = int.MaxValue;
+            for (int i = 0; i < offsets.Count; i++)
             {
-                batch = BuildShutdownBatch(m0.model, null, null, pool);
-                return true;
+                if (offsets[i].x < minOx) minOx = offsets[i].x;
+                if (offsets[i].y < minOy) minOy = offsets[i].y;
             }
 
-            GridBitboard board1 = rootBoard.PlaceAndClear(m0.blockMask, m0.rowsAffected, m0.colsAffected, out _);
-            if (board1.Count == 0)
+            ulong normMask = 0;
+            for (int i = 0; i < offsets.Count; i++)
             {
-                batch = BuildShutdownBatch(m0.model, null, null, pool);
-                return true;
+                normMask |= 1UL << ((offsets[i].x - minOx) + ((offsets[i].y - minOy) << 3));
             }
 
-            List<ShutdownMove> slot1Moves = GetShutdownMoves(pool, board1, prioritizeClearsOnly: board1.Count <= 12);
-            int limit1 = Mathf.Min(3, slot1Moves.Count);
+            if (rot == 0) seen0 = normMask;
+            else if (rot == 1) { if (normMask == seen0) continue; seen1 = normMask; }
+            else if (rot == 2) { if (normMask == seen0 || normMask == seen1) continue; seen2 = normMask; }
+            else if (rot == 3) { if (normMask == seen0 || normMask == seen1 || normMask == seen2) continue; seen3 = normMask; }
 
-            if (limit1 == 0)
-            {
-                if (board1.Count < bestRemaining)
-                {
-                    bestRemaining = board1.Count;
-                    bestTotalClears = m0.linesCleared;
-                    bestBatch = BuildShutdownBatch(m0.model, null, null, pool);
-                }
-                continue;
-            }
-
-            slot1Moves.Sort((a, b) => b.score.CompareTo(a.score));
-
-            for (int i1 = 0; i1 < limit1; i1++)
-            {
-                ShutdownMove m1 = slot1Moves[i1];
-                if (m1.remainingCells == 0 && m1.linesCleared > 0)
-                {
-                    batch = BuildShutdownBatch(m0.model, m1.model, null, pool);
-                    return true;
-                }
-
-                GridBitboard board2 = board1.PlaceAndClear(m1.blockMask, m1.rowsAffected, m1.colsAffected, out _);
-                if (board2.Count == 0)
-                {
-                    batch = BuildShutdownBatch(m0.model, m1.model, null, pool);
-                    return true;
-                }
-
-                List<ShutdownMove> slot2Moves = GetShutdownMoves(pool, board2, prioritizeClearsOnly: true);
-                slot2Moves.Sort((a, b) => b.score.CompareTo(a.score));
-
-                int limit2 = Mathf.Min(2, slot2Moves.Count);
-                for (int i2 = 0; i2 < limit2; i2++)
-                {
-                    ShutdownMove m2 = slot2Moves[i2];
-                    if (m2.remainingCells == 0 && m2.linesCleared > 0)
-                    {
-                        batch = new BlockModel[] { m0.model, m1.model, m2.model };
-                        return true;
-                    }
-
-                    int totalClears = m0.linesCleared + m1.linesCleared + m2.linesCleared;
-                    if (m2.remainingCells < bestRemaining || (m2.remainingCells == bestRemaining && totalClears > bestTotalClears))
-                    {
-                        bestRemaining = m2.remainingCells;
-                        bestTotalClears = totalClears;
-                        bestBatch = new BlockModel[] { m0.model, m1.model, m2.model };
-                    }
-                }
-
-                if (limit2 == 0)
-                {
-                    int totalClears = m0.linesCleared + m1.linesCleared;
-                    if (board2.Count < bestRemaining || (board2.Count == bestRemaining && totalClears > bestTotalClears))
-                    {
-                        bestRemaining = board2.Count;
-                        bestTotalClears = totalClears;
-                        bestBatch = BuildShutdownBatch(m0.model, m1.model, null, pool);
-                    }
-                }
-            }
+            List<(int x, int y)> pureOffsets = new List<(int x, int y)>(offsets.Count);
+            for (int i = 0; i < offsets.Count; i++) pureOffsets.Add((offsets[i].x - minOx, offsets[i].y - minOy));
+            list.Add(new BlockModel(pureOffsets));
         }
-
-        if (bestBatch != null && (bestRemaining <= 2 || (bestRemaining < grid.OccupiedCellCount && bestTotalClears >= 2)))
-        {
-            batch = bestBatch;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static List<ShutdownMove> GetShutdownMoves(
-        List<ShapeData> pool,
-        GridBitboard board,
-        bool prioritizeClearsOnly)
-    {
-        List<ShutdownMove> moves = new List<ShutdownMove>();
-        if (pool == null || board.Count == 0) return moves;
-
-        int[] rowOcc = new int[8];
-        int[] colOcc = new int[8];
-        for (int r = 0; r < 8; r++)
-        {
-            for (int c = 0; c < 8; c++)
-            {
-                if (board.IsCellOccupied(c, r)) { rowOcc[r]++; colOcc[c]++; }
-            }
-        }
-
-        for (int p = 0; p < pool.Count; p++)
-        {
-            var shapeData = pool[p];
-            if (shapeData == null) continue;
-            int maxRot = shapeData.canRotate ? 4 : 1;
-            ulong seen0 = 0, seen1 = 0, seen2 = 0, seen3 = 0;
-
-            for (int rot = 0; rot < maxRot; rot++)
-            {
-                List<Vector2Int> offsets = shapeData.canRotate
-                    ? shapeData.GetRotatedOffsets(rot * 90)
-                    : shapeData.baseOffsets;
-
-                if (offsets == null || offsets.Count == 0) continue;
-
-                int minOx = int.MaxValue, minOy = int.MaxValue;
-                for (int i = 0; i < offsets.Count; i++)
-                {
-                    if (offsets[i].x < minOx) minOx = offsets[i].x;
-                    if (offsets[i].y < minOy) minOy = offsets[i].y;
-                }
-                ulong normMask = 0;
-                for (int i = 0; i < offsets.Count; i++)
-                {
-                    normMask |= 1UL << ((offsets[i].x - minOx) + ((offsets[i].y - minOy) << 3));
-                }
-                if (rot == 0) seen0 = normMask;
-                else if (rot == 1) { if (normMask == seen0) continue; seen1 = normMask; }
-                else if (rot == 2) { if (normMask == seen0 || normMask == seen1) continue; seen2 = normMask; }
-                else if (rot == 3) { if (normMask == seen0 || normMask == seen1 || normMask == seen2) continue; seen3 = normMask; }
-
-                List<(int x, int y)> pureOffsets = new List<(int x, int y)>(offsets.Count);
-                for (int i = 0; i < offsets.Count; i++) pureOffsets.Add((offsets[i].x, offsets[i].y));
-                BlockModel candidate = new BlockModel(pureOffsets);
-
-                for (int x = 0; x < 8; x++)
-                {
-                    for (int y = 0; y < 8; y++)
-                    {
-                        ulong bMask = 0;
-                        byte rowsAff = 0;
-                        byte colsAff = 0;
-                        bool invalid = false;
-
-                        for (int i = 0; i < offsets.Count; i++)
-                        {
-                            int gx = x + offsets[i].x;
-                            int gy = y + offsets[i].y;
-                            if ((uint)gx >= 8 || (uint)gy >= 8) { invalid = true; break; }
-                            bMask |= 1UL << (gx + (gy << 3));
-                            rowsAff |= (byte)(1 << gy);
-                            colsAff |= (byte)(1 << gx);
-                        }
-
-                        if (invalid || !board.CanPlace(bMask)) continue;
-
-                        GridBitboard nextBoard = board.PlaceAndClear(bMask, rowsAff, colsAff, out int linesCleared);
-                        int rem = nextBoard.Count;
-
-                        if (prioritizeClearsOnly && linesCleared == 0) continue;
-
-                        int score = 0;
-                        if (rem == 0 && linesCleared > 0) score += 500000;
-                        else if (rem <= 2) score += 150000;
-
-                        score += linesCleared * 25000;
-                        int cellsPurged = board.Count + offsets.Count - rem;
-                        if (cellsPurged > offsets.Count) score += (cellsPurged - offsets.Count) * 4000;
-
-                        int orphanTiles = 0;
-                        for (int i = 0; i < offsets.Count; i++)
-                        {
-                            int gx = x + offsets[i].x;
-                            int gy = y + offsets[i].y;
-                            if (rowOcc[gy] == 0 && colOcc[gx] == 0) orphanTiles++;
-                        }
-                        score -= orphanTiles * 800;
-
-                        if (offsets.Count <= 4)
-                        {
-                            score += 300;
-                            if (offsets.Count == 3) score += 200;
-                        }
-                        else if (offsets.Count >= 6 && linesCleared == 0) score -= 2000;
-
-                        moves.Add(new ShutdownMove
-                        {
-                            shapeData = shapeData,
-                            model = candidate,
-                            blockMask = bMask,
-                            rowsAffected = rowsAff,
-                            colsAffected = colsAff,
-                            remainingCells = rem,
-                            linesCleared = linesCleared,
-                            score = score
-                        });
-                    }
-                }
-            }
-        }
-
-        return moves;
-    }
-
-    private static BlockModel[] BuildShutdownBatch(
-        BlockModel m0,
-        BlockModel m1,
-        BlockModel m2,
-        List<ShapeData> pool)
-    {
-        BlockModel[] result = new BlockModel[] { m0, m1, m2 };
-        for (int i = 0; i < 3; i++)
-        {
-            if (result[i] == null)
-            {
-                ShapeData fill = pool.Find(s => s != null && s.baseOffsets != null && s.baseOffsets.Count == 3)
-                              ?? pool.Find(s => s != null && s.baseOffsets != null && s.baseOffsets.Count == 2)
-                              ?? pool.Find(s => s != null && s.baseOffsets != null && s.baseOffsets.Count == 4)
-                              ?? (pool.Count > 0 ? pool[0] : null);
-                result[i] = fill != null ? CreateBlockModel(fill) : new BlockModel(new List<(int x, int y)> { (0, 0) });
-            }
-        }
-        return result;
+        return list;
     }
 
     private static int EvaluatePlacement(
@@ -1002,26 +608,31 @@ public static class BlockSpawnGenerator
         BlockModel model,
         int originX,
         int originY,
-        IGridService grid,
+        GridBitboard board,
+        GridBitboard nextBoard,
+        int linesCleared,
         bool isAlreadyInBatch,
         bool isUnderThreshold,
         bool allowBulkyCandidate,
-        out int remainingCellsAfter)
+        bool bulkyAlreadySelected,
+        bool tinyAlreadySelected,
+        bool allowTinyCandidate)
     {
-        remainingCellsAfter = CalculateRemainingCellsAfterPlacement(model, originX, originY, grid, out int linesCleared);
+        int remainingCellsAfter = nextBoard.Count;
+        int tileCount = model.ShapeOffsets.Count;
         int score = 0;
 
         // 1. Board Shutdown & Tile Purge
-        if (grid.OccupiedCellCount > 0)
+        if (board.Count > 0)
         {
-            if (remainingCellsAfter == 0) score += 350000;
+            if (remainingCellsAfter == 0) score += 500000;
             else if (linesCleared > 0)
             {
-                if (remainingCellsAfter <= 2) score += 160000;
-                else if (remainingCellsAfter <= 5) score += 80000;
+                if (remainingCellsAfter <= 2) score += 180000;
+                else if (remainingCellsAfter <= 5) score += 90000;
 
-                int cellsPurged = grid.OccupiedCellCount + model.ShapeOffsets.Count - remainingCellsAfter;
-                if (cellsPurged > model.ShapeOffsets.Count) score += (cellsPurged - model.ShapeOffsets.Count) * 3500;
+                int cellsPurged = board.Count + tileCount - remainingCellsAfter;
+                if (cellsPurged > tileCount) score += (cellsPurged - tileCount) * 4000;
             }
 
             score += (64 - remainingCellsAfter) * 300;
@@ -1032,26 +643,31 @@ public static class BlockSpawnGenerator
         else if (linesCleared == 2) score += 25000;
         else if (linesCleared == 1) score += 8000;
 
+        // Substantial shape line-clear bonus: incentivize 3-5 tile shapes over 1-2 tile trivial clears
+        if (linesCleared >= 1 && tileCount >= 3)
+        {
+            score += (tileCount - 2) * 1500;
+        }
+
         // 3. Intersection & Near-Full Line Contribution
-        int tileCount = model.ShapeOffsets.Count;
         for (int i = 0; i < tileCount; i++)
         {
             int gx = originX + model.ShapeOffsets[i].x;
             int gy = originY + model.ShapeOffsets[i].y;
 
             int rowOcc = 0, colOcc = 0;
-            for (int c = 0; c < 8; c++) if (grid.IsCellOccupied(c, gy)) rowOcc++;
-            for (int r = 0; r < 8; r++) if (grid.IsCellOccupied(gx, r)) colOcc++;
+            for (int c = 0; c < 8; c++) if (board.IsCellOccupied(c, gy)) rowOcc++;
+            for (int r = 0; r < 8; r++) if (board.IsCellOccupied(gx, r)) colOcc++;
 
             if (rowOcc >= 4) score += (rowOcc >= 6) ? 300 : 150;
             if (colOcc >= 4) score += (colOcc >= 6) ? 300 : 150;
             if (rowOcc >= 4 && colOcc >= 4) score += 1000;
 
             int neighbors = 0;
-            if (gx > 0 && grid.IsCellOccupied(gx - 1, gy)) neighbors++;
-            if (gx < 7 && grid.IsCellOccupied(gx + 1, gy)) neighbors++;
-            if (gy > 0 && grid.IsCellOccupied(gx, gy - 1)) neighbors++;
-            if (gy < 7 && grid.IsCellOccupied(gx, gy + 1)) neighbors++;
+            if (gx > 0 && board.IsCellOccupied(gx - 1, gy)) neighbors++;
+            if (gx < 7 && board.IsCellOccupied(gx + 1, gy)) neighbors++;
+            if (gy > 0 && board.IsCellOccupied(gx, gy - 1)) neighbors++;
+            if (gy < 7 && board.IsCellOccupied(gx, gy + 1)) neighbors++;
 
             if (neighbors >= 3) score += 350;
             else if (neighbors == 2) score += 180;
@@ -1062,36 +678,42 @@ public static class BlockSpawnGenerator
         }
 
         // 4. Shape Morphology
-        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+        int maxX = 0, maxY = 0;
         for (int i = 0; i < tileCount; i++)
         {
             var off = model.ShapeOffsets[i];
-            if (off.x < minX) minX = off.x;
             if (off.x > maxX) maxX = off.x;
-            if (off.y < minY) minY = off.y;
             if (off.y > maxY) maxY = off.y;
         }
-        int w = maxX - minX + 1;
-        int h = maxY - minY + 1;
+        int w = maxX + 1;
+        int h = maxY + 1;
 
-        bool isCompactAngular = (w > 1 && h > 1 && tileCount <= 4);
-        bool isStraightConnector = (w == 1 || h == 1) && tileCount <= 4;
+        bool isCompactAngular = (w > 1 && h > 1 && tileCount >= 3 && tileCount <= 4);
+        bool isStraightConnector = (w == 1 || h == 1) && tileCount >= 3 && tileCount <= 4;
         bool isLargeShape = (tileCount >= 5);
 
         if (isCompactAngular)
         {
-            score += 700;
-            if (tileCount == 3) score += 250;
+            score += 250;
         }
         else if (isStraightConnector)
         {
-            score += 300;
+            score += 250;
         }
         else if (isLargeShape)
         {
             if (isUnderThreshold)
             {
-                if (linesCleared < 2) score -= 2500;
+                // Under threshold: Bulky pieces (tileCount >= 5) are restricted.
+                // Maximum 1 bulky piece per batch, and ONLY if it actively clears at least 1 line.
+                if (bulkyAlreadySelected || linesCleared < 1)
+                {
+                    score -= 50000;
+                }
+                else if (linesCleared >= 2)
+                {
+                    score += 2000;
+                }
             }
             else
             {
@@ -1107,7 +729,16 @@ public static class BlockSpawnGenerator
             }
         }
 
-        if (isAlreadyInBatch) score -= 400;
+        // 5. Tiny Shape Suppression (Prevent excessive 2x1 / 1x1 shapes)
+        if (tileCount <= 2)
+        {
+            score -= 2500; // Base penalty even if it clears lines, prioritizing substantial shapes
+            if (linesCleared == 0) score -= 2000; // Total -4500 when not clearing, destroying open-cell bias
+            if (tinyAlreadySelected) score -= 5000; // Never select multiple tiny shapes in one batch
+            if (!allowTinyCandidate) score -= 15000; // Gatekeeper: strictly suppress on open boards (<65% full)
+        }
+
+        if (isAlreadyInBatch) score -= 600;
         return score;
     }
 
@@ -1128,22 +759,11 @@ public static class BlockSpawnGenerator
         for (int p = 0; p < searchPool.Count; p++)
         {
             var shapeData = searchPool[p];
-            if (shapeData == null || (shapeData.baseOffsets != null && shapeData.baseOffsets.Count <= 1)) continue;
-
-            int maxRotations = shapeData.canRotate ? 4 : 1;
-            for (int i = 0; i < maxRotations; i++)
+            var uniqueRotations = GetUniqueRotations(shapeData);
+            for (int r = 0; r < uniqueRotations.Count; r++)
             {
-                List<Vector2Int> offsets = shapeData.canRotate
-                    ? shapeData.GetRotatedOffsets(i * 90)
-                    : shapeData.baseOffsets;
-
-                if (offsets == null) continue;
-
-                List<(int x, int y)> pureOffsets = new List<(int x, int y)>(offsets.Count);
-                for (int o = 0; o < offsets.Count; o++) pureOffsets.Add((offsets[o].x, offsets[o].y));
-
-                BlockModel candidate = new BlockModel(pureOffsets);
-                if (CanPlaceBlockAnywhere(candidate, grid, out foundX, out foundY)) return candidate;
+                if (CanPlaceBlockAnywhere(uniqueRotations[r], grid, out foundX, out foundY))
+                    return uniqueRotations[r];
             }
         }
 

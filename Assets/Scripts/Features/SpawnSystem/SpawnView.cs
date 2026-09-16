@@ -2,18 +2,18 @@ using UnityEngine;
 
 public class SpawnView : MonoBehaviour
 {
-    [SerializeField] private BlockController blockPrefab;
     private ISpawnService spawnService;
-    private IPoolService poolService;
+    private IBlockService blockService;
 
     private void Start()
     {
         spawnService = ServiceLocator.Get<ISpawnService>();
-        poolService = ServiceLocator.Get<IPoolService>();
+        blockService = ServiceLocator.Get<IBlockService>();
 
         if (spawnService != null)
         {
             spawnService.OnBatchSpawned += HandleBatchSpawned;
+            spawnService.OnNoMovesLeft += HandleNoMovesLeft;
         }
     }
 
@@ -22,22 +22,29 @@ public class SpawnView : MonoBehaviour
         if (spawnService != null)
         {
             spawnService.OnBatchSpawned -= HandleBatchSpawned;
+            spawnService.OnNoMovesLeft -= HandleNoMovesLeft;
         }
     }
 
     private void HandleBatchSpawned(BlockModel[] batch, Vector3[] trayPositions)
     {
-        for (int i = 0; i < batch.Length; i++)
+        if (blockService == null)
         {
-            if (batch[i] != null)
-            {
-                BlockController block = poolService.SpawnObject(blockPrefab, trayPositions[i], Quaternion.identity);
-                if (block != null)
-                {
-                    // Truyền thêm i (slotIndex) để BlockController biết nó nằm ở slot nào
-                    block.Setup(batch[i], trayPositions[i], i);
-                }
-            }
+            blockService = ServiceLocator.Get<IBlockService>();
         }
+
+        if (blockService != null)
+        {
+            blockService.SpawnBatch(batch, trayPositions);
+        }
+        else
+        {
+            Debug.LogError("[SpawnView] IBlockService is not registered in ServiceLocator!");
+        }
+    }
+
+    private void HandleNoMovesLeft()
+    {
+        Debug.Log("[SpawnView] Game over: No valid moves left.");
     }
 }

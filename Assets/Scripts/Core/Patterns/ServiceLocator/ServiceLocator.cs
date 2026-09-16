@@ -47,6 +47,30 @@ public static class ServiceLocator
     }
 
     /// <summary>
+    /// Attempts to retrieve a service without logging an error if it is not registered.
+    /// </summary>
+    public static bool TryGet<T>(out T service)
+    {
+        var type = typeof(T);
+
+        if (_services.TryGetValue(type, out var obj))
+        {
+            if (obj is UnityEngine.Object unityObj && unityObj == null)
+            {
+                _services.Remove(type);
+                Debug.LogWarning($"[ServiceLocator] Service {type.Name} was destroyed but not unregistered. Auto-removing.");
+                service = default;
+                return false;
+            }
+            service = (T)obj;
+            return true;
+        }
+
+        service = default;
+        return false;
+    }
+
+    /// <summary>
     /// Unregisters a service. Called when the service owner is destroyed to free memory.
     /// </summary>
     public static void Unregister<T>()
