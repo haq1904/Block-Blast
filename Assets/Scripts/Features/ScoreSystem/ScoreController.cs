@@ -12,6 +12,8 @@ public class ScoreController : MonoBehaviour, IScoreService
     public int HighScore => model != null ? model.HighScore : 0;
     public int CurrentCombo => model != null ? model.CurrentCombo : 0;
     public int MaxCombo => model != null ? model.MaxCombo : 0;
+    public bool IsPrewarmed => model != null && model.IsPrewarmed;
+    public int TurnsRemaining => model != null ? model.TurnsRemaining : 0;
 
     public event Action<int, int> OnScoreChanged;
     public event Action<int> OnComboChanged;
@@ -74,33 +76,39 @@ public class ScoreController : MonoBehaviour, IScoreService
         int placementScore = tilesPlaced * config.pointsPerTile;
         gainedPoints += placementScore;
 
-        // 2. Line Clears & Combo Streak
+        int previousCombo = model.CurrentCombo;
+        int prewarmLimit = config != null ? config.prewarmWindowTurns : 3;
+        int comboLimit = config != null ? config.comboGraceTurns : 3;
+
+        // 2. Process placement in model (handles Prewarm, combo ignition, and combo streak)
+        model.RecordPlacement(totalLinesCleared, prewarmLimit, comboLimit);
+
+        // 3. Line Clears & Combo Bonus Points
         if (totalLinesCleared > 0)
         {
-            int newCombo = model.CurrentCombo + 1;
-            model.SetCombo(newCombo);
-
             int lineClearScore = config.CalculateLineClearScore(totalLinesCleared);
-            int comboBonus = config.CalculateComboBonus(newCombo);
-            gainedPoints += lineClearScore + comboBonus;
+            gainedPoints += lineClearScore;
+
+            // Only award combo bonus points when active combo is > 0
+            if (model.CurrentCombo > 0)
+            {
+                int comboBonus = config.CalculateComboBonus(model.CurrentCombo);
+                gainedPoints += comboBonus;
+            }
 
             if (isAllClear)
             {
-                gainedPoints += config.allClearBonus;
+                gainedPoints += config.CalculateAllClearBonus(model.CurrentCombo);
             }
-
-            OnComboChanged?.Invoke(newCombo);
         }
-        else
+
+        // 4. Fire Combo Event if combo changed
+        if (model.CurrentCombo != previousCombo)
         {
-            if (model.CurrentCombo > 0)
-            {
-                model.SetCombo(0);
-                OnComboChanged?.Invoke(0);
-            }
+            OnComboChanged?.Invoke(model.CurrentCombo);
         }
 
-        // 3. Update Total Score & Check High Score
+        // 5. Update Total Score & Check High Score
         if (gainedPoints > 0)
         {
             int previousHighScore = model.HighScore;

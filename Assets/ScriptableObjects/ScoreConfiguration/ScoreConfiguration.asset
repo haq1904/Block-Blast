@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: ScoreConfiguration
   m_EditorClassIdentifier: BlockBlast.Feature::ScoreConfiguration
   pointsPerTile: 1
-  points1Line: 10
-  points2Lines: 30
-  points3Lines: 60
-  points4Lines: 100
-  points5Lines: 150
-  pointsPerExtraLine: 30
-  comboBonusStep: 10
-  allClearBonus: 300
+  points1Line: 100
+  points2Lines: 300
+  points3Lines: 600
+  points4Lines: 1000
+  points5Lines: 1500
+  pointsPerExtraLine: 300
+  comboBonusStep: 1000
+  prewarmWindowTurns: 3
+  comboGraceTurns: 3
+  allClearBonus: 0
   highScoreSaveKey: BLOCK_BLAST_HIGH_SCORE

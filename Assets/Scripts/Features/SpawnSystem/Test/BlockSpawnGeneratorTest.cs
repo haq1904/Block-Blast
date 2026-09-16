@@ -1052,12 +1052,13 @@ public class BlockSpawnGeneratorTest
     }
 
     [Test]
-    public void Score_LineClear_SingleLine_AddsBasePointsAndComboBonus()
+    public void Score_Prewarm_FirstClear_TriggersPrewarm_WithoutCombo()
     {
         ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
         config.pointsPerTile = 1;
         config.points1Line = 10;
         config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
         config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
 
         GameObject go = new GameObject("ScoreControllerTest");
@@ -1068,13 +1069,15 @@ public class BlockSpawnGeneratorTest
         int comboEventFired = -1;
         controller.OnComboChanged += c => comboEventFired = c;
 
-        // Place 2 tiles, clear 1 line
-        // Expected: 2 (placement) + 10 (1 line) + 10 (combo 1 * 10) = 22
+        // Place 2 tiles, clear 1 line (First clear = Prewarm/Nổ mồi)
+        // Expected: 2 (placement) + 10 (1 line) = 12 (NO combo bonus yet!)
         controller.HandlePlacementResolved(2, 1, false);
 
-        Assert.AreEqual(22, controller.CurrentScore);
-        Assert.AreEqual(1, controller.CurrentCombo);
-        Assert.AreEqual(1, comboEventFired);
+        Assert.AreEqual(12, controller.CurrentScore);
+        Assert.AreEqual(0, controller.CurrentCombo, "Prewarm does not grant a combo yet (Option A).");
+        Assert.IsTrue(controller.IsPrewarmed, "Board should enter prewarmed state.");
+        Assert.AreEqual(3, controller.TurnsRemaining);
+        Assert.AreEqual(-1, comboEventFired, "Combo event should not fire when entering prewarm (still combo 0).");
 
         PlayerPrefs.DeleteKey(config.highScoreSaveKey);
         UnityEngine.Object.DestroyImmediate(go);
@@ -1082,12 +1085,15 @@ public class BlockSpawnGeneratorTest
     }
 
     [Test]
-    public void Score_LineClear_MultiLines_AppliesCorrectLineClearPoints()
+    public void Score_Prewarm_ClearWithinWindow_IgnitesComboAndAwardsBonus()
     {
         ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
         config.pointsPerTile = 1;
+        config.points1Line = 10;
         config.points2Lines = 30;
         config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
         config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
 
         GameObject go = new GameObject("ScoreControllerTest");
@@ -1095,45 +1101,26 @@ public class BlockSpawnGeneratorTest
         MockScoreTestGrid grid = new MockScoreTestGrid();
         controller.Initialize(config, grid);
 
-        // Place 3 tiles, clear 2 lines simultaneously
-        // Expected: 3 (placement) + 30 (2 lines) + 10 (combo 1 * 10) = 43
+        // Turn 1: 1 line cleared -> Prewarm (score: 1 tile + 10 = 11)
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.IsTrue(controller.IsPrewarmed);
+        Assert.AreEqual(0, controller.CurrentCombo);
+        Assert.AreEqual(11, controller.CurrentScore);
+
+        // Turn 2: Non-clearing turn -> consumes 1 turn of prewarm window
+        controller.HandlePlacementResolved(2, 0, false);
+        Assert.IsTrue(controller.IsPrewarmed);
+        Assert.AreEqual(2, controller.TurnsRemaining);
+
+        // Turn 3: 2 lines cleared simultaneously -> Ignites combo!
+        // CurrentCombo = 2 lines
+        // Points: 3 (tiles) + 30 (2 lines) + 20 (combo 2 * 10) = 53
+        // Total score: 11 + 2 + 53 = 66
         controller.HandlePlacementResolved(3, 2, false);
-
-        Assert.AreEqual(43, controller.CurrentScore);
-        Assert.AreEqual(1, controller.CurrentCombo);
-
-        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
-        UnityEngine.Object.DestroyImmediate(go);
-        UnityEngine.Object.DestroyImmediate(config);
-    }
-
-    [Test]
-    public void Score_ComboStreak_ConsecutiveClears_IncrementsComboAndMultiplier()
-    {
-        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
-        config.pointsPerTile = 1;
-        config.points1Line = 10;
-        config.comboBonusStep = 10;
-        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
-
-        GameObject go = new GameObject("ScoreControllerTest");
-        ScoreController controller = go.AddComponent<ScoreController>();
-        MockScoreTestGrid grid = new MockScoreTestGrid();
-        controller.Initialize(config, grid);
-
-        // Turn 1: 1 line clear -> combo 1 (+10)
-        // Score: 1 + 10 + 10 = 21
-        controller.HandlePlacementResolved(1, 1, false);
-        Assert.AreEqual(1, controller.CurrentCombo);
-        Assert.AreEqual(21, controller.CurrentScore);
-
-        // Turn 2: 1 line clear -> combo 2 (+20 combo bonus)
-        // Turn 2 points: 1 (tile) + 10 (1 line) + 20 (combo 2 * 10) = 31
-        // Total score: 21 + 31 = 52
-        controller.HandlePlacementResolved(1, 1, false);
+        Assert.IsFalse(controller.IsPrewarmed);
         Assert.AreEqual(2, controller.CurrentCombo);
-        Assert.AreEqual(2, controller.MaxCombo);
-        Assert.AreEqual(52, controller.CurrentScore);
+        Assert.AreEqual(3, controller.TurnsRemaining);
+        Assert.AreEqual(66, controller.CurrentScore);
 
         PlayerPrefs.DeleteKey(config.highScoreSaveKey);
         UnityEngine.Object.DestroyImmediate(go);
@@ -1141,12 +1128,12 @@ public class BlockSpawnGeneratorTest
     }
 
     [Test]
-    public void Score_ComboStreak_ZeroClearTurn_ResetsComboToZero()
+    public void Score_Prewarm_ExpiresAfter3NonClearingTurns()
     {
         ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
         config.pointsPerTile = 1;
         config.points1Line = 10;
-        config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
         config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
 
         GameObject go = new GameObject("ScoreControllerTest");
@@ -1154,20 +1141,166 @@ public class BlockSpawnGeneratorTest
         MockScoreTestGrid grid = new MockScoreTestGrid();
         controller.Initialize(config, grid);
 
-        controller.HandlePlacementResolved(2, 1, false);
-        Assert.AreEqual(1, controller.CurrentCombo);
+        // Turn 1: Prewarm (1 line)
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.IsTrue(controller.IsPrewarmed);
+        Assert.AreEqual(3, controller.TurnsRemaining);
 
-        bool comboResetFired = false;
+        // Turn 2 (Miss 1)
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.IsTrue(controller.IsPrewarmed);
+        Assert.AreEqual(2, controller.TurnsRemaining);
+
+        // Turn 3 (Miss 2)
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.IsTrue(controller.IsPrewarmed);
+        Assert.AreEqual(1, controller.TurnsRemaining);
+
+        // Turn 4 (Miss 3) -> Prewarm lost!
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.IsFalse(controller.IsPrewarmed, "Prewarm must expire after 3 non-clearing placements.");
+        Assert.AreEqual(0, controller.TurnsRemaining);
+        Assert.AreEqual(0, controller.CurrentCombo);
+
+        // Turn 5: Clears 1 line again -> Must be a NEW Prewarm, not a combo!
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.IsTrue(controller.IsPrewarmed, "Must restart prewarm cycle.");
+        Assert.AreEqual(0, controller.CurrentCombo);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ActiveCombo_AccumulatesLinesAndRefreshesCounter()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.points2Lines = 30;
+        config.points3Lines = 60;
+        config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Turn 1: Prewarm
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.AreEqual(0, controller.CurrentCombo);
+
+        // Turn 2: 3 lines cleared -> Combo is 3
+        controller.HandlePlacementResolved(3, 3, false);
+        Assert.AreEqual(3, controller.CurrentCombo);
+        Assert.AreEqual(3, controller.TurnsRemaining);
+
+        // Turn 3: 2 lines cleared -> Combo accumulates to 3 + 2 = 5
+        controller.HandlePlacementResolved(2, 2, false);
+        Assert.AreEqual(5, controller.CurrentCombo);
+        Assert.AreEqual(5, controller.MaxCombo);
+        Assert.AreEqual(3, controller.TurnsRemaining);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ActiveCombo_GraceTurns_MaintainsComboUntilThirdMiss()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Turn 1: Prewarm
+        controller.HandlePlacementResolved(1, 1, false);
+
+        // Turn 2: 1 line clear -> Combo = 1
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+        Assert.AreEqual(3, controller.TurnsRemaining);
+
+        int comboResetCount = 0;
         controller.OnComboChanged += c =>
         {
-            if (c == 0) comboResetFired = true;
+            if (c == 0) comboResetCount++;
         };
 
-        // Turn 2: place 3 tiles with 0 lines cleared -> combo resets to 0
-        controller.HandlePlacementResolved(3, 0, false);
+        // Turn 3 (Miss 1) -> Combo stays 1
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+        Assert.AreEqual(2, controller.TurnsRemaining);
+        Assert.AreEqual(0, comboResetCount);
+
+        // Turn 4 (Miss 2) -> Combo stays 1
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+        Assert.AreEqual(1, controller.TurnsRemaining);
+        Assert.AreEqual(0, comboResetCount);
+
+        // Turn 5 (Miss 3) -> Combo drops to 0!
+        controller.HandlePlacementResolved(1, 0, false);
         Assert.AreEqual(0, controller.CurrentCombo);
-        Assert.IsTrue(comboResetFired, "Combo reset event must be triggered when a turn clears no lines.");
-        Assert.AreEqual(1, controller.MaxCombo, "MaxCombo should preserve the highest streak achieved.");
+        Assert.AreEqual(0, controller.TurnsRemaining);
+        Assert.AreEqual(1, comboResetCount);
+        Assert.AreEqual(1, controller.MaxCombo);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_ActiveCombo_ClearWithinGracePeriod_ResetsCounter()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points1Line = 10;
+        config.points2Lines = 30;
+        config.comboBonusStep = 10;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Turn 1: Prewarm
+        controller.HandlePlacementResolved(1, 1, false);
+
+        // Turn 2: 1 line clear -> Combo = 1
+        controller.HandlePlacementResolved(1, 1, false);
+        Assert.AreEqual(1, controller.CurrentCombo);
+
+        // Turn 3 (Miss 1)
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.AreEqual(2, controller.TurnsRemaining);
+
+        // Turn 4 (Miss 2)
+        controller.HandlePlacementResolved(1, 0, false);
+        Assert.AreEqual(1, controller.TurnsRemaining);
+
+        // Turn 5: Clear 2 lines before reaching miss 3!
+        // Combo should accumulate: 1 + 2 = 3, turnsRemaining reset to 3!
+        controller.HandlePlacementResolved(2, 2, false);
+        Assert.AreEqual(3, controller.CurrentCombo);
+        Assert.AreEqual(3, controller.TurnsRemaining);
 
         PlayerPrefs.DeleteKey(config.highScoreSaveKey);
         UnityEngine.Object.DestroyImmediate(go);
@@ -1182,6 +1315,8 @@ public class BlockSpawnGeneratorTest
         config.points1Line = 10;
         config.comboBonusStep = 10;
         config.allClearBonus = 300;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
         config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
 
         GameObject go = new GameObject("ScoreControllerTest");
@@ -1189,11 +1324,49 @@ public class BlockSpawnGeneratorTest
         MockScoreTestGrid grid = new MockScoreTestGrid();
         controller.Initialize(config, grid);
 
-        // Place 2 tiles, clear 1 line, and board is completely emptied (All Clear)
+        // Turn 1: Prewarm (1 line) -> Score: 1 + 10 = 11
+        controller.HandlePlacementResolved(1, 1, false);
+
+        // Turn 2: Place 2 tiles, clear 1 line, and board is completely emptied (All Clear)
         // Expected: 2 (placement) + 10 (1 line) + 10 (combo 1) + 300 (All Clear) = 322
+        // Total score: 11 + 322 = 333
         controller.HandlePlacementResolved(2, 1, true);
 
-        Assert.AreEqual(322, controller.CurrentScore);
+        Assert.AreEqual(333, controller.CurrentScore);
+        Assert.AreEqual(1, controller.CurrentCombo);
+
+        PlayerPrefs.DeleteKey(config.highScoreSaveKey);
+        UnityEngine.Object.DestroyImmediate(go);
+        UnityEngine.Object.DestroyImmediate(config);
+    }
+
+    [Test]
+    public void Score_AllClear_MultipliesBonusByCombo()
+    {
+        ScoreConfiguration config = ScriptableObject.CreateInstance<ScoreConfiguration>();
+        config.pointsPerTile = 1;
+        config.points2Lines = 30;
+        config.comboBonusStep = 10;
+        config.allClearBonus = 300;
+        config.prewarmWindowTurns = 3;
+        config.comboGraceTurns = 3;
+        config.highScoreSaveKey = "TEST_SCORE_" + Guid.NewGuid().ToString("N");
+
+        GameObject go = new GameObject("ScoreControllerTest");
+        ScoreController controller = go.AddComponent<ScoreController>();
+        MockScoreTestGrid grid = new MockScoreTestGrid();
+        controller.Initialize(config, grid);
+
+        // Turn 1: Prewarm (1 line) -> Score: 1 + 10 = 11
+        controller.HandlePlacementResolved(1, 1, false);
+
+        // Turn 2: Clear 2 lines simultaneously with All Clear -> Combo becomes 2!
+        // Expected: 2 (placement) + 30 (2 lines) + 20 (combo 2 * 10) + (300 * 2) (All Clear * combo 2) = 652
+        // Total score: 11 + 652 = 663
+        controller.HandlePlacementResolved(2, 2, true);
+
+        Assert.AreEqual(2, controller.CurrentCombo);
+        Assert.AreEqual(663, controller.CurrentScore);
 
         PlayerPrefs.DeleteKey(config.highScoreSaveKey);
         UnityEngine.Object.DestroyImmediate(go);
@@ -1267,10 +1440,16 @@ public class BlockSpawnGeneratorTest
         MockScoreTestGrid grid = new MockScoreTestGrid();
         controller.Initialize(config, grid);
 
+        // Turn 1: Prewarm (3 tiles, 1 line) -> 3 + 10 = 13 (combo 0, isPrewarmed = true)
         grid.TriggerPlacementResolved(3, 1, false);
+        Assert.AreEqual(13, controller.CurrentScore);
+        Assert.AreEqual(0, controller.CurrentCombo);
+        Assert.IsTrue(controller.IsPrewarmed);
 
-        // Expected: 3 + 10 + 10 = 23
-        Assert.AreEqual(23, controller.CurrentScore);
+        // Turn 2: Combo ignition (2 tiles, 1 line) -> 2 + 10 + 10 (combo 1) = 22
+        // Total score: 13 + 22 = 35
+        grid.TriggerPlacementResolved(2, 1, false);
+        Assert.AreEqual(35, controller.CurrentScore);
         Assert.AreEqual(1, controller.CurrentCombo);
 
         PlayerPrefs.DeleteKey(config.highScoreSaveKey);

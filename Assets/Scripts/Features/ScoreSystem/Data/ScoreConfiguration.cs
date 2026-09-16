@@ -30,6 +30,12 @@ public class ScoreConfiguration : ScriptableObject
     [Tooltip("Bonus points added per combo streak level (comboCount * comboBonusStep)")]
     public int comboBonusStep = 10;
 
+    [Tooltip("Number of placements allowed after prewarm (first clear) to ignite a combo (default: 3)")]
+    public int prewarmWindowTurns = 3;
+
+    [Tooltip("Number of consecutive non-clearing placements allowed before active combo ends (default: 3)")]
+    public int comboGraceTurns = 3;
+
     [Header("All Clear Bonus")]
     [Tooltip("Extra bonus points awarded when the board is completely emptied")]
     public int allClearBonus = 300;
@@ -56,5 +62,11 @@ public class ScoreConfiguration : ScriptableObject
     {
         if (comboCount <= 0) return 0;
         return comboCount * comboBonusStep;
+    }
+
+    public int CalculateAllClearBonus(int comboCount)
+    {
+        int multiplier = Mathf.Max(1, comboCount);
+        return allClearBonus * multiplier;
     }
 }

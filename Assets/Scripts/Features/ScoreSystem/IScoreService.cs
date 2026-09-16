@@ -6,6 +6,8 @@ public interface IScoreService
     int HighScore { get; }
     int CurrentCombo { get; }
     int MaxCombo { get; }
+    bool IsPrewarmed { get; }
+    int TurnsRemaining { get; }
 
     event Action<int, int> OnScoreChanged;       // (currentScore, gainedPoints)
     event Action<int> OnComboChanged;            // (currentCombo)

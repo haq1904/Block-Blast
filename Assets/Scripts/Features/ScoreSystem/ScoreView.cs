@@ -79,7 +79,7 @@ public class ScoreView : MonoBehaviour
     {
         UpdateComboDisplay(currentCombo);
 
-        if (enablePunchScale && currentCombo > 1 && comboText != null)
+        if (enablePunchScale && currentCombo >= 1 && comboText != null)
         {
             if (comboPunchRoutine != null) StopCoroutine(comboPunchRoutine);
             comboPunchRoutine = StartCoroutine(PunchScaleCoroutine(comboText.transform, originalComboScale));
@@ -115,7 +115,7 @@ public class ScoreView : MonoBehaviour
 
     private void UpdateComboDisplay(int combo)
     {
-        bool showCombo = combo > 1;
+        bool showCombo = combo >= 1;
 
         if (comboContainer != null)
         {
@@ -131,7 +131,7 @@ public class ScoreView : MonoBehaviour
 
             if (showCombo)
             {
-                comboText.text = $"COMBO x{combo}";
+                comboText.text = combo == 1 ? "COMBO" : $"COMBO x{combo}";
             }
         }
     }

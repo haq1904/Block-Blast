@@ -12,7 +12,7 @@ public class SpawnModel
         {
             new Vector3(-2.5f, -1f, -2f),
             new Vector3(2.5f, -1f, -2f),
-            new Vector3(0f, -1f, -6.5f)
+            new Vector3(0f, -1f, -4.7f)
         };
         CurrentBatch = new BlockModel[3];
         IsSlotEmpty = new bool[3] { true, true, true };
