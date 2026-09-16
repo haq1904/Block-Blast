@@ -5,7 +5,7 @@ public enum AudioChannels
 {
     MasterVolume,
     SoundFXVolume,
-    MusicVolume
+    BGMuicVolume
 }
 
 public class SoundAudioMixerManager : MonoBehaviour, IAudioMixerService
@@ -15,6 +15,7 @@ public class SoundAudioMixerManager : MonoBehaviour, IAudioMixerService
     private void Awake()
     {
         ServiceLocator.Register<IAudioMixerService>(this);
+        DontDestroyOnLoad(gameObject);
     }
 
     private void OnDestroy()
@@ -36,8 +37,8 @@ public class SoundAudioMixerManager : MonoBehaviour, IAudioMixerService
             case AudioChannels.SoundFXVolume:
                 audioMixer.SetFloat("soundFXVolume", dbValue);
                 break;
-            case AudioChannels.MusicVolume:
-                audioMixer.SetFloat("musicVolume", dbValue);
+            case AudioChannels.BGMuicVolume:
+                audioMixer.SetFloat("bgmVolume", dbValue);
                 break;
         }
     }

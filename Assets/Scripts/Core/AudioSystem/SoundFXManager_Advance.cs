@@ -10,7 +10,7 @@ public enum SoundFXType
     GameOver
 }
 
-[RequireComponent(typeof(AudioSource)), ExecuteInEditMode]
+[RequireComponent(typeof(AudioSource))]
 public class SoundFXManager : MonoBehaviour, ISoundFXService
 {
     [SerializeField] private SoundList[] soundList;
