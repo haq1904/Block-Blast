@@ -22,8 +22,8 @@ public class SpawnModel
     {
         for (int i = 0; i < 3; i++)
         {
-            CurrentBatch[i] = batch[i];
-            IsSlotEmpty[i] = false; // Khi có batch mới, slot không còn trống
+            CurrentBatch[i] = (batch != null && i < batch.Length) ? batch[i] : null;
+            IsSlotEmpty[i] = (CurrentBatch[i] == null);
         }
     }
 
@@ -41,13 +41,17 @@ public class SpawnModel
         return IsSlotEmpty[0] && IsSlotEmpty[1] && IsSlotEmpty[2];
     }
 
-    // Scenario Sequence State (< 200,000 points)
+    // Scenario Sequence State (< 250,000 points)
     public int ActiveScenarioId { get; set; } = -1;
     public int ScenarioStepIndex { get; set; } = 0;
+    public int ActiveScenarioAngle { get; set; } = 0;
+    public bool ActiveScenarioMirror { get; set; } = false;
 
     public void ResetScenario()
     {
         ActiveScenarioId = -1;
         ScenarioStepIndex = 0;
+        ActiveScenarioAngle = 0;
+        ActiveScenarioMirror = false;
     }
 }

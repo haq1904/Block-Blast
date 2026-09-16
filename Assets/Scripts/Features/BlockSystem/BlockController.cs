@@ -131,20 +131,34 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // Xử lý kết quả sau khi thả
         if (isPlaced)
         {
-            // Báo cho SpawnService biết là slot này đã trống
+            // 1. Thu hồi khối gạch về pool trước khi kích hoạt sinh batch mới
+            var blockService = ServiceLocator.Get<IBlockService>();
+            if (blockService != null)
+            {
+                blockService.DespawnBlock(slotIndex);
+            }
+            else if (poolService != null)
+            {
+                try
+                {
+                    poolService.ReturnObjectToPool(gameObject);
+                }
+                catch
+                {
+                    Destroy(gameObject);
+                }
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+
+            // 2. Sau khi khối gạch đã về pool an toàn, mới báo cho SpawnService
             var spawnService = ServiceLocator.Get<ISpawnService>();
             if (spawnService != null)
             {
                 spawnService.MarkSlotEmpty(slotIndex);
-            }
 
-            try
-            {
-                poolService.ReturnObjectToPool(gameObject);
-            }
-            catch
-            {
-                Destroy(gameObject);
             }
         }
         else
