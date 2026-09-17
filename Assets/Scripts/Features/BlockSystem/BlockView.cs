@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 [RequireComponent(typeof(BlockController))]
@@ -6,17 +7,14 @@ public class BlockView : MonoBehaviour
 {
     [SerializeField] private GameObject cellPrefab;
 
-
     private BlockController blockController;
     private IPoolService poolService;
+    private IBlockService blockService;
     private List<GameObject> activeCells = new List<GameObject>();
 
     private void Awake()
     {
         blockController = GetComponent<BlockController>();
-
-        // Đăng ký nghe ngay từ Awake để đảm bảo không bị lỡ nhịp khi Controller gọi OnEnable()
-
         blockController.OnShapeAssigned += DrawShape;
     }
 
@@ -26,45 +24,52 @@ public class BlockView : MonoBehaviour
         {
             blockController.OnShapeAssigned -= DrawShape;
         }
-    }
 
-    // XÓA hàm OnDisable() gọi ClearShape() đi vì:
-    // Khi cục gạch mẹ bị trả về Pool (SetActive(false)), Unity cấm không cho phép
-    // các cục gạch con thay đổi Parent (về Pool) trong lúc thằng mẹ đang bị tắt.
-    // Cứ kệ tụi nó nằm im trong bụng mẹ. Lần sau lấy ra xài (DrawShape), nó sẽ tự dọn dẹp!
+        foreach (var cell in activeCells)
+        {
+            if (cell != null)
+            {
+                cell.transform.DOKill();
+            }
+        }
+    }
 
     private void DrawShape(List<(int x, int y)> offsets)
     {
         if (poolService == null) poolService = ServiceLocator.Get<IPoolService>();
+        if (blockService == null) blockService = ServiceLocator.Get<IBlockService>();
 
-
-        ClearShape(); // Dọn dẹp trước cho chắc ăn
-
-        if (cellPrefab == null)
-        {
-            Debug.LogError("BlockView: Chưa gắn cellPrefab vào Inspector của " + gameObject.name);
-            return;
-        }
+        ClearShape();
 
         Vector2 center = blockController != null ? blockController.CenterOffset : Vector2.zero;
+        int[] variantIds = blockController?.Model?.VariantIds;
 
-        foreach (var offset in offsets)
+        for (int i = 0; i < offsets.Count; i++)
         {
-            // Bốc 1 cục gạch con từ kho
-            GameObject cell = poolService.SpawnObject(cellPrefab, Vector3.zero, Quaternion.identity);
+            var offset = offsets[i];
+            int variantId = (variantIds != null && i < variantIds.Length) ? variantIds[i] : 0;
 
-            // Gắn vào cục gạch mẹ (Block). Dùng tham số 'false' cực kỳ quan trọng!
-            // 'false' cấm Unity tự động bóp méo localScale (1.3333) để bù trừ cho cái Scale 0.75 của thằng Cha.
+            GameObject prefabToSpawn = null;
+            if (blockService != null)
+            {
+                prefabToSpawn = blockService.GetCellPrefab(variantId);
+            }
+
+            if (prefabToSpawn == null)
+            {
+                prefabToSpawn = cellPrefab;
+            }
+
+            if (prefabToSpawn == null)
+            {
+                Debug.LogError("BlockView: No cell prefab found for " + gameObject.name);
+                continue;
+            }
+
+            GameObject cell = poolService.SpawnObject(prefabToSpawn, Vector3.zero, Quaternion.identity);
             cell.transform.SetParent(this.transform, false);
-            
-            // Đảm bảo gạch con luôn mang kích thước gốc 1:1 (Thằng cha 0.75 thì world scale tự thành 0.75)
             cell.transform.localScale = Vector3.one;
-
-            // Quy đổi tọa độ: X của mảng 2D -> X của Unity 3D, Y của mảng 2D -> Z của Unity 3D
-            // Trừ đi center để căn giữa tâm khối gạch vào tâm GameObject
             cell.transform.localPosition = new Vector3(offset.x - center.x, 0, offset.y - center.y);
-
-            // Lưu lại để xíu nữa trả về kho
             activeCells.Add(cell);
         }
     }
@@ -73,11 +78,13 @@ public class BlockView : MonoBehaviour
     {
         if (poolService == null) return;
 
-
         foreach (var cell in activeCells)
         {
             if (cell != null)
             {
+                cell.transform.DOKill();
+                cell.transform.localScale = Vector3.one;
+                cell.transform.localRotation = Quaternion.identity;
                 poolService.ReturnObjectToPool(cell);
             }
         }

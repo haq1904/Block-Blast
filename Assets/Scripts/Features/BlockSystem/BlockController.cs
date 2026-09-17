@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -14,10 +15,13 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private int slotIndex;
 
     private IPoolService poolService;
+    private Vector2Int lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
+    private bool wasAllInBounds = false;
 
     // Lắng nghe sự kiện để View biết phải vẽ hình gì
     public event Action<List<(int x, int y)>> OnShapeAssigned;
     public Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
+    public BlockModel Model => model;
 
     private void Awake()
     {
@@ -39,6 +43,9 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
+        wasAllInBounds = false;
+
         // Khi vừa chạm vào: Trượt lên độ cao y=1 và tiến tới z+2
         Vector3 newPos = transform.position;
         newPos.y = 1f;
@@ -62,36 +69,34 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
         Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
 
-        List<Vector2Int> occupiedPositions = new List<Vector2Int>();
-        bool allInBounds = true;
+        List<CellPlacementData> placementData = GetCellPlacementData(originGridPos, out bool allInBounds);
 
-        if (model != null && model.ShapeOffsets != null)
+        // Chống gọi lặp khi ngón tay di chuyển trong cùng 1 tọa độ Grid
+        if (originGridPos == lastOriginGridPos && allInBounds == wasAllInBounds)
         {
-            foreach (var offset in model.ShapeOffsets)
-            {
-                Vector2Int pos = originGridPos + new Vector2Int(offset.x, offset.y);
-                if (pos.x < 0 || pos.x >= gridService.GridWidth || pos.y < 0 || pos.y >= gridService.GridHeight)
-                {
-                    allInBounds = false;
-                }
-                occupiedPositions.Add(pos);
-            }
+            return;
         }
+
+        lastOriginGridPos = originGridPos;
+        wasAllInBounds = allInBounds;
 
         if (allInBounds)
         {
-            gridService.RequestPreview(occupiedPositions);
+            gridService.RequestPreview(placementData);
         }
         else
         {
-            gridService.RequestPreview(new List<Vector2Int>());
+            gridService.RequestPreview(new List<CellPlacementData>());
         }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
+        wasAllInBounds = false;
+
         // Tắt bóng mờ ngay lập tức
-        gridService.RequestPreview(new List<Vector2Int>());
+        gridService.RequestPreview(new List<CellPlacementData>());
 
         // 1. Tính toán lại vị trí chuột lúc thả tay để chốt vị trí Block
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
@@ -102,29 +107,14 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
         Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
 
-        List<Vector2Int> occupiedPositions = new List<Vector2Int>();
-        bool allInBounds = true;
-
-        if (model != null && model.ShapeOffsets != null)
-        {
-            foreach (var offset in model.ShapeOffsets)
-            {
-                Vector2Int pos = originGridPos + new Vector2Int(offset.x, offset.y);
-                if (pos.x < 0 || pos.x >= gridService.GridWidth || pos.y < 0 || pos.y >= gridService.GridHeight)
-                {
-                    allInBounds = false;
-                }
-                occupiedPositions.Add(pos);
-            }
-        }
-
+        List<CellPlacementData> placementData = GetCellPlacementData(originGridPos, out bool allInBounds);
         bool isPlaced = false;
 
         // 2. Xét đặt gạch theo tọa độ của Block
-        if (allInBounds && gridService.CanPlaceBlocks(occupiedPositions))
+        if (allInBounds && gridService.CanPlaceBlocks(placementData))
         {
             // Chốt đơn!
-            gridService.PlaceBlocks(occupiedPositions);
+            gridService.PlaceBlocks(placementData);
             isPlaced = true;
         }
 
@@ -141,6 +131,9 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             {
                 try
                 {
+                    transform.DOKill();
+                    transform.localScale = Vector3.one;
+                    transform.localRotation = Quaternion.identity;
                     poolService.ReturnObjectToPool(gameObject);
                 }
                 catch
@@ -158,7 +151,6 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             if (spawnService != null)
             {
                 spawnService.MarkSlotEmpty(slotIndex);
-
             }
         }
         else
@@ -167,9 +159,32 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             transform.position = trayPosition;
 
             // Thu nhỏ lại thành 0.75 khi nằm trên Khay
-
             transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         }
+    }
+
+    private List<CellPlacementData> GetCellPlacementData(Vector2Int originGridPos, out bool allInBounds)
+    {
+        allInBounds = true;
+        var result = new List<CellPlacementData>();
+
+        if (model != null && model.ShapeOffsets != null)
+        {
+            for (int i = 0; i < model.ShapeOffsets.Count; i++)
+            {
+                var offset = model.ShapeOffsets[i];
+                Vector2Int pos = originGridPos + new Vector2Int(offset.x, offset.y);
+                if (pos.x < 0 || pos.x >= gridService.GridWidth || pos.y < 0 || pos.y >= gridService.GridHeight)
+                {
+                    allInBounds = false;
+                }
+
+                int variantId = (model.VariantIds != null && i < model.VariantIds.Length) ? model.VariantIds[i] : 0;
+                result.Add(new CellPlacementData(pos, model.BlockTypeId, variantId));
+            }
+        }
+
+        return result;
     }
 
     // Hàm phụ trợ: Bắn tia Ray từ Camera xuống mặt phẳng y=0 để tìm tọa độ 3D của ngón tay

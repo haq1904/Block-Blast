@@ -5,6 +5,14 @@ public class BlockManager : MonoBehaviour, IBlockService
 {
     [SerializeField] private BlockController blockPrefab;
 
+    [Header("Block Theme Configuration")]
+    [SerializeField] private BlockTypeDatabaseSO blockTypeDatabase;
+    [SerializeField] private string defaultBlockTypeId = "wood_crate";
+
+    public BlockTypeSO CurrentBlockType { get; private set; }
+    public BlockTypeDatabaseSO Database => blockTypeDatabase;
+    public event Action<BlockTypeSO> OnBlockTypeChanged;
+
     private IPoolService poolService;
     private readonly BlockController[] activeBlocks = new BlockController[3];
 
@@ -13,7 +21,54 @@ public class BlockManager : MonoBehaviour, IBlockService
 
     private void Awake()
     {
+        InitializeTheme();
         ServiceLocator.Register<IBlockService>(this);
+    }
+
+    private void InitializeTheme()
+    {
+        if (CurrentBlockType == null && blockTypeDatabase != null)
+        {
+            CurrentBlockType = blockTypeDatabase.GetBlockType(defaultBlockTypeId);
+        }
+    }
+
+    public void SetBlockType(string typeId)
+    {
+        if (blockTypeDatabase != null)
+        {
+            BlockTypeSO type = blockTypeDatabase.GetBlockType(typeId);
+            if (type != null)
+            {
+                SetBlockType(type);
+            }
+        }
+    }
+
+    public void SetBlockType(BlockTypeSO newType)
+    {
+        if (newType == null || newType == CurrentBlockType) return;
+        CurrentBlockType = newType;
+        OnBlockTypeChanged?.Invoke(CurrentBlockType);
+    }
+
+    public GameObject GetCellPrefab(int variantId)
+    {
+        if (CurrentBlockType != null)
+        {
+            return CurrentBlockType.GetPrefab(variantId);
+        }
+        return null;
+    }
+
+    public int GetRandomVariantId()
+    {
+        if (CurrentBlockType != null && CurrentBlockType.variants != null && CurrentBlockType.variants.Length > 0)
+        {
+            int idx = UnityEngine.Random.Range(0, CurrentBlockType.variants.Length);
+            return CurrentBlockType.variants[idx].variantId;
+        }
+        return 0;
     }
 
     private void Start()

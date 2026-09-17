@@ -7,11 +7,15 @@ public class BlockModel
     // Ví dụ khối 2x2: [(0,0), (1,0), (0,1), (1,1)]
     public List<(int x, int y)> ShapeOffsets { get; private set; }
     public Vector2 CenterOffset { get; private set; }
+    public string BlockTypeId { get; private set; }
+    public int[] VariantIds { get; private set; }
 
-    public BlockModel(List<(int x, int y)> shapeOffsets)
+    public BlockModel(List<(int x, int y)> shapeOffsets, string blockTypeId = "", int[] variantIds = null)
     {
         ShapeOffsets = shapeOffsets;
         CenterOffset = CalculateCenter(shapeOffsets);
+        BlockTypeId = blockTypeId ?? "";
+        VariantIds = variantIds;
     }
 
     private static Vector2 CalculateCenter(List<(int x, int y)> offsets)
