@@ -1,0 +1,18 @@
+{
+    "name": "BlockBlast.Features.GameFlow.Editor",
+    "rootNamespace": "",
+    "references": [
+        "BlockBlast.Feature"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
