@@ -7,6 +7,42 @@ public static class BlockSpawnGenerator
 {
     public const int TotalScenarios = 33;
 
+    public static void AssignThemeVariants(BlockModel[] batch, BlockTypeSO theme)
+    {
+        if (batch == null || theme == null || theme.variants == null || theme.variants.Length == 0) return;
+
+        int totalVariants = theme.variants.Length;
+
+        for (int b = 0; b < batch.Length; b++)
+        {
+            if (batch[b] == null) continue;
+
+            int cellCount = batch[b].ShapeOffsets.Count;
+            int[] variants = new int[cellCount];
+
+            if (theme.isMonochromePerShape || totalVariants <= 1)
+            {
+                int singleId = theme.variants[Random.Range(0, totalVariants)].variantId;
+                for (int i = 0; i < cellCount; i++) variants[i] = singleId;
+            }
+            else
+            {
+                // Mix variants: restricted to exactly 2 distinct variants to avoid color dilution
+                int idxA = Random.Range(0, totalVariants);
+                int idxB = (idxA + Random.Range(1, totalVariants)) % totalVariants;
+                int idA = theme.variants[idxA].variantId;
+                int idB = theme.variants[idxB].variantId;
+
+                for (int i = 0; i < cellCount; i++)
+                {
+                    variants[i] = (Random.value > 0.5f) ? idA : idB;
+                }
+            }
+
+            batch[b] = new BlockModel(batch[b].ShapeOffsets, theme.typeId, variants);
+        }
+    }
+
     public static BlockModel[] GenerateBatch(
         int score,
         IGridService gridService,

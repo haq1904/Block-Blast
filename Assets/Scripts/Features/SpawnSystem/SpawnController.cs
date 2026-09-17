@@ -35,6 +35,12 @@ public class SpawnController : MonoBehaviour, ISpawnService
 
         BlockModel[] newBatch = BlockSpawnGenerator.GenerateBatch(score, gridService, db, config, model);
 
+        var blockService = ServiceLocator.Get<IBlockService>();
+        if (blockService != null && blockService.CurrentBlockType != null)
+        {
+            BlockSpawnGenerator.AssignThemeVariants(newBatch, blockService.CurrentBlockType);
+        }
+
         // Update model
         model.SetBatch(newBatch);
 
