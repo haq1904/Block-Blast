@@ -66,3 +66,16 @@ The State Machine must be designed using Generics `<T>` to ensure flexibility an
 
 ## 9. Planning Language
 *   **Vietnamese for Implementation Plans**: Whenever creating or updating an implementation plan (`implementation_plan.md`), ALWAYS write the plan in Vietnamese. Technical terms, file names, code snippets, and identifiers must remain in English.
+
+## 10. Strict DOTween Management Guidelines
+DOTween is widely used for Game Juice, animations, and transitions. To prevent memory leaks, `MissingReferenceException`, stale callbacks, and transform desynchronization, you MUST adhere to the following rules:
+
+*   **Kill Before Tweening**: Always kill any active tween on a target before starting a new one (`target.DOKill()` or `tweenInstance?.Kill()`).
+*   **Mandatory Cleanup (`OnDisable` / `OnDestroy`)**: Any component launching tweens MUST kill them in `OnDisable()` or `OnDestroy()`. Always bind tweens to their GameObject lifecycle using `.SetLink(gameObject, LinkBehaviour.KillOnDisable)` or `.SetLink(gameObject, LinkBehaviour.KillOnDestroy)`.
+*   **Object Pooling Safety**: When returning a GameObject or Transform to the Object Pool (`IPoolService.ReturnObjectToPool`), you MUST:
+    1. Kill all active tweens on that object (`target.DOKill()`).
+    2. Reset all modified properties (scale, position, rotation, alpha) back to their canonical default values (`Vector3.one`, default position, `Quaternion.identity`).
+    3. Never leave an active tween running on a disabled/pooled object.
+*   **Stateless ScriptableObjects**: ScriptableObjects (e.g., `PreClearEffectSO`) must NEVER store active `Tween` references, `Transform` references, or runtime state dictionaries in instance fields. ScriptableObjects must remain purely stateless configurators/executors.
+*   **Infinite Loops Tracking**: Any tween configured with infinite loops (`.SetLoops(-1)`) MUST be tracked and explicitly killed (`target.DOKill()`) immediately when its trigger state ends (e.g. canceling pre-clear preview).
+*   **No Redundant Allocations in Update**: Avoid instantiating new tweens inside `Update()` without checking `DOTween.IsTweening(target)` or caching the active `Tween` reference.
