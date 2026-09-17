@@ -3110,6 +3110,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::BlockManager
   blockPrefab: {fileID: 8558676841371472084, guid: b378e2d28e407bf4285c58e5f26adb85, type: 3}
+  blockTypeDatabase: {fileID: 11400000, guid: 11513a6cb423ad541a4184ed93269bfd, type: 2}
+  defaultBlockTypeId: wood_crate
 --- !u!4 &904713654
 Transform:
   m_ObjectHideFlags: 0
@@ -6438,7 +6440,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1813194317}
   m_LocalRotation: {x: 0.44608536, y: -0, z: -0, w: 0.89499044}
-  m_LocalPosition: {x: 0, y: 0, z: -1.86}
+  m_LocalPosition: {x: 0, y: 0, z: -8.7}
   m_LocalScale: {x: 0.40603, y: 0.40603, z: 0.40603}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6446,7 +6448,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 52.986, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.42, y: 0.57}
+  m_AnchoredPosition: {x: 16.61, y: -4.62}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1816245112

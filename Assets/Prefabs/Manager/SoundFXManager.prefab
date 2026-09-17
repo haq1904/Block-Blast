@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 987289898081049193}
   - component: {fileID: 4590918653606840815}
   m_Layer: 0
-  m_Name: AudioManager
+  m_Name: SoundFXManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -42,7 +42,7 @@ AudioSource:
   m_GameObject: {fileID: 6481931938255223112}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -7619608332689950449, guid: db374742bee39934e87c64b35753619b, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
@@ -148,8 +148,10 @@ MonoBehaviour:
   - name: BlockSpawn
     sounds: []
   - name: BlockPlace
-    sounds: []
+    sounds:
+    - {fileID: 8300000, guid: 3c2e53e797efa3f499e96b67946e11c1, type: 3}
   - name: LineClear
-    sounds: []
+    sounds:
+    - {fileID: 8300000, guid: 2ca91fb8c66afdf4391a204125800e77, type: 3}
   - name: GameOver
     sounds: []

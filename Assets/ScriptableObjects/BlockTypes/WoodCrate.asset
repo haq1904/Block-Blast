@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed438edba8499e24ca1fb7d6c90671ea, type: 3}
+  m_Name: WoodCrate
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockTypeSO
+  typeId: wood_crate
+  displayName: Wood crate
+  variants:
+  - variantId: 1
+    prefab: {fileID: 3146870385133040111, guid: 845f12f1ae396a24687cae2725e06676, type: 3}
+  shadowMaterial: {fileID: 2100000, guid: 5b8155dd4c211284abc49a2a9fde441f, type: 2}
+  isMonochromePerShape: 0
+  preClearEffect: {fileID: 11400000, guid: e9859a29ac7b8ec4d9dddd6063faa5f6, type: 2}
+  clearVFXPrefab: {fileID: 0}
+  clearSound: 3
+  placeSound: 2

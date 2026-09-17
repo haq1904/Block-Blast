@@ -44,4 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13fe59e03e2cbfe46aab2c4ed5871b05, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Core::SoundAudioMixerManager
-  audioMixer: {fileID: 0}
+  audioMixer: {fileID: 24100000, guid: db374742bee39934e87c64b35753619b, type: 2}
