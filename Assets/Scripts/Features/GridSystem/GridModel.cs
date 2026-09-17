@@ -1,24 +1,50 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public struct GridCellState
+{
+    public bool isOccupied;
+    public string blockTypeId;
+    public int variantId;
+}
+
 public class GridModel
 {
     public int Cols { get; private set; }
     public int Rows { get; private set; }
-    private bool[,] gridOccupied;
+    private GridCellState[,] gridCells;
 
     public GridModel(int cols = 8, int rows = 8)
     {
         Cols = cols;
         Rows = rows;
-        gridOccupied = new bool[Cols, Rows];
+        gridCells = new GridCellState[Cols, Rows];
     }
 
     public bool IsOccupied(int col, int row)
     {
-        return gridOccupied[col, row];
+        if (!IsWithinBounds(col, row)) return false;
+        return gridCells[col, row].isOccupied;
     }
 
-    public void SetOccupied(int col, int row, bool isOccupied)
+    public void SetOccupied(int col, int row, bool isOccupied, string blockTypeId = "", int variantId = 0)
     {
-        gridOccupied[col, row] = isOccupied;
+        if (!IsWithinBounds(col, row)) return;
+        gridCells[col, row].isOccupied = isOccupied;
+        gridCells[col, row].blockTypeId = isOccupied ? blockTypeId : "";
+        gridCells[col, row].variantId = isOccupied ? variantId : 0;
+    }
+
+    public string GetBlockTypeId(int col, int row)
+    {
+        if (!IsWithinBounds(col, row)) return "";
+        return gridCells[col, row].blockTypeId;
+    }
+
+    public int GetVariantId(int col, int row)
+    {
+        if (!IsWithinBounds(col, row)) return 0;
+        return gridCells[col, row].variantId;
     }
 
     public bool IsWithinBounds(int col, int row)
@@ -28,35 +54,43 @@ public class GridModel
 
     public bool IsRowFull(int row)
     {
+        if (row < 0 || row >= Rows) return false;
         for (int col = 0; col < Cols; col++)
         {
-            if (!gridOccupied[col, row]) return false;
+            if (!gridCells[col, row].isOccupied) return false;
         }
         return true;
     }
 
     public bool IsColFull(int col)
     {
+        if (col < 0 || col >= Cols) return false;
         for (int row = 0; row < Rows; row++)
         {
-            if (!gridOccupied[col, row]) return false;
+            if (!gridCells[col, row].isOccupied) return false;
         }
         return true;
     }
 
     public void ClearRow(int row)
     {
+        if (row < 0 || row >= Rows) return;
         for (int col = 0; col < Cols; col++)
         {
-            gridOccupied[col, row] = false;
+            gridCells[col, row].isOccupied = false;
+            gridCells[col, row].blockTypeId = "";
+            gridCells[col, row].variantId = 0;
         }
     }
 
     public void ClearCol(int col)
     {
+        if (col < 0 || col >= Cols) return;
         for (int row = 0; row < Rows; row++)
         {
-            gridOccupied[col, row] = false;
+            gridCells[col, row].isOccupied = false;
+            gridCells[col, row].blockTypeId = "";
+            gridCells[col, row].variantId = 0;
         }
     }
 
@@ -67,7 +101,7 @@ public class GridModel
         {
             for (int row = 0; row < Rows; row++)
             {
-                if (gridOccupied[col, row])
+                if (gridCells[col, row].isOccupied)
                 {
                     count++;
                 }
@@ -75,5 +109,120 @@ public class GridModel
         }
         return count;
     }
-}
 
+    public void GetPotentialLineClears(List<CellPlacementData> hypotheticalPositions, List<int> outRows, List<int> outCols)
+    {
+        if (outRows == null || outCols == null) return;
+        outRows.Clear();
+        outCols.Clear();
+
+        if (hypotheticalPositions == null || hypotheticalPositions.Count == 0) return;
+
+        HashSet<int> rowsToCheck = new HashSet<int>();
+        HashSet<int> colsToCheck = new HashSet<int>();
+        HashSet<Vector2Int> hypotheticalSet = new HashSet<Vector2Int>();
+
+        for (int i = 0; i < hypotheticalPositions.Count; i++)
+        {
+            Vector2Int pos = hypotheticalPositions[i].gridPos;
+            if (IsWithinBounds(pos.x, pos.y))
+            {
+                rowsToCheck.Add(pos.y);
+                colsToCheck.Add(pos.x);
+                hypotheticalSet.Add(pos);
+            }
+        }
+
+        foreach (int row in rowsToCheck)
+        {
+            bool rowWillBeFull = true;
+            for (int col = 0; col < Cols; col++)
+            {
+                if (!gridCells[col, row].isOccupied && !hypotheticalSet.Contains(new Vector2Int(col, row)))
+                {
+                    rowWillBeFull = false;
+                    break;
+                }
+            }
+            if (rowWillBeFull)
+            {
+                outRows.Add(row);
+            }
+        }
+
+        foreach (int col in colsToCheck)
+        {
+            bool colWillBeFull = true;
+            for (int row = 0; row < Rows; row++)
+            {
+                if (!gridCells[col, row].isOccupied && !hypotheticalSet.Contains(new Vector2Int(col, row)))
+                {
+                    colWillBeFull = false;
+                    break;
+                }
+            }
+            if (colWillBeFull)
+            {
+                outCols.Add(col);
+            }
+        }
+    }
+
+    public void GetPotentialLineClears(List<Vector2Int> hypotheticalPositions, List<int> outRows, List<int> outCols)
+    {
+        if (outRows == null || outCols == null) return;
+        outRows.Clear();
+        outCols.Clear();
+
+        if (hypotheticalPositions == null || hypotheticalPositions.Count == 0) return;
+
+        HashSet<int> rowsToCheck = new HashSet<int>();
+        HashSet<int> colsToCheck = new HashSet<int>();
+        HashSet<Vector2Int> hypotheticalSet = new HashSet<Vector2Int>();
+
+        for (int i = 0; i < hypotheticalPositions.Count; i++)
+        {
+            Vector2Int pos = hypotheticalPositions[i];
+            if (IsWithinBounds(pos.x, pos.y))
+            {
+                rowsToCheck.Add(pos.y);
+                colsToCheck.Add(pos.x);
+                hypotheticalSet.Add(pos);
+            }
+        }
+
+        foreach (int row in rowsToCheck)
+        {
+            bool rowWillBeFull = true;
+            for (int col = 0; col < Cols; col++)
+            {
+                if (!gridCells[col, row].isOccupied && !hypotheticalSet.Contains(new Vector2Int(col, row)))
+                {
+                    rowWillBeFull = false;
+                    break;
+                }
+            }
+            if (rowWillBeFull)
+            {
+                outRows.Add(row);
+            }
+        }
+
+        foreach (int col in colsToCheck)
+        {
+            bool colWillBeFull = true;
+            for (int row = 0; row < Rows; row++)
+            {
+                if (!gridCells[col, row].isOccupied && !hypotheticalSet.Contains(new Vector2Int(col, row)))
+                {
+                    colWillBeFull = false;
+                    break;
+                }
+            }
+            if (colWillBeFull)
+            {
+                outCols.Add(col);
+            }
+        }
+    }
+}

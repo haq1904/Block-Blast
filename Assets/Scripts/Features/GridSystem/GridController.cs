@@ -9,15 +9,22 @@ public class GridController : MonoBehaviour, IGridService
 
     private GridModel model;
 
-    public event Action<bool, List<Vector2Int>> OnPreviewStateChanged;
-    public event Action<List<Vector2Int>> OnBlockPlaced;
+    public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
+    public event Action<List<CellPlacementData>> OnBlockPlaced;
     public event Action<List<int>, List<int>> OnLinesCleared;
+    public event Action<List<int>, List<int>> OnPreviewLinesToClear;
     public event Action<int, int, bool> OnPlacementResolved;
 
-    public int GridWidth => model.Cols;
-    public int GridHeight => model.Rows;
-    public int OccupiedCellCount => model.GetOccupiedCount();
-    public float OccupancyRatio => (model.Cols * model.Rows) > 0 ? (float)model.GetOccupiedCount() / (model.Cols * model.Rows) : 0f;
+    public int GridWidth => model != null ? model.Cols : 8;
+    public int GridHeight => model != null ? model.Rows : 8;
+    public int OccupiedCellCount => model != null ? model.GetOccupiedCount() : 0;
+    public float OccupancyRatio => (model != null && (model.Cols * model.Rows) > 0)
+        ? (float)model.GetOccupiedCount() / (model.Cols * model.Rows)
+        : 0f;
+
+    private readonly List<int> cachedCandidateRows = new List<int>();
+    private readonly List<int> cachedCandidateCols = new List<int>();
+    private readonly List<int> emptyLineList = new List<int>();
 
     private void Awake()
     {
@@ -44,8 +51,20 @@ public class GridController : MonoBehaviour, IGridService
         return new Vector3(x, -1, z);
     }
 
+    public bool CanPlaceBlocks(List<CellPlacementData> cells)
+    {
+        if (cells == null || cells.Count == 0) return false;
+        foreach (var cell in cells)
+        {
+            if (!model.IsWithinBounds(cell.gridPos.x, cell.gridPos.y)) return false;
+            if (model.IsOccupied(cell.gridPos.x, cell.gridPos.y)) return false;
+        }
+        return true;
+    }
+
     public bool CanPlaceBlocks(List<Vector2Int> gridPositions)
     {
+        if (gridPositions == null || gridPositions.Count == 0) return false;
         foreach (Vector2Int pos in gridPositions)
         {
             if (!model.IsWithinBounds(pos.x, pos.y)) return false;
@@ -60,37 +79,62 @@ public class GridController : MonoBehaviour, IGridService
         return model.IsOccupied(col, row);
     }
 
+    public void RequestPreview(List<CellPlacementData> cells)
+    {
+        bool isValid = CanPlaceBlocks(cells);
+        OnPreviewStateChanged?.Invoke(isValid, cells);
+
+        if (isValid && cells != null && cells.Count > 0)
+        {
+            model.GetPotentialLineClears(cells, cachedCandidateRows, cachedCandidateCols);
+            OnPreviewLinesToClear?.Invoke(cachedCandidateRows, cachedCandidateCols);
+        }
+        else
+        {
+            OnPreviewLinesToClear?.Invoke(emptyLineList, emptyLineList);
+        }
+    }
 
     public void RequestPreview(List<Vector2Int> gridPositions)
     {
-        bool isValid = CanPlaceBlocks(gridPositions);
-        OnPreviewStateChanged?.Invoke(isValid, gridPositions);
+        List<CellPlacementData> cells = new List<CellPlacementData>();
+        if (gridPositions != null)
+        {
+            for (int i = 0; i < gridPositions.Count; i++)
+            {
+                cells.Add(new CellPlacementData(gridPositions[i], "", 0));
+            }
+        }
+        RequestPreview(cells);
     }
 
-    public void PlaceBlocks(List<Vector2Int> gridPositions)
+    public void PlaceBlocks(List<CellPlacementData> cells)
     {
-        if (!CanPlaceBlocks(gridPositions)) return; // Safety check
+        if (!CanPlaceBlocks(cells)) return;
 
-        // 1. Lưu Data
-        foreach (Vector2Int pos in gridPositions)
+        // Reset any pending pre-clear indicators
+        OnPreviewLinesToClear?.Invoke(emptyLineList, emptyLineList);
+
+        // 1. Record data in model
+        foreach (var cell in cells)
         {
-            model.SetOccupied(pos.x, pos.y, true);
+            model.SetOccupied(cell.gridPos.x, cell.gridPos.y, true, cell.blockTypeId, cell.variantIndex);
         }
 
-        // Phát sự kiện thả gạch thành công cho View
-        OnBlockPlaced?.Invoke(gridPositions);
+        // Broadcast placement event to View
+        OnBlockPlaced?.Invoke(cells);
 
-        // 2. Quét kiểm tra xem có hàng/cột nào đầy không
+        // 2. Scan rows and columns for full lines
         List<int> clearedRows = new List<int>();
         List<int> clearedCols = new List<int>();
 
         HashSet<int> rowsToCheck = new HashSet<int>();
         HashSet<int> colsToCheck = new HashSet<int>();
 
-        foreach (Vector2Int pos in gridPositions)
+        foreach (var cell in cells)
         {
-            rowsToCheck.Add(pos.y);
-            colsToCheck.Add(pos.x);
+            rowsToCheck.Add(cell.gridPos.y);
+            colsToCheck.Add(cell.gridPos.x);
         }
 
         foreach (int row in rowsToCheck)
@@ -103,19 +147,17 @@ public class GridController : MonoBehaviour, IGridService
             if (model.IsColFull(col)) clearedCols.Add(col);
         }
 
-        // 3. Tiến hành xóa Data và bắn Event nổ
+        // 3. Clear data and broadcast clear event
         if (clearedRows.Count > 0 || clearedCols.Count > 0)
         {
             foreach (int row in clearedRows)
             {
                 model.ClearRow(row);
-                Debug.Log($"[GridController] Cleared Row: {row}");
             }
 
             foreach (int col in clearedCols)
             {
                 model.ClearCol(col);
-                Debug.Log($"[GridController] Cleared Col: {col}");
             }
 
             OnLinesCleared?.Invoke(clearedRows, clearedCols);
@@ -124,6 +166,19 @@ public class GridController : MonoBehaviour, IGridService
         // 4. Broadcast placement resolution for ScoreSystem and game flow
         int totalLinesCleared = clearedRows.Count + clearedCols.Count;
         bool isAllClear = model.GetOccupiedCount() == 0;
-        OnPlacementResolved?.Invoke(gridPositions.Count, totalLinesCleared, isAllClear);
+        OnPlacementResolved?.Invoke(cells.Count, totalLinesCleared, isAllClear);
+    }
+
+    public void PlaceBlocks(List<Vector2Int> gridPositions)
+    {
+        List<CellPlacementData> cells = new List<CellPlacementData>();
+        if (gridPositions != null)
+        {
+            for (int i = 0; i < gridPositions.Count; i++)
+            {
+                cells.Add(new CellPlacementData(gridPositions[i], "", 0));
+            }
+        }
+        PlaceBlocks(cells);
     }
 }

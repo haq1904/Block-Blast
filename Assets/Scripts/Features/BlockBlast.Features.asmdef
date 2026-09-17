@@ -5,7 +5,8 @@
         "GUID:388217bc777637447858ae8c194fc442",
         "Unity.InputSystem",
         "Unity.TextMeshPro",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "DOTween.Modules"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
