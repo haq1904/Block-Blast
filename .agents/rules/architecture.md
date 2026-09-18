@@ -79,3 +79,26 @@ DOTween is widely used for Game Juice, animations, and transitions. To prevent m
 *   **Stateless ScriptableObjects**: ScriptableObjects (e.g., `PreClearEffectSO`) must NEVER store active `Tween` references, `Transform` references, or runtime state dictionaries in instance fields. ScriptableObjects must remain purely stateless configurators/executors.
 *   **Infinite Loops Tracking**: Any tween configured with infinite loops (`.SetLoops(-1)`) MUST be tracked and explicitly killed (`target.DOKill()`) immediately when its trigger state ends (e.g. canceling pre-clear preview).
 *   **No Redundant Allocations in Update**: Avoid instantiating new tweens inside `Update()` without checking `DOTween.IsTweening(target)` or caching the active `Tween` reference.
+
+## 11. Unit Testing Policy
+*   **Run Only on Model/Controller Changes**: Automated unit tests (`unityMCP:run_tests` or NUnit EditMode tests) MUST ONLY be executed when changes involve core business logic, mathematical algorithms, data models, or controllers (e.g., `GridModel`, `GridController`, `BlockSpawnGenerator`).
+*   **Skip for Pure View / Visual Changes**: When changes are strictly confined to the View layer, visual Game Juice, shaders, materials, audio, animations, or DOTween effects (e.g., `GridView`, `PreClearEffectSO` subclasses), do NOT run unit tests. Verify View changes through compiler diagnostic checks (`read_console`) and manual visual testing in PlayMode to maximize development speed and eliminate unnecessary test overhead.
+
+## 12. Commit Message Conventions
+All Git commit messages MUST strictly adhere to the **Conventional Commits** specification:
+
+*   **Format**: `<type>(<scope>): <short description in imperative mood>`
+*   **Allowed Types**:
+    *   `feat`: A new feature, mechanic, visual juice, or player-facing capability.
+    *   `fix`: A bug fix or regression repair.
+    *   `refactor`: Code restructuring without modifying external behavior or adding features.
+    *   `chore`: Maintenance, asset configuration, Inspector bindings, parameter tuning.
+    *   `docs`: Documentation, rule/skill updates, walkthroughs, or architecture guidelines.
+    *   `test`: Adding or updating EditMode/PlayMode unit tests.
+    *   `data`: Game balance configuration, shapes, or scenario test assets.
+*   **Scope**: A concise lowercase identifier in parentheses indicating the affected subsystem (e.g., `(grid)`, `(block)`, `(spawn)`, `(score)`, `(assets)`, `(rules)`, `(effect)`).
+*   **Strict Rules**:
+    1. **English Only**: Commit messages MUST be written entirely in English.
+    2. **Imperative Mood**: Start the subject with a lowercase imperative verb (e.g., `implement`, `add`, `fix`, `configure`, `refactor`, `remove`).
+    3. **No Trailing Period**: Do NOT put a period (`.`) at the end of the commit subject line.
+    4. **Concise & Atomic**: Commits must be atomic, focused on a single logical change, and keep the subject line within 72 characters.
