@@ -19,7 +19,7 @@ MonoBehaviour:
     prefab: {fileID: 3146870385133040111, guid: 845f12f1ae396a24687cae2725e06676, type: 3}
   shadowMaterial: {fileID: 2100000, guid: 5b8155dd4c211284abc49a2a9fde441f, type: 2}
   isMonochromePerShape: 0
-  preClearEffect: {fileID: 11400000, guid: e9859a29ac7b8ec4d9dddd6063faa5f6, type: 2}
+  preClearEffect: {fileID: 11400000, guid: 894411fcc7805d04f9cfd90fc091ad80, type: 2}
   clearVFXPrefab: {fileID: 0}
   clearSound: 3
   placeSound: 2
