@@ -19,11 +19,20 @@ public class WobbleRotationEffectSO : PreClearEffectSO
         target.DOKill();
 
         Quaternion baseRot = target.rotation;
-        target.rotation = baseRot * Quaternion.Euler(-tiltAngle);
+        float halfDuration = duration * 0.5f;
 
-        target.DORotateQuaternion(baseRot * Quaternion.Euler(tiltAngle), duration)
-              .SetLoops(-1, LoopType.Yoyo)
-              .SetEase(easeType);
+        Sequence seq = DOTween.Sequence();
+        seq.SetTarget(target);
+        seq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
+
+        // 1. Swing from base (0 deg) to +tiltAngle
+        seq.Append(target.DORotateQuaternion(baseRot * Quaternion.Euler(tiltAngle), halfDuration).SetEase(Ease.OutSine));
+        // 2. Full swing from +tiltAngle to -tiltAngle
+        seq.Append(target.DORotateQuaternion(baseRot * Quaternion.Euler(-tiltAngle), duration).SetEase(easeType));
+        // 3. Return from -tiltAngle to base (0 deg)
+        seq.Append(target.DORotateQuaternion(baseRot, halfDuration).SetEase(Ease.InSine));
+
+        seq.SetLoops(-1);
     }
 
     public override void Cancel(Transform target, Vector3 originalPos, Quaternion originalRot)

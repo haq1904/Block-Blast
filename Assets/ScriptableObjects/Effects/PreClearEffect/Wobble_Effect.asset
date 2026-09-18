@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Wobble_Effect
   m_EditorClassIdentifier: BlockBlast.Feature::WobbleRotationEffectSO
   tiltAngle: {x: 0, y: 0, z: 8}
-  duration: 0.28
-  easeType: 4
+  duration: 0.2
+  easeType: 7
