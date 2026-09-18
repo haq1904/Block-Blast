@@ -204,6 +204,16 @@ public class GridView : MonoBehaviour
             }
         }
 
+        Vector3 previewCenterWorld = Vector3.zero;
+        if (lastShadowPositions != null && lastShadowPositions.Count > 0 && gridService != null)
+        {
+            for (int i = 0; i < lastShadowPositions.Count; i++)
+            {
+                previewCenterWorld += gridService.GetWorldPositionFromGrid(lastShadowPositions[i]);
+            }
+            previewCenterWorld /= lastShadowPositions.Count;
+        }
+
         foreach (var block in affectedBlocks)
         {
             activePreClearCells.Add(new AnimatingCell
@@ -212,7 +222,7 @@ public class GridView : MonoBehaviour
                 originalPos = block.transform.position,
                 originalRot = block.transform.rotation
             });
-            effect.Apply(block.transform);
+            effect.Apply(block.transform, previewCenterWorld);
         }
     }
 
@@ -237,6 +247,7 @@ public class GridView : MonoBehaviour
                     anim.gameObject.transform.DOKill();
                     anim.gameObject.transform.position = anim.originalPos;
                     anim.gameObject.transform.rotation = anim.originalRot;
+                    anim.gameObject.transform.localScale = Vector3.one;
                 }
             }
         }
