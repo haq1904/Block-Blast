@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
@@ -10,23 +10,43 @@ public class ScoreView : MonoBehaviour
     [SerializeField] private TMP_Text comboText;
     [SerializeField] private GameObject comboContainer;
 
-    [Header("Animation Settings")]
+    [Header("Score Count & Juice Settings")]
+    [Tooltip("Peak scale bonus applied as the rolling score reaches target (e.g. 0.2 = 1.2x scale).")]
+    [SerializeField] private float scoreScaleBonus = 0.2f;
+
+    [Tooltip("Micro-vibration shake amplitude while score rolls up.")]
+    [SerializeField] private float scoreShakeStrength = 3.5f;
+
+    [Tooltip("Minimum rolling score duration in seconds.")]
+    [SerializeField] private float minCountDuration = 0.25f;
+
+    [Tooltip("Maximum rolling score duration in seconds.")]
+    [SerializeField] private float maxCountDuration = 0.65f;
+
+    [Tooltip("Duration of elastic spring settling back to original scale.")]
+    [SerializeField] private float settleDuration = 0.18f;
+
+    [Header("Punch Scale Animation Settings")]
     [SerializeField] private bool enablePunchScale = true;
     [SerializeField] private float punchScaleAmount = 1.25f;
     [SerializeField] private float punchDuration = 0.2f;
 
     private IScoreService scoreService;
-    private Coroutine scorePunchRoutine;
-    private Coroutine comboPunchRoutine;
-    private Coroutine highScorePunchRoutine;
 
     private Vector3 originalScoreScale = Vector3.one;
+    private Vector3 originalScoreLocalPos = Vector3.zero;
     private Vector3 originalComboScale = Vector3.one;
     private Vector3 originalHighScoreScale = Vector3.one;
 
+    private int displayedScore = 0;
+
     private void Awake()
     {
-        if (currentScoreText != null) originalScoreScale = currentScoreText.transform.localScale;
+        if (currentScoreText != null)
+        {
+            originalScoreScale = currentScoreText.transform.localScale;
+            originalScoreLocalPos = currentScoreText.transform.localPosition;
+        }
         if (comboText != null) originalComboScale = comboText.transform.localScale;
         if (highScoreText != null) originalHighScoreScale = highScoreText.transform.localScale;
     }
@@ -40,17 +60,34 @@ public class ScoreView : MonoBehaviour
             scoreService.OnComboChanged += HandleComboChanged;
             scoreService.OnHighScoreChanged += HandleHighScoreChanged;
 
-            // Initialize initial displays
-            UpdateScoreDisplay(scoreService.CurrentScore);
+            displayedScore = scoreService.CurrentScore;
+            UpdateScoreDisplay(displayedScore);
             UpdateHighScoreDisplay(scoreService.HighScore);
             UpdateComboDisplay(scoreService.CurrentCombo);
         }
         else
         {
-            // Default initial state if score service is delayed
+            displayedScore = 0;
             UpdateScoreDisplay(0);
             UpdateHighScoreDisplay(0);
             UpdateComboDisplay(0);
+        }
+    }
+
+    private void OnDisable()
+    {
+        KillAndResetScoreTween();
+
+        if (comboText != null)
+        {
+            comboText.transform.DOKill();
+            comboText.transform.localScale = originalComboScale;
+        }
+
+        if (highScoreText != null)
+        {
+            highScoreText.transform.DOKill();
+            highScoreText.transform.localScale = originalHighScoreScale;
         }
     }
 
@@ -62,17 +99,49 @@ public class ScoreView : MonoBehaviour
             scoreService.OnComboChanged -= HandleComboChanged;
             scoreService.OnHighScoreChanged -= HandleHighScoreChanged;
         }
+
+        KillAndResetScoreTween();
     }
 
     private void HandleScoreChanged(int currentScore, int gainedPoints)
     {
-        UpdateScoreDisplay(currentScore);
+        if (currentScoreText == null) return;
 
-        if (enablePunchScale && gainedPoints > 0 && currentScoreText != null)
+        if (!enablePunchScale || gainedPoints <= 0)
         {
-            if (scorePunchRoutine != null) StopCoroutine(scorePunchRoutine);
-            scorePunchRoutine = StartCoroutine(PunchScaleCoroutine(currentScoreText.transform, originalScoreScale));
+            KillAndResetScoreTween();
+            displayedScore = currentScore;
+            UpdateScoreDisplay(displayedScore);
+            return;
         }
+
+        KillAndResetScoreTween();
+
+        int targetScore = currentScore;
+        float countDuration = Mathf.Clamp(gainedPoints * 0.04f, minCountDuration, maxCountDuration);
+
+        Sequence scoreSeq = DOTween.Sequence();
+        scoreSeq.SetTarget(currentScoreText.transform);
+        scoreSeq.SetLink(gameObject, LinkBehaviour.KillOnDisable);
+
+        // 1. Concurrently run: Number count, Scale swelling (+scoreScaleBonus), and Micro-shake
+        scoreSeq.Join(DOTween.To(() => displayedScore, x => {
+            displayedScore = x;
+            UpdateScoreDisplay(displayedScore);
+        }, targetScore, countDuration).SetEase(Ease.OutQuad));
+
+        scoreSeq.Join(currentScoreText.transform.DOScale(originalScoreScale * (1f + scoreScaleBonus), countDuration).SetEase(Ease.InQuad));
+
+        scoreSeq.Join(currentScoreText.transform.DOShakePosition(countDuration, scoreShakeStrength, vibrato: 20, randomness: 90f, snapping: false, fadeOut: false));
+
+        // 2. When target is reached: enforce exact target value, restore position and spring-settle scale
+        scoreSeq.AppendCallback(() => {
+            displayedScore = targetScore;
+            UpdateScoreDisplay(displayedScore);
+            currentScoreText.transform.localPosition = originalScoreLocalPos;
+        });
+
+        scoreSeq.Append(currentScoreText.transform.DOScale(originalScoreScale, settleDuration).SetEase(Ease.OutBack));
     }
 
     private void HandleComboChanged(int currentCombo)
@@ -81,8 +150,7 @@ public class ScoreView : MonoBehaviour
 
         if (enablePunchScale && currentCombo >= 1 && comboText != null)
         {
-            if (comboPunchRoutine != null) StopCoroutine(comboPunchRoutine);
-            comboPunchRoutine = StartCoroutine(PunchScaleCoroutine(comboText.transform, originalComboScale));
+            PlayPunchScale(comboText.transform, originalComboScale);
         }
     }
 
@@ -92,8 +160,32 @@ public class ScoreView : MonoBehaviour
 
         if (enablePunchScale && highScoreText != null)
         {
-            if (highScorePunchRoutine != null) StopCoroutine(highScorePunchRoutine);
-            highScorePunchRoutine = StartCoroutine(PunchScaleCoroutine(highScoreText.transform, originalHighScoreScale));
+            PlayPunchScale(highScoreText.transform, originalHighScoreScale);
+        }
+    }
+
+    private void PlayPunchScale(Transform target, Vector3 defaultScale)
+    {
+        if (target == null) return;
+        target.DOKill();
+        target.localScale = defaultScale;
+
+        Sequence seq = DOTween.Sequence();
+        seq.SetTarget(target);
+        seq.SetLink(gameObject, LinkBehaviour.KillOnDisable);
+
+        float halfDuration = punchDuration * 0.5f;
+        seq.Append(target.DOScale(defaultScale * punchScaleAmount, halfDuration).SetEase(Ease.OutQuad));
+        seq.Append(target.DOScale(defaultScale, halfDuration).SetEase(Ease.InQuad));
+    }
+
+    private void KillAndResetScoreTween()
+    {
+        if (currentScoreText != null)
+        {
+            currentScoreText.transform.DOKill();
+            currentScoreText.transform.localPosition = originalScoreLocalPos;
+            currentScoreText.transform.localScale = originalScoreScale;
         }
     }
 
@@ -134,35 +226,5 @@ public class ScoreView : MonoBehaviour
                 comboText.text = combo == 1 ? "COMBO" : $"COMBO x{combo}";
             }
         }
-    }
-
-    private IEnumerator PunchScaleCoroutine(Transform target, Vector3 defaultScale)
-    {
-        if (target == null) yield break;
-
-        Vector3 punchScale = defaultScale * punchScaleAmount;
-        float halfDuration = punchDuration * 0.5f;
-        float elapsed = 0f;
-
-        // Scale up
-        while (elapsed < halfDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / halfDuration);
-            target.localScale = Vector3.Lerp(defaultScale, punchScale, t);
-            yield return null;
-        }
-
-        // Scale back down
-        elapsed = 0f;
-        while (elapsed < halfDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / halfDuration);
-            target.localScale = Vector3.Lerp(punchScale, defaultScale, t);
-            yield return null;
-        }
-
-        target.localScale = defaultScale;
     }
 }
