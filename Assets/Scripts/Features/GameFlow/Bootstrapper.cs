@@ -10,9 +10,31 @@ public class Bootstrapper : MonoBehaviour
     [Tooltip("Scene load mode.")]
     [SerializeField] private LoadSceneMode _loadSceneMode = LoadSceneMode.Single;
 
+    [Header("Visual Clear Configuration")]
+    [Tooltip("Clear color used by the bootstrap camera to prevent stale GPU framebuffer artifacts from previous play sessions.")]
+    [SerializeField] private Color _clearColor = new Color(0.12f, 0.13f, 0.16f, 1f);
+
+    private void Awake()
+    {
+        EnsureBootstrapCamera();
+    }
+
     private void Start()
     {
         LoadNextScene();
+    }
+
+    private void EnsureBootstrapCamera()
+    {
+        if (Camera.main == null && FindFirstObjectByType<Camera>() == null)
+        {
+            GameObject camObj = new GameObject("Bootstrap Camera");
+            camObj.transform.SetParent(transform);
+            Camera cam = camObj.AddComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = _clearColor;
+            cam.cullingMask = 0; // Clear framebuffer without rendering any geometry
+        }
     }
 
     private void LoadNextScene()
