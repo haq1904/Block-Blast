@@ -34,7 +34,8 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
     *   `data`: Game balance configuration, shapes, or scenario test assets.
 *   **Scope**: A concise lowercase identifier in parentheses indicating the affected subsystem (e.g., `(grid)`, `(block)`, `(spawn)`, `(score)`, `(assets)`, `(rules)`, `(effect)`).
 *   **Strict Rules**:
-    1. **English Only**: Commit messages MUST be written entirely in English.
-    2. **Imperative Mood**: Start the subject with a lowercase imperative verb (e.g., `implement`, `add`, `fix`, `configure`, `refactor`, `remove`).
-    3. **No Trailing Period**: Do NOT put a period (`.`) at the end of the commit subject line.
-    4. **Concise & Atomic**: Commits must be atomic, focused on a single logical change, and keep the subject line within 72 characters.
+    1. **Mandatory User Approval Gate**: You MUST NOT create any Git commits without explicit instruction or approval from the user. Always wait for the user to confirm before committing.
+    2. **English Only**: Commit messages MUST be written entirely in English.
+    3. **Imperative Mood**: Start the subject with a lowercase imperative verb (e.g., `implement`, `add`, `fix`, `configure`, `refactor`, `remove`).
+    4. **No Trailing Period**: Do NOT put a period (`.`) at the end of the commit subject line.
+    5. **Concise & Atomic**: Commits must be atomic, focused on a single logical change, and keep the subject line within 72 characters.
