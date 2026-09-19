@@ -21,8 +21,7 @@ public class GridView : MonoBehaviour
     private struct AnimatingCell
     {
         public GameObject gameObject;
-        public Vector3 originalPos;
-        public Quaternion originalRot;
+        public Vector2Int gridPos;
     }
 
     private List<ShadowInstance> activeShadows = new List<ShadowInstance>();
@@ -176,7 +175,7 @@ public class GridView : MonoBehaviour
         var effect = theme?.preClearEffect;
         if (effect == null) return;
 
-        HashSet<GameObject> affectedBlocks = new HashSet<GameObject>();
+        Dictionary<GameObject, Vector2Int> affectedBlocks = new Dictionary<GameObject, Vector2Int>();
 
         if (rows != null)
         {
@@ -186,7 +185,10 @@ public class GridView : MonoBehaviour
                 for (int col = 0; col < 8; col++)
                 {
                     var block = visualGrid[col, row];
-                    if (block != null) affectedBlocks.Add(block);
+                    if (block != null && !affectedBlocks.ContainsKey(block))
+                    {
+                        affectedBlocks.Add(block, new Vector2Int(col, row));
+                    }
                 }
             }
         }
@@ -199,7 +201,10 @@ public class GridView : MonoBehaviour
                 for (int row = 0; row < 8; row++)
                 {
                     var block = visualGrid[col, row];
-                    if (block != null) affectedBlocks.Add(block);
+                    if (block != null && !affectedBlocks.ContainsKey(block))
+                    {
+                        affectedBlocks.Add(block, new Vector2Int(col, row));
+                    }
                 }
             }
         }
@@ -214,14 +219,26 @@ public class GridView : MonoBehaviour
             previewCenterWorld /= lastShadowPositions.Count;
         }
 
-        foreach (var block in affectedBlocks)
+        foreach (var kvp in affectedBlocks)
         {
+            GameObject block = kvp.Key;
+            Vector2Int gridPos = kvp.Value;
+            Vector3 canonicalPos = gridService != null 
+                ? gridService.GetWorldPositionFromGrid(gridPos) 
+                : block.transform.position;
+
+            // Clean hand-off: Kill any active placement or movement tween and force to canonical state
+            block.transform.DOKill();
+            block.transform.position = canonicalPos;
+            block.transform.rotation = Quaternion.identity;
+            block.transform.localScale = Vector3.one;
+
             activePreClearCells.Add(new AnimatingCell
             {
                 gameObject = block,
-                originalPos = block.transform.position,
-                originalRot = block.transform.rotation
+                gridPos = gridPos
             });
+
             effect.Apply(block.transform, previewCenterWorld);
         }
     }
@@ -238,17 +255,20 @@ public class GridView : MonoBehaviour
             var anim = activePreClearCells[i];
             if (anim.gameObject != null)
             {
+                Vector3 canonicalPos = gridService != null 
+                    ? gridService.GetWorldPositionFromGrid(anim.gridPos) 
+                    : anim.gameObject.transform.position;
+
                 if (effect != null)
                 {
-                    effect.Cancel(anim.gameObject.transform, anim.originalPos, anim.originalRot);
+                    effect.Cancel(anim.gameObject.transform, canonicalPos, Quaternion.identity);
                 }
-                else
-                {
-                    anim.gameObject.transform.DOKill();
-                    anim.gameObject.transform.position = anim.originalPos;
-                    anim.gameObject.transform.rotation = anim.originalRot;
-                    anim.gameObject.transform.localScale = Vector3.one;
-                }
+
+                // Explicit safety net: ensure transform is 100% canonical after cancel
+                anim.gameObject.transform.DOKill();
+                anim.gameObject.transform.position = canonicalPos;
+                anim.gameObject.transform.rotation = Quaternion.identity;
+                anim.gameObject.transform.localScale = Vector3.one;
             }
         }
         activePreClearCells.Clear();
@@ -272,6 +292,19 @@ public class GridView : MonoBehaviour
             {
                 GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, Quaternion.identity);
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
+
+                if (theme != null)
+                {
+                    if (theme.placementEffect != null)
+                    {
+                        theme.placementEffect.Apply(block.transform);
+                    }
+
+                    if (theme.placeVFXPrefab != null && poolService != null)
+                    {
+                        poolService.SpawnObject(theme.placeVFXPrefab, worldPos, Quaternion.identity, PoolType.ParticleSystem);
+                    }
+                }
             }
         }
 
@@ -288,19 +321,85 @@ public class GridView : MonoBehaviour
 
         var theme = blockService?.CurrentBlockType;
 
-        foreach (int row in rows)
+        int totalLines = (rows != null ? rows.Count : 0) + (cols != null ? cols.Count : 0);
+
+        // Spawn combo celebration VFX if multiple lines are cleared simultaneously
+        if (totalLines >= 2 && theme != null && theme.comboClearVFXPrefab != null && poolService != null && gridService != null)
         {
-            for (int col = 0; col < 8; col++)
+            List<Vector2Int> intersections = new List<Vector2Int>();
+            if (rows != null && cols != null)
             {
-                ClearVisualBlock(col, row, theme);
+                for (int r = 0; r < rows.Count; r++)
+                {
+                    for (int c = 0; c < cols.Count; c++)
+                    {
+                        intersections.Add(new Vector2Int(cols[c], rows[r]));
+                    }
+                }
+            }
+
+            if (intersections.Count > 0)
+            {
+                for (int i = 0; i < intersections.Count; i++)
+                {
+                    Vector3 interPos = gridService.GetWorldPositionFromGrid(intersections[i]);
+                    poolService.SpawnObject(theme.comboClearVFXPrefab, interPos, Quaternion.identity, PoolType.ParticleSystem);
+                }
+            }
+            else
+            {
+                Vector3 centerWorld = Vector3.zero;
+                int count = 0;
+                if (rows != null && rows.Count > 0)
+                {
+                    for (int r = 0; r < rows.Count; r++)
+                    {
+                        for (int c = 0; c < 8; c++)
+                        {
+                            centerWorld += gridService.GetWorldPositionFromGrid(new Vector2Int(c, rows[r]));
+                            count++;
+                        }
+                    }
+                }
+                else if (cols != null && cols.Count > 0)
+                {
+                    for (int c = 0; c < cols.Count; c++)
+                    {
+                        for (int r = 0; r < 8; r++)
+                        {
+                            centerWorld += gridService.GetWorldPositionFromGrid(new Vector2Int(cols[c], r));
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > 0)
+                {
+                    centerWorld /= count;
+                    poolService.SpawnObject(theme.comboClearVFXPrefab, centerWorld, Quaternion.identity, PoolType.ParticleSystem);
+                }
             }
         }
 
-        foreach (int col in cols)
+        if (rows != null)
         {
-            for (int row = 0; row < 8; row++)
+            foreach (int row in rows)
             {
-                ClearVisualBlock(col, row, theme);
+                for (int col = 0; col < 8; col++)
+                {
+                    ClearVisualBlock(col, row, theme);
+                }
+            }
+        }
+
+        if (cols != null)
+        {
+            foreach (int col in cols)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ClearVisualBlock(col, row, theme);
+                }
             }
         }
 
@@ -315,6 +414,10 @@ public class GridView : MonoBehaviour
         GameObject block = visualGrid[col, row];
         if (block != null)
         {
+            Vector3 canonicalPos = gridService != null 
+                ? gridService.GetWorldPositionFromGrid(new Vector2Int(col, row)) 
+                : block.transform.position;
+
             for (int i = activePreClearCells.Count - 1; i >= 0; i--)
             {
                 if (activePreClearCells[i].gameObject == block)
@@ -324,14 +427,15 @@ public class GridView : MonoBehaviour
                 }
             }
 
-            if (theme != null && theme.clearVFXPrefab != null)
+            if (theme != null && theme.clearVFXPrefab != null && poolService != null)
             {
-                poolService.SpawnObject(theme.clearVFXPrefab, block.transform.position, Quaternion.identity);
+                poolService.SpawnObject(theme.clearVFXPrefab, canonicalPos, Quaternion.identity, PoolType.ParticleSystem);
             }
 
             block.transform.DOKill();
+            block.transform.position = canonicalPos;
+            block.transform.rotation = Quaternion.identity;
             block.transform.localScale = Vector3.one;
-            block.transform.localRotation = Quaternion.identity;
             poolService.ReturnObjectToPool(block);
             visualGrid[col, row] = null;
         }
