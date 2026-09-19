@@ -22,11 +22,25 @@ public class BlockTypeSO : ScriptableObject
     [Tooltip("Dynamic pre-clear effect executed when lines are pending explosion.")]
     public PreClearEffectSO preClearEffect;
 
+    [Header("Placement Feedback")]
+    [Tooltip("Particle VFX spawned at cell positions when blocks of this type are placed on the board.")]
+    public GameObject placeVFXPrefab;
+
+    [Tooltip("Custom placement impact animation executed on each cell when placed on the board.")]
+    public PlacementEffectSO placementEffect;
+
+    [Tooltip("Sound played when placing blocks.")]
+    public SoundFXType placeSound = SoundFXType.BlockPlace;
+
     [Header("Clear Feedback")]
     [Tooltip("Particle VFX spawned when lines of this block type are cleared.")]
     public GameObject clearVFXPrefab;
+
+    [Tooltip("Special celebration particle VFX spawned when multiple lines/combos are cleared.")]
+    public GameObject comboClearVFXPrefab;
+
+    [Tooltip("Sound played when clearing lines.")]
     public SoundFXType clearSound = SoundFXType.LineClear;
-    public SoundFXType placeSound = SoundFXType.BlockPlace;
 
     public GameObject GetPrefab(int variantId)
     {
