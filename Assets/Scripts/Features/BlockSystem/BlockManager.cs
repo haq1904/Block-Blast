@@ -16,8 +16,45 @@ public class BlockManager : MonoBehaviour, IBlockService
     private IPoolService poolService;
     private readonly BlockController[] activeBlocks = new BlockController[3];
 
+    private BlockController currentDraggingBlock;
+    private int activePointerId = -1;
+
     public bool HasActiveBlocks =>
         activeBlocks[0] != null || activeBlocks[1] != null || activeBlocks[2] != null;
+
+    public bool IsAnyBlockDragging => currentDraggingBlock != null;
+    public BlockController CurrentDraggingBlock => currentDraggingBlock;
+
+    public bool TryAcquireDragLock(BlockController requester, int pointerId)
+    {
+        if (requester == null) return false;
+
+        // Grant lock if no block is currently dragging
+        if (currentDraggingBlock == null)
+        {
+            currentDraggingBlock = requester;
+            activePointerId = pointerId;
+            return true;
+        }
+
+        // Idempotent check for the same block and pointer
+        if (currentDraggingBlock == requester && activePointerId == pointerId)
+        {
+            return true;
+        }
+
+        // A different block is already actively dragging -> reject
+        return false;
+    }
+
+    public void ReleaseDragLock(BlockController requester)
+    {
+        if (requester == null || currentDraggingBlock == requester)
+        {
+            currentDraggingBlock = null;
+            activePointerId = -1;
+        }
+    }
 
     private void Awake()
     {
@@ -130,6 +167,9 @@ public class BlockManager : MonoBehaviour, IBlockService
 
     public void DespawnAll()
     {
+        currentDraggingBlock = null;
+        activePointerId = -1;
+
         if (poolService == null)
         {
             poolService = ServiceLocator.Get<IPoolService>();
@@ -150,6 +190,11 @@ public class BlockManager : MonoBehaviour, IBlockService
 
         if (block != null)
         {
+            if (currentDraggingBlock == block)
+            {
+                ReleaseDragLock(block);
+            }
+
             if (block.gameObject != null && block.gameObject.activeInHierarchy)
             {
                 if (poolService != null)

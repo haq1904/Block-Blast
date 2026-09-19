@@ -18,16 +18,49 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Vector2Int lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
     private bool wasAllInBounds = false;
 
-    // Lắng nghe sự kiện để View biết phải vẽ hình gì
+    // Pure C# events for View communication (Tier 1 Event standard)
     public event Action<List<(int x, int y)>> OnShapeAssigned;
+    public event Action<Vector3> OnDragVelocityUpdated;
+    public event Action OnDragStarted;
+    public event Action<bool> OnDragEnded;
+
     public Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
     public BlockModel Model => model;
+
+    private bool isDragging;
+    private int activePointerId = -1;
+    private Vector3 lastDragPosition;
 
     private void Awake()
     {
         mainCamera = Camera.main;
         gridService = ServiceLocator.Get<IGridService>();
         poolService = ServiceLocator.Get<IPoolService>();
+    }
+
+    private void Update()
+    {
+        if (isDragging)
+        {
+            float dt = Mathf.Max(Time.deltaTime, 0.0001f);
+            Vector3 displacement = transform.position - lastDragPosition;
+            Vector3 velocity = displacement / dt;
+            lastDragPosition = transform.position;
+            OnDragVelocityUpdated?.Invoke(velocity);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (isDragging)
+        {
+            var blockService = ServiceLocator.Get<IBlockService>();
+            blockService?.ReleaseDragLock(this);
+
+            isDragging = false;
+            activePointerId = -1;
+            OnDragEnded?.Invoke(false);
+        }
     }
 
     public void Setup(BlockModel newModel, Vector3 trayPos, int slotId)
@@ -37,12 +70,23 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         slotIndex = slotId;
         transform.position = trayPosition;
         transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+        transform.localRotation = Quaternion.identity;
+        isDragging = false;
+        activePointerId = -1;
 
         OnShapeAssigned?.Invoke(model.ShapeOffsets);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        var blockService = ServiceLocator.Get<IBlockService>();
+        if (blockService != null && !blockService.TryAcquireDragLock(this, eventData.pointerId))
+        {
+            // Another block is already actively dragging -> reject this drag attempt
+            return;
+        }
+
+        activePointerId = eventData.pointerId;
         lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
         wasAllInBounds = false;
 
@@ -54,10 +98,15 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         // Phóng to lại kích thước gốc 1:1 để chuẩn bị ướm vào bàn cờ
         transform.localScale = Vector3.one;
+
+        isDragging = true;
+        lastDragPosition = transform.position;
+        OnDragStarted?.Invoke();
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (!isDragging || eventData.pointerId != activePointerId) return;
         // 1. Lấy tọa độ thật của con trỏ chuột/ngón tay chiếu xuống mặt phẳng y=0
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
 
@@ -92,6 +141,14 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (!isDragging || eventData.pointerId != activePointerId) return;
+
+        isDragging = false;
+        activePointerId = -1;
+
+        var blockService = ServiceLocator.Get<IBlockService>();
+        blockService?.ReleaseDragLock(this);
+
         lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
         wasAllInBounds = false;
 
@@ -118,11 +175,12 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             isPlaced = true;
         }
 
+        OnDragEnded?.Invoke(isPlaced);
+
         // Xử lý kết quả sau khi thả
         if (isPlaced)
         {
             // 1. Thu hồi khối gạch về pool trước khi kích hoạt sinh batch mới
-            var blockService = ServiceLocator.Get<IBlockService>();
             if (blockService != null)
             {
                 blockService.DespawnBlock(slotIndex);

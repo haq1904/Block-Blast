@@ -16,4 +16,9 @@ public interface IBlockService
     void SetBlockType(BlockTypeSO newType);
     GameObject GetCellPrefab(int variantId);
     int GetRandomVariantId();
+
+    bool TryAcquireDragLock(BlockController requester, int pointerId);
+    void ReleaseDragLock(BlockController requester);
+    bool IsAnyBlockDragging { get; }
+    BlockController CurrentDraggingBlock { get; }
 }
