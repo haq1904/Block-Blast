@@ -109,8 +109,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b6350102144ae04497bb53fe4d09ecd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::GridView
-  blockPrefab: {fileID: 3146870385133040111, guid: 845f12f1ae396a24687cae2725e06676, type: 3}
-  shadowPrefab: {fileID: 5224947988765567522, guid: 63abd8a82922b96438ab4a85262aec83, type: 3}
 --- !u!4 &1871444457022431979 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}

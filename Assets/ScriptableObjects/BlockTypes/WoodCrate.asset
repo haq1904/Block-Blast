@@ -21,7 +21,7 @@ MonoBehaviour:
   isMonochromePerShape: 0
   preClearEffect: {fileID: 11400000, guid: 894411fcc7805d04f9cfd90fc091ad80, type: 2}
   placeVFXPrefab: {fileID: 0}
-  placementEffect: {fileID: 11400000, guid: c8f257809fc31cc4b852c530c00c9866, type: 2}
+  placementEffect: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placeSound: 2
   clearVFXPrefab: {fileID: 0}
   comboClearVFXPrefab: {fileID: 0}

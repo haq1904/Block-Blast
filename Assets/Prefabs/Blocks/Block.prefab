@@ -79,4 +79,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dab6c4be289a2b542807bc2c30457fad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::BlockView
-  cellPrefab: {fileID: 919132149155446097, guid: 455717b642f6ef84e99fb186197a9e4e, type: 3}
+  maxTiltAngle: 30
+  tiltSensitivity: 3
+  tiltSmoothSpeed: 12
+  invertPitch: 0
+  invertRoll: 0
+  wobbleDuration: 0.52
+  wobbleOvershootRatio: 0.702779
+  stopVelocityThreshold: 0.15
