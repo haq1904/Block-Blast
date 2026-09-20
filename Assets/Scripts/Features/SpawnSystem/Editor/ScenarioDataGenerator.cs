@@ -36,7 +36,7 @@ public static class ScenarioDataGenerator
         List<ScenarioData> generatedScenarios = new List<ScenarioData>();
 
         // ==========================================
-        // PHẦN I: 5 KỊCH BẢN CỐT LÕI (GIỮ Ở ĐẦU)
+        // PART I: 5 CORE SCENARIOS
         // ==========================================
 
         // 1. Dual Line Blast (MultiLineClear) - 100% All Clear
@@ -107,7 +107,7 @@ public static class ScenarioDataGenerator
         ));
 
         // ======================================================================
-        // PHẦN II: 5 KỊCH BẢN NỔ 3 HÀNG / 3 CỘT (KHỐI TO 3x3 & 2x3) - ALL CLEAR
+        // PART II: 5 TRIPLE LINE/COLUMN CLEAR SCENARIOS (3x3 & 2x3) - ALL CLEAR
         // ======================================================================
 
         // 6. Mega 3x3 Triple Row (MultiLineClear) - 100% All Clear
@@ -186,7 +186,7 @@ public static class ScenarioDataGenerator
         ));
 
         // ======================================================================
-        // PHẦN III: 5 KỊCH BẢN NỔ 2 HÀNG / 2 CỘT (KHỐI TO 2x3) - ALL CLEAR
+        // PART III: 5 DOUBLE LINE/COLUMN CLEAR SCENARIOS (2x3) - ALL CLEAR
         // ======================================================================
 
         // 11. Rect 3x2 Dual Row Blast (MultiLineClear) - 100% All Clear
@@ -261,7 +261,7 @@ public static class ScenarioDataGenerator
         ));
 
         // ======================================================================
-        // PHẦN IV: 5 KỊCH BẢN NỔ HÀNG ĐÔI (TETRIS L, J, T, S, Z) - ALL CLEAR
+        // PART IV: 5 DUAL LINE/COLUMN CLEAR SCENARIOS (TETRIS L, J, T, S, Z) - ALL CLEAR
         // ======================================================================
 
         // 16. Shape L Dual Row Blast (MultiLineClear) - 100% All Clear
@@ -330,7 +330,7 @@ public static class ScenarioDataGenerator
         ));
 
         // ======================================================================
-        // PHẦN V: 5 KỊCH BẢN MỚI ÁP DỤNG V LỚN & V NHỎ (21 -> 25) - ALL CLEAR
+        // PART V: 5 SCENARIOS USING BIG V & SMALL V (21 -> 25) - ALL CLEAR
         // ======================================================================
 
         // 21. Small V Dual Row Right (MultiLineClear) - 100% All Clear
@@ -386,7 +386,7 @@ public static class ScenarioDataGenerator
         ));
 
         // ======================================================================
-        // PHẦN VI: 9 KỊCH BẢN SIÊU CHỮ THẬP ĐA HÀNG (25 -> 33) - 100% ALL CLEAR
+        // PART VI: 9 MULTI-LINE SUPER CROSS CLEAR SCENARIOS (25 -> 33) - 100% ALL CLEAR
         // ======================================================================
 
         // 25. Cross 2x2 Small V (CrossClear) - 4 Lines Simultaneous Clear
@@ -543,7 +543,7 @@ public static class ScenarioDataGenerator
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        Debug.Log($"🎉 Đã tạo thành công {generatedScenarios.Count} kịch bản 100% ALL CLEAR và ScenarioDatabase tại {TargetDir}!");
+        Debug.Log($"Successfully created {generatedScenarios.Count} 100% ALL CLEAR scenarios and ScenarioDatabase at {TargetDir}!");
     }
 
     private static ScenarioData CreateScenario(

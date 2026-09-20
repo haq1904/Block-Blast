@@ -8,45 +8,45 @@ public class GridDebugger : MonoBehaviour
 
     void Start()
     {
-        // Chờ 1 khung hình để đảm bảo GridController đã đăng ký xong Service
+        // Wait 1 frame to ensure GridController has registered the service
         Invoke(nameof(Init), 0.1f);
     }
 
     void Init()
     {
         gridService = ServiceLocator.Get<IGridService>();
-        Debug.Log("[GridDebugger] Đã kết nối với Sếp GridController! Bấm phím 1,2,3,4 để test.");
+        Debug.Log("[GridDebugger] Connected to GridController! Press 1, 2, 3, 4, 5, 6, 7, 8 to test.");
     }
 
     void Update()
     {
         if (gridService == null) return;
-        if (Keyboard.current == null) return; // Tránh lỗi văng nếu máy không có bàn phím
+        if (Keyboard.current == null) return; // Guard against headless environments without a keyboard
 
-        // Phím 1: Bật bóng mờ ở 3 ô đầu tiên của dòng 0
+        // Key 1: Enable ghost preview on first 3 cells of row 0
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
             List<Vector2Int> testPos = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) };
             gridService.RequestPreview(testPos);
         }
 
-        // Phím 2: Cố tình gửi tọa độ sai (Nằm ngoài mảng) để xem nó có tắt bóng mờ không
+        // Key 2: Intentionally send out-of-bounds coordinates to test preview dismissal
         if (Keyboard.current.digit2Key.wasPressedThisFrame)
         {
             List<Vector2Int> badPos = new List<Vector2Int> { new Vector2Int(9, 9) };
             gridService.RequestPreview(badPos);
         }
 
-        // Phím 3: Đặt gạch thật xuống 3 ô đầu tiên của dòng 0
+        // Key 3: Place real blocks on first 3 cells of row 0
         if (Keyboard.current.digit3Key.wasPressedThisFrame)
         {
             List<Vector2Int> testPos = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) };
             gridService.PlaceBlocks(testPos);
-            // Sau khi đặt thật, tắt bóng mờ đi
+            // Dismiss ghost preview after placing
             gridService.RequestPreview(new List<Vector2Int>());
         }
 
-        // Phím 4: Đặt nốt 5 viên gạch còn lại của dòng 0 để KÍCH HOẠT NỔ HÀNG
+        // Key 4: Place remaining 5 blocks on row 0 to trigger line clear
         if (Keyboard.current.digit4Key.wasPressedThisFrame)
         {
             List<Vector2Int> remainingBlocks = new List<Vector2Int>();
@@ -54,9 +54,9 @@ public class GridDebugger : MonoBehaviour
             gridService.PlaceBlocks(remainingBlocks);
         }
 
-        // --- CÁC TRƯỜNG HỢP TEST MỚI THÊM ---
+        // --- ADDITIONAL SCENARIO TESTS ---
 
-        // Phím 5: Dọn cỗ CỘT DỌC. Đặt 7 viên gạch ở Cột 7 (chừa lại ô trên cùng [7,7])
+        // Key 5: Setup vertical column. Place 7 blocks on Col 7 (leave top cell [7,7] empty)
         if (Keyboard.current.digit5Key.wasPressedThisFrame)
         {
             List<Vector2Int> colBlocks = new List<Vector2Int>();
@@ -64,26 +64,26 @@ public class GridDebugger : MonoBehaviour
             gridService.PlaceBlocks(colBlocks);
         }
 
-        // Phím 6: Chốt hạ NỔ CỘT DỌC. Ném viên gạch cuối cùng vào ô [7,7]
+        // Key 6: Trigger vertical column clear. Place final block on [7,7]
         if (Keyboard.current.digit6Key.wasPressedThisFrame)
         {
             gridService.PlaceBlocks(new List<Vector2Int> { new Vector2Int(7, 7) });
         }
 
-        // Phím 7: Dọn cỗ COMBO 2 HÀNG. Lấp đầy Hàng 2 và Hàng 3, nhưng CHỪA LẠI Cột số 4
+        // Key 7: Setup 2-row combo. Fill Row 2 and Row 3, leaving Col 4 empty
         if (Keyboard.current.digit7Key.wasPressedThisFrame)
         {
             List<Vector2Int> comboBlocks = new List<Vector2Int>();
             for (int col = 0; col < 8; col++)
             {
-                if (col == 4) continue; // Trống ở giữa
+                if (col == 4) continue; // Leave middle gap
                 comboBlocks.Add(new Vector2Int(col, 2));
                 comboBlocks.Add(new Vector2Int(col, 3));
             }
             gridService.PlaceBlocks(comboBlocks);
         }
 
-        // Phím 8: Chốt hạ COMBO 2 HÀNG. Thả cục gạch dọc (1x2) vào ngay cái khe hở Cột 4
+        // Key 8: Trigger 2-row combo clear. Drop 1x2 vertical block into Col 4 gap
         if (Keyboard.current.digit8Key.wasPressedThisFrame)
         {
             gridService.PlaceBlocks(new List<Vector2Int> { new Vector2Int(4, 2), new Vector2Int(4, 3) });

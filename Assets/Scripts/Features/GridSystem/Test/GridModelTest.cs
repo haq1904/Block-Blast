@@ -5,7 +5,7 @@ public class GridModelTest
     [Test]
     public void GridModel_Initialization_HasCorrectDimensions()
     {
-        // Khởi tạo một bàn cờ 8x8
+        // Initialize an 8x8 grid
         var model = new GridModel(8, 8);
 
         Assert.AreEqual(8, model.Cols);
@@ -17,7 +17,7 @@ public class GridModelTest
     {
         var model = new GridModel(8, 8);
 
-        // Kiểm tra các góc và điểm ở giữa (hợp lệ)
+        // Check corners and center points (valid)
         Assert.IsTrue(model.IsWithinBounds(0, 0));
         Assert.IsTrue(model.IsWithinBounds(7, 7));
         Assert.IsTrue(model.IsWithinBounds(4, 3));
@@ -28,11 +28,11 @@ public class GridModelTest
     {
         var model = new GridModel(8, 8);
 
-        // Kiểm tra các trường hợp văng ra ngoài bàn cờ
-        Assert.IsFalse(model.IsWithinBounds(-1, 0)); // Âm
-        Assert.IsFalse(model.IsWithinBounds(0, -1)); // Âm
-        Assert.IsFalse(model.IsWithinBounds(8, 0));  // Lố kích thước (vì index tối đa là 7)
-        Assert.IsFalse(model.IsWithinBounds(0, 8));  // Lố kích thước
+        // Check out-of-bounds coordinates
+        Assert.IsFalse(model.IsWithinBounds(-1, 0)); // Negative
+        Assert.IsFalse(model.IsWithinBounds(0, -1)); // Negative
+        Assert.IsFalse(model.IsWithinBounds(8, 0));  // Exceeds max dimension (max index is 7)
+        Assert.IsFalse(model.IsWithinBounds(0, 8));  // Exceeds max dimension
         Assert.IsFalse(model.IsWithinBounds(8, 8));
     }
 
@@ -41,13 +41,13 @@ public class GridModelTest
     {
         var model = new GridModel(8, 8);
 
-        // Đặt gạch vào ô (3, 4)
+        // Place block at cell (3, 4)
         model.SetOccupied(3, 4, true);
 
-        // Kiểm tra lại xem ô đó có báo là có gạch không
+        // Verify that the cell is occupied
         Assert.IsTrue(model.IsOccupied(3, 4));
 
-        // Kiểm tra thử một ô khác xem có bị vạ lây không (phải là trống)
+        // Verify that another cell remains unoccupied
         Assert.IsFalse(model.IsOccupied(0, 0));
     }
 
@@ -55,18 +55,18 @@ public class GridModelTest
     public void IsRowFull_WhenFull_ReturnsTrue()
     {
         var model = new GridModel(8, 8);
-        // Đắp đầy hàng số 3
+        // Fill row 3
         for (int i = 0; i < 8; i++) model.SetOccupied(i, 3, true);
         
         Assert.IsTrue(model.IsRowFull(3));
-        Assert.IsFalse(model.IsRowFull(4)); // Hàng khác phải là trống
+        Assert.IsFalse(model.IsRowFull(4)); // Other rows must remain empty
     }
 
     [Test]
     public void IsColFull_WhenFull_ReturnsTrue()
     {
         var model = new GridModel(8, 8);
-        // Đắp đầy cột số 2
+        // Fill column 2
         for (int i = 0; i < 8; i++) model.SetOccupied(2, i, true);
         
         Assert.IsTrue(model.IsColFull(2));
@@ -79,10 +79,10 @@ public class GridModelTest
         var model = new GridModel(8, 8);
         for (int i = 0; i < 8; i++) model.SetOccupied(i, 3, true);
         
-        model.ClearRow(3); // Kích hoạt lệnh xóa
+        model.ClearRow(3); // Trigger row clear
         
         Assert.IsFalse(model.IsRowFull(3));
-        Assert.IsFalse(model.IsOccupied(0, 3)); // Check ngẫu nhiên 1 ô trong hàng
+        Assert.IsFalse(model.IsOccupied(0, 3)); // Verify arbitrary cell in row
     }
 
     [Test]
@@ -91,9 +91,9 @@ public class GridModelTest
         var model = new GridModel(8, 8);
         for (int i = 0; i < 8; i++) model.SetOccupied(2, i, true);
         
-        model.ClearCol(2); // Kích hoạt lệnh xóa
+        model.ClearCol(2); // Trigger column clear
         
         Assert.IsFalse(model.IsColFull(2));
-        Assert.IsFalse(model.IsOccupied(2, 7)); // Check ngẫu nhiên ô cuối cùng của cột
+        Assert.IsFalse(model.IsOccupied(2, 7)); // Verify last cell of column
     }
 }

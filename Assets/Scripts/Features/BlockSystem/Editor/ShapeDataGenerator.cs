@@ -38,7 +38,7 @@ public static class ShapeDataGenerator
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        Debug.Log("🎉 Đã tạo thành công các khối gạch gốc và MasterShapeDatabase!");
+        Debug.Log("Successfully created base block shapes and MasterShapeDatabase!");
     }
 
     private static ShapeData CreateShape(string name, bool canRotate, int[] solidIndices)
@@ -51,7 +51,7 @@ public static class ShapeDataGenerator
             shape.grid[i] = true;
         }
 
-        // Gọi hàm OnValidate để lưu baseOffsets
+        // Invoke OnValidate to cache baseOffsets
         var method = typeof(ShapeData).GetMethod("OnValidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         method?.Invoke(shape, null);
 

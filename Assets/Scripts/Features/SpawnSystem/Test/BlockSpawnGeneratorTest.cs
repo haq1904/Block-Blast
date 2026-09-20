@@ -331,7 +331,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -372,7 +372,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -721,7 +721,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -765,7 +765,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -806,7 +806,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -849,7 +849,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -930,7 +930,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 #pragma warning restore CS0067
@@ -1104,7 +1104,7 @@ public class BlockSpawnGeneratorTest
         int comboEventFired = -1;
         controller.OnComboChanged += c => comboEventFired = c;
 
-        // Place 2 tiles, clear 1 line (First clear = Prewarm/Nổ mồi)
+        // Place 2 tiles, clear 1 line (First clear = Prewarm)
         // Expected: 2 (placement) + 10 (1 line) = 12 (NO combo bonus yet!)
         controller.HandlePlacementResolved(2, 1, false);
 
@@ -1511,7 +1511,7 @@ public class BlockSpawnGeneratorTest
 #pragma warning disable CS0067
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
 #pragma warning restore CS0067
         public event Action<int, int, bool> OnPlacementResolved;
