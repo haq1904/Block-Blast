@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -10,7 +9,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private IGridService gridService;
     private Camera mainCamera;
 
-    // Tọa độ gốc trên Khay để bay về nếu thả trượt (Chỉ view Controller mới quan tâm tọa độ thực)
+    // Original tray position to return to if drop fails
     private Vector3 trayPosition;
     private int slotIndex;
 
@@ -19,13 +18,15 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private bool wasAllInBounds = false;
 
     // Pure C# events for View communication (Tier 1 Event standard)
-    public event Action<List<(int x, int y)>> OnShapeAssigned;
+    public event Action<List<(int x, int y)>, Vector2, int[]> OnShapeAssigned;
+    public event Action<Vector3> OnTrayPositionSet;
+    public event Action<Vector3> OnDragPositionUpdated;
     public event Action<Vector3> OnDragVelocityUpdated;
     public event Action OnDragStarted;
     public event Action<bool> OnDragEnded;
+    public event Action OnBlockReset;
 
-    public Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
-    public BlockModel Model => model;
+    private Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
 
     private bool isDragging;
     private int activePointerId = -1;
@@ -68,13 +69,11 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         model = newModel;
         trayPosition = trayPos;
         slotIndex = slotId;
-        transform.position = trayPosition;
-        transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
-        transform.localRotation = Quaternion.identity;
         isDragging = false;
         activePointerId = -1;
 
-        OnShapeAssigned?.Invoke(model.ShapeOffsets);
+        OnTrayPositionSet?.Invoke(trayPosition);
+        OnShapeAssigned?.Invoke(model.ShapeOffsets, model.CenterOffset, model.VariantIds);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -90,37 +89,31 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
         wasAllInBounds = false;
 
-        // Khi vừa chạm vào: Trượt lên độ cao y=1 và tiến tới z+2
-        Vector3 newPos = transform.position;
-        newPos.y = 1f;
-        newPos.z += 2f;
-        transform.position = newPos;
-
-        // Phóng to lại kích thước gốc 1:1 để chuẩn bị ướm vào bàn cờ
-        transform.localScale = Vector3.one;
-
+        // On initial touch: slide up to height y=1 and advance z+2
+        Vector3 newPos = new Vector3(trayPosition.x, 1f, trayPosition.z + 2f);
         isDragging = true;
-        lastDragPosition = transform.position;
+        lastDragPosition = newPos;
         OnDragStarted?.Invoke();
+        OnDragPositionUpdated?.Invoke(newPos);
     }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (!isDragging || eventData.pointerId != activePointerId) return;
-        // 1. Lấy tọa độ thật của con trỏ chuột/ngón tay chiếu xuống mặt phẳng y=0
+        // 1. Get pointer world position projected onto plane y=0
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
 
-        // Cập nhật vị trí hiển thị cục gạch (luôn giữ offset y=1 và z=z+2 so với ngón tay)
-        transform.position = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
+        // Update displayed block position (maintaining y=1 and z=z+2 offset from pointer)
+        Vector3 dragPos = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
+        OnDragPositionUpdated?.Invoke(dragPos);
 
-        Vector3 blockPos = transform.position;
         Vector2 center = CenterOffset;
-        Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
+        Vector3 originWorldPos = dragPos - new Vector3(center.x, 0, center.y);
         Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
 
         List<CellPlacementData> placementData = GetCellPlacementData(originGridPos, out bool allInBounds);
 
-        // Chống gọi lặp khi ngón tay di chuyển trong cùng 1 tọa độ Grid
+        // Suppress redundant calls when pointer moves within the same grid coordinate
         if (originGridPos == lastOriginGridPos && allInBounds == wasAllInBounds)
         {
             return;
@@ -152,35 +145,37 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
         wasAllInBounds = false;
 
-        // Tắt bóng mờ ngay lập tức
+        // Dismiss ghost preview immediately
         gridService.RequestPreview(new List<CellPlacementData>());
 
-        // 1. Tính toán lại vị trí chuột lúc thả tay để chốt vị trí Block
+        // 1. Recalculate pointer position on release to finalize block position
         Vector3 mouseWorld = GetWorldPositionFromMouse(eventData.position);
-        transform.position = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
+        Vector3 releasePos = new Vector3(mouseWorld.x, 1f, mouseWorld.z + 2f);
+        OnDragPositionUpdated?.Invoke(releasePos);
 
-        Vector3 blockPos = transform.position;
         Vector2 center = CenterOffset;
-        Vector3 originWorldPos = blockPos - new Vector3(center.x, 0, center.y);
+        Vector3 originWorldPos = releasePos - new Vector3(center.x, 0, center.y);
         Vector2Int originGridPos = gridService.GetGridPositionFromWorld(originWorldPos);
 
         List<CellPlacementData> placementData = GetCellPlacementData(originGridPos, out bool allInBounds);
         bool isPlaced = false;
 
-        // 2. Xét đặt gạch theo tọa độ của Block
+        // 2. Evaluate block placement on the grid
         if (allInBounds && gridService.CanPlaceBlocks(placementData))
         {
-            // Chốt đơn!
+            // Placement confirmed!
             gridService.PlaceBlocks(placementData);
             isPlaced = true;
         }
 
         OnDragEnded?.Invoke(isPlaced);
 
-        // Xử lý kết quả sau khi thả
+        // Post-release resolution
         if (isPlaced)
         {
-            // 1. Thu hồi khối gạch về pool trước khi kích hoạt sinh batch mới
+            OnBlockReset?.Invoke();
+
+            // 1. Return block to pool before triggering next batch spawn
             if (blockService != null)
             {
                 blockService.DespawnBlock(slotIndex);
@@ -189,9 +184,6 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             {
                 try
                 {
-                    transform.DOKill();
-                    transform.localScale = Vector3.one;
-                    transform.localRotation = Quaternion.identity;
                     poolService.ReturnObjectToPool(gameObject);
                 }
                 catch
@@ -204,7 +196,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
                 Destroy(gameObject);
             }
 
-            // 2. Sau khi khối gạch đã về pool an toàn, mới báo cho SpawnService
+            // 2. Once block is safely returned to pool, notify SpawnService
             var spawnService = ServiceLocator.Get<ISpawnService>();
             if (spawnService != null)
             {
@@ -213,11 +205,8 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
         else
         {
-            // Thất bại (Cấn gạch hoặc thả rớt ra ngoài) -> Trả về khay
-            transform.position = trayPosition;
-
-            // Thu nhỏ lại thành 0.75 khi nằm trên Khay
-            transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+            // Failed placement (blocked or dropped out of bounds) -> return to tray
+            OnTrayPositionSet?.Invoke(trayPosition);
         }
     }
 
@@ -245,7 +234,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         return result;
     }
 
-    // Hàm phụ trợ: Bắn tia Ray từ Camera xuống mặt phẳng y=0 để tìm tọa độ 3D của ngón tay
+    // Helper: Raycast from Camera to plane y=0 to find 3D pointer coordinates
     private Vector3 GetWorldPositionFromMouse(Vector2 screenPos)
     {
         Plane plane = new Plane(Vector3.up, Vector3.zero);

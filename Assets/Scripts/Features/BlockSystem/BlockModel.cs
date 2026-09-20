@@ -3,8 +3,8 @@ using UnityEngine;
 
 public class BlockModel
 {
-    // Cấu hình mảng tọa độ tương đối của các ô gạch trong khối
-    // Ví dụ khối 2x2: [(0,0), (1,0), (0,1), (1,1)]
+    // Relative coordinate array defining block offsets within the shape
+    // Example 2x2 shape: [(0,0), (1,0), (0,1), (1,1)]
     public List<(int x, int y)> ShapeOffsets { get; private set; }
     public Vector2 CenterOffset { get; private set; }
     public string BlockTypeId { get; private set; }

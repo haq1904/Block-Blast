@@ -51,6 +51,9 @@ public class BlockView : MonoBehaviour
             blockController.OnDragVelocityUpdated += HandleDragVelocityUpdated;
             blockController.OnDragStarted += HandleDragStarted;
             blockController.OnDragEnded += HandleDragEnded;
+            blockController.OnTrayPositionSet += HandleTrayPositionSet;
+            blockController.OnDragPositionUpdated += HandleDragPositionUpdated;
+            blockController.OnBlockReset += HandleBlockReset;
         }
     }
 
@@ -69,6 +72,8 @@ public class BlockView : MonoBehaviour
     private void OnDisable()
     {
         KillTiltTweens();
+        transform.DOKill();
+        transform.localScale = Vector3.one;
         transform.localRotation = Quaternion.identity;
         isDragging = false;
         isSettling = false;
@@ -85,6 +90,9 @@ public class BlockView : MonoBehaviour
             blockController.OnDragVelocityUpdated -= HandleDragVelocityUpdated;
             blockController.OnDragStarted -= HandleDragStarted;
             blockController.OnDragEnded -= HandleDragEnded;
+            blockController.OnTrayPositionSet -= HandleTrayPositionSet;
+            blockController.OnDragPositionUpdated -= HandleDragPositionUpdated;
+            blockController.OnBlockReset -= HandleBlockReset;
         }
 
         foreach (var cell in activeCells)
@@ -96,9 +104,33 @@ public class BlockView : MonoBehaviour
         }
     }
 
+    private void HandleTrayPositionSet(Vector3 trayPos)
+    {
+        transform.position = trayPos;
+        transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+        transform.localRotation = Quaternion.identity;
+    }
+
+    private void HandleDragPositionUpdated(Vector3 newPos)
+    {
+        transform.position = newPos;
+    }
+
+    private void HandleBlockReset()
+    {
+        KillTiltTweens();
+        transform.DOKill();
+        transform.localScale = Vector3.one;
+        transform.localRotation = Quaternion.identity;
+        isDragging = false;
+        isSettling = false;
+        targetRotation = Quaternion.identity;
+    }
+
     private void HandleDragStarted()
     {
         KillTiltTweens();
+        transform.localScale = Vector3.one;
         isDragging = true;
         isSettling = false;
         targetRotation = Quaternion.identity;
@@ -151,6 +183,7 @@ public class BlockView : MonoBehaviour
         }
         else
         {
+            transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
             // Dropped back to tray: settle with a wobble
             PlaySettleWobbleSequence();
         }
@@ -216,15 +249,14 @@ public class BlockView : MonoBehaviour
         return angle;
     }
 
-    private void DrawShape(List<(int x, int y)> offsets)
+    private void DrawShape(List<(int x, int y)> offsets, Vector2 center, int[] variantIds)
     {
         if (poolService == null) poolService = ServiceLocator.Get<IPoolService>();
         if (blockService == null) blockService = ServiceLocator.Get<IBlockService>();
 
         ClearShape();
 
-        Vector2 center = blockController != null ? blockController.CenterOffset : Vector2.zero;
-        int[] variantIds = blockController?.Model?.VariantIds;
+        if (offsets == null) return;
 
         for (int i = 0; i < offsets.Count; i++)
         {
