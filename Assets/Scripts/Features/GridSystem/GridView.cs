@@ -284,10 +284,12 @@ public class GridView : MonoBehaviour
         lastPreviewCols.Clear();
 
         var theme = blockService?.CurrentBlockType;
+        List<Vector3> cellWorldPositions = new List<Vector3>(positions.Count);
 
         foreach (var cell in positions)
         {
             Vector3 worldPos = gridService.GetWorldPositionFromGrid(cell.gridPos);
+            cellWorldPositions.Add(worldPos);
 
             GameObject prefabToSpawn = blockService != null ? blockService.GetCellPrefab(cell.variantIndex) : null;
 
@@ -296,19 +298,18 @@ public class GridView : MonoBehaviour
                 GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, Quaternion.identity);
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
 
-                if (theme != null)
+                if (theme != null && theme.placementEffect != null)
                 {
-                    if (theme.placementEffect != null)
-                    {
-                        theme.placementEffect.Apply(block.transform);
-                    }
-
-                    if (theme.placeVFXPrefab != null && poolService != null)
-                    {
-                        poolService.SpawnObject(theme.placeVFXPrefab, worldPos, Quaternion.identity, PoolType.ParticleSystem);
-                    }
+                    theme.placementEffect.Apply(block.transform);
                 }
             }
+        }
+
+        // Trigger placement particle effects (smoke puff along exposed edges + debris at cell centers)
+        if (theme != null && theme.placementPSEffect != null && poolService != null && gridService != null)
+        {
+            List<PlacementEdgeData> edges = gridService.GetExposedEdges(positions);
+            theme.placementPSEffect.Play(edges, cellWorldPositions, poolService);
         }
 
         if (soundService != null && theme != null)

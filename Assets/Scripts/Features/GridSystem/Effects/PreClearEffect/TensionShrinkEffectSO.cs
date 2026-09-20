@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "TensionShrink_Effect", menuName = "Block Blast/Effects/Tension Shrink")]
+[CreateAssetMenu(fileName = "TensionShrink_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Tension Shrink")]
 public class TensionShrinkEffectSO : PreClearEffectSO
 {
     [Tooltip("Target scale multiplier when under tension compression.")]

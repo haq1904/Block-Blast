@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "JellyWobble_PlacementEffect", menuName = "Block Blast/Effects/Placement/Jelly Wobble")]
+[CreateAssetMenu(fileName = "JellyWobble_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Jelly Wobble")]
 public class JellyWobblePlacementEffectSO : PlacementEffectSO
 {
     [Header("Scale Squash & Stretch")]

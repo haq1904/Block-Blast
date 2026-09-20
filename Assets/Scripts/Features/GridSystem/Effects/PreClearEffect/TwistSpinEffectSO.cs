@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "TwistSpin_Effect", menuName = "Block Blast/Effects/Twist Spin")]
+[CreateAssetMenu(fileName = "TwistSpin_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Twist Spin")]
 public class TwistSpinEffectSO : PreClearEffectSO
 {
     [Tooltip("Maximum twist rotation angle around vertical Y-axis in degrees.")]

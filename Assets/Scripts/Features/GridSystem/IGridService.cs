@@ -31,4 +31,5 @@ public interface IGridService
     // --- PRESENTATION HELPERS (Humble View Support) ---
     List<Vector3> GetComboVFXPositions(List<int> rows, List<int> cols) => new List<Vector3>();
     Vector3 GetWorldCenter(List<Vector2Int> gridPositions) => Vector3.zero;
+    List<PlacementEdgeData> GetExposedEdges(List<CellPlacementData> cells) => new List<PlacementEdgeData>();
 }

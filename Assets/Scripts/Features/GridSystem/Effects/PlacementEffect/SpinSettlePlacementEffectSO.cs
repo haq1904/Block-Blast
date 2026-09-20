@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "SpinSettle_PlacementEffect", menuName = "Block Blast/Effects/Placement/Spin Settle")]
+[CreateAssetMenu(fileName = "SpinSettle_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Spin Settle")]
 public class SpinSettlePlacementEffectSO : PlacementEffectSO
 {
     [Tooltip("Base angle in degrees around the Y axis from which the block rotates into aligned position.")]

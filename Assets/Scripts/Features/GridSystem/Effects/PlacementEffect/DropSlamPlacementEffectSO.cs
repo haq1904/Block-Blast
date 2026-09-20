@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "DropSlam_PlacementEffect", menuName = "Block Blast/Effects/Placement/Drop Slam")]
+[CreateAssetMenu(fileName = "DropSlam_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Drop Slam")]
 public class DropSlamPlacementEffectSO : PlacementEffectSO
 {
     [Tooltip("Height above the board from which the block drops.")]

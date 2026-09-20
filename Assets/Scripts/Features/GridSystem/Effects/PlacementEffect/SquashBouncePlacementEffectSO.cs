@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "SquashBounce_PlacementEffect", menuName = "Block Blast/Effects/Placement/Squash Bounce")]
+[CreateAssetMenu(fileName = "SquashBounce_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Squash Bounce")]
 public class SquashBouncePlacementEffectSO : PlacementEffectSO
 {
     [Tooltip("Punch scale deformation vector (nudge XZ out, compress Y down).")]

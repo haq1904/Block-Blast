@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Shake_Effect", menuName = "Block Blast/Effects/Shake")]
+[CreateAssetMenu(fileName = "Shake_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Shake")]
 public class ShakeEffectSO : PreClearEffectSO
 {
     [Tooltip("Strength of positional vibration.")]

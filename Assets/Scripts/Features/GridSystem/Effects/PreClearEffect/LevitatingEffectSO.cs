@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Levitating_Effect", menuName = "Block Blast/Effects/Levitating")]
+[CreateAssetMenu(fileName = "Levitating_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Levitating")]
 public class LevitatingEffectSO : PreClearEffectSO
 {
     [Tooltip("Peak vertical levitation elevation above the board.")]

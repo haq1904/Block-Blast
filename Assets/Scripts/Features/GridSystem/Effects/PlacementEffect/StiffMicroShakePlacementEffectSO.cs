@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "StiffMicroShake_PlacementEffect", menuName = "Block Blast/Effects/Placement/Stiff Micro Shake")]
+[CreateAssetMenu(fileName = "StiffMicroShake_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Stiff Micro Shake")]
 public class StiffMicroShakePlacementEffectSO : PlacementEffectSO
 {
     [Tooltip("Magnitude of the positional micro-shake vibration.")]

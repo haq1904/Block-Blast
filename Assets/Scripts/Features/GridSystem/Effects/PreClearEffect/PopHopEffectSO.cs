@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "PopHop_Effect", menuName = "Block Blast/Effects/Pop Hop")]
+[CreateAssetMenu(fileName = "PopHop_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Pop Hop")]
 public class PopHopEffectSO : PreClearEffectSO
 {
     [Tooltip("Peak height of each vertical hop.")]

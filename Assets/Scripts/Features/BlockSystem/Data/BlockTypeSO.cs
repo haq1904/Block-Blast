@@ -23,8 +23,8 @@ public class BlockTypeSO : ScriptableObject
     public PreClearEffectSO preClearEffect;
 
     [Header("Placement Feedback")]
-    [Tooltip("Particle VFX spawned at cell positions when blocks of this type are placed on the board.")]
-    public GameObject placeVFXPrefab;
+    [Tooltip("Custom particle system effects spawned at cell positions and exposed edges when blocks of this type are placed.")]
+    public PlacementPSEffectSO placementPSEffect;
 
     [Tooltip("Custom placement impact animation executed on each cell when placed on the board.")]
     public PlacementEffectSO placementEffect;

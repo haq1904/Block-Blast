@@ -249,4 +249,55 @@ public class GridController : MonoBehaviour, IGridService
         }
         return sum / gridPositions.Count;
     }
+
+    public List<PlacementEdgeData> GetExposedEdges(List<CellPlacementData> cells)
+    {
+        var result = new List<PlacementEdgeData>();
+        if (cells == null || cells.Count == 0 || model == null) return result;
+
+        var gridPositions = new List<Vector2Int>(cells.Count);
+        for (int i = 0; i < cells.Count; i++)
+        {
+            gridPositions.Add(cells[i].gridPos);
+        }
+
+        List<DiscreteGridEdge> discreteEdges = model.GetExposedEdges(gridPositions);
+
+        for (int i = 0; i < discreteEdges.Count; i++)
+        {
+            DiscreteGridEdge edge = discreteEdges[i];
+            Vector3 cellCenter = GetWorldPositionFromGrid(edge.gridPos);
+            Vector3 edgeOffset;
+            float rotY;
+
+            switch (edge.direction)
+            {
+                case GridEdgeDirection.North:
+                    edgeOffset = new Vector3(0f, 0f, 0.5f);
+                    rotY = 0f;
+                    break;
+                case GridEdgeDirection.South:
+                    edgeOffset = new Vector3(0f, 0f, -0.5f);
+                    rotY = 180f;
+                    break;
+                case GridEdgeDirection.East:
+                    edgeOffset = new Vector3(0.5f, 0f, 0f);
+                    rotY = 90f;
+                    break;
+                case GridEdgeDirection.West:
+                    edgeOffset = new Vector3(-0.5f, 0f, 0f);
+                    rotY = 270f;
+                    break;
+                default:
+                    continue;
+            }
+
+            result.Add(new PlacementEdgeData(
+                cellCenter + edgeOffset,
+                Quaternion.Euler(0f, rotY, 0f)
+            ));
+        }
+
+        return result;
+    }
 }

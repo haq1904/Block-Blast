@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "WaveLift_Effect", menuName = "Block Blast/Effects/Wave Lift")]
+[CreateAssetMenu(fileName = "WaveLift_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Wave Lift")]
 public class WaveLiftEffectSO : PreClearEffectSO
 {
     [Tooltip("Peak lift height along the vertical Y-axis.")]

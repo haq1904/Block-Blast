@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Wobble_Effect", menuName = "Block Blast/Effects/Wobble")]
+[CreateAssetMenu(fileName = "Wobble_Effect", menuName = "Block Blast/Effects/Grid/PreClear/Wobble")]
 public class WobbleRotationEffectSO : PreClearEffectSO
 {
     [Tooltip("Euler angle tilt amplitude (e.g. Z = 8 degrees).")]

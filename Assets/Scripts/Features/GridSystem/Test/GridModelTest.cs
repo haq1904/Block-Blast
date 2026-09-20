@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine;
 
 public class GridModelTest
 {
@@ -95,5 +97,102 @@ public class GridModelTest
         
         Assert.IsFalse(model.IsColFull(2));
         Assert.IsFalse(model.IsOccupied(2, 7)); // Verify last cell of column
+    }
+
+    [Test]
+    public void GetExposedEdges_SingleCell_Returns4Edges()
+    {
+        var model = new GridModel(8, 8);
+        var cells = new List<Vector2Int> { new Vector2Int(3, 3) };
+
+        var edges = model.GetExposedEdges(cells);
+
+        Assert.AreEqual(4, edges.Count);
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.North));
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.South));
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.East));
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.West));
+    }
+
+    [Test]
+    public void GetExposedEdges_HorizontalLine_CancelsInternalEdges()
+    {
+        var model = new GridModel(8, 8);
+        var cells = new List<Vector2Int>
+        {
+            new Vector2Int(2, 3),
+            new Vector2Int(3, 3),
+            new Vector2Int(4, 3)
+        };
+
+        var edges = model.GetExposedEdges(cells);
+
+        // 3 cells * 4 = 12 edges total, minus 4 internal shared edges (2 pairs) = 8 outer edges
+        Assert.AreEqual(8, edges.Count);
+
+        // Cell (3,3) in the middle must NOT have East or West edges
+        Assert.IsFalse(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.East));
+        Assert.IsFalse(edges.Exists(e => e.gridPos == new Vector2Int(3, 3) && e.direction == GridEdgeDirection.West));
+
+        // Outer ends must be present
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(2, 3) && e.direction == GridEdgeDirection.West));
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(4, 3) && e.direction == GridEdgeDirection.East));
+    }
+
+    [Test]
+    public void GetExposedEdges_Square2x2_CancelsInternalEdges()
+    {
+        var model = new GridModel(8, 8);
+        var cells = new List<Vector2Int>
+        {
+            new Vector2Int(2, 2), new Vector2Int(3, 2),
+            new Vector2Int(2, 3), new Vector2Int(3, 3)
+        };
+
+        var edges = model.GetExposedEdges(cells);
+
+        // 4 cells * 4 = 16 edges total, minus 8 internal shared edges (4 pairs) = 8 perimeter edges
+        Assert.AreEqual(8, edges.Count);
+
+        // Bottom-left cell (2, 2) has exposed South and West, but North and East are internal
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(2, 2) && e.direction == GridEdgeDirection.South));
+        Assert.IsTrue(edges.Exists(e => e.gridPos == new Vector2Int(2, 2) && e.direction == GridEdgeDirection.West));
+        Assert.IsFalse(edges.Exists(e => e.gridPos == new Vector2Int(2, 2) && e.direction == GridEdgeDirection.North));
+        Assert.IsFalse(edges.Exists(e => e.gridPos == new Vector2Int(2, 2) && e.direction == GridEdgeDirection.East));
+    }
+
+    [Test]
+    public void GetExposedEdges_AdjacentToOccupiedCell_DoesNotEmitOnBlockedEdge()
+    {
+        var model = new GridModel(8, 8);
+        // Pre-existing block on the board at (4, 3)
+        model.SetOccupied(4, 3, true);
+
+        // Placing a new single block at (3, 3) right next to (4, 3)
+        var cells = new List<Vector2Int> { new Vector2Int(3, 3) };
+
+        var edges = model.GetExposedEdges(cells);
+
+        // East direction is blocked by (4, 3), so only North, South, West are exposed
+        Assert.AreEqual(3, edges.Count);
+        Assert.IsFalse(edges.Exists(e => e.direction == GridEdgeDirection.East));
+        Assert.IsTrue(edges.Exists(e => e.direction == GridEdgeDirection.North));
+        Assert.IsTrue(edges.Exists(e => e.direction == GridEdgeDirection.South));
+        Assert.IsTrue(edges.Exists(e => e.direction == GridEdgeDirection.West));
+    }
+
+    [Test]
+    public void GetExposedEdges_AtGridBorder_BorderEdgeIsExposed()
+    {
+        var model = new GridModel(8, 8);
+        // Corner cell at (0, 0)
+        var cells = new List<Vector2Int> { new Vector2Int(0, 0) };
+
+        var edges = model.GetExposedEdges(cells);
+
+        // All 4 directions exposed (South and West are out of bounds, which count as open space)
+        Assert.AreEqual(4, edges.Count);
+        Assert.IsTrue(edges.Exists(e => e.direction == GridEdgeDirection.South));
+        Assert.IsTrue(edges.Exists(e => e.direction == GridEdgeDirection.West));
     }
 }

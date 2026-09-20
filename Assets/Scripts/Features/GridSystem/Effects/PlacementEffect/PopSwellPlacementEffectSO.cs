@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "PopSwell_PlacementEffect", menuName = "Block Blast/Effects/Placement/Pop Swell")]
+[CreateAssetMenu(fileName = "PopSwell_PlacementEffect", menuName = "Block Blast/Effects/Grid/Placement/Pop Swell")]
 public class PopSwellPlacementEffectSO : PlacementEffectSO
 {
     [Tooltip("Initial reduced scale when placed.")]

@@ -8,6 +8,26 @@ public struct GridCellState
     public int variantId;
 }
 
+public enum GridEdgeDirection
+{
+    North = 0,
+    South = 1,
+    East = 2,
+    West = 3
+}
+
+public struct DiscreteGridEdge
+{
+    public Vector2Int gridPos;
+    public GridEdgeDirection direction;
+
+    public DiscreteGridEdge(Vector2Int gridPos, GridEdgeDirection direction)
+    {
+        this.gridPos = gridPos;
+        this.direction = direction;
+    }
+}
+
 public class GridModel
 {
     public int Cols { get; private set; }
@@ -224,5 +244,49 @@ public class GridModel
                 outCols.Add(col);
             }
         }
+    }
+
+    public List<DiscreteGridEdge> GetExposedEdges(IReadOnlyList<Vector2Int> cells)
+    {
+        var result = new List<DiscreteGridEdge>();
+        if (cells == null || cells.Count == 0) return result;
+
+        var placedSet = new HashSet<Vector2Int>(cells);
+
+        Vector2Int[] dirVectors = {
+            new Vector2Int(0, 1),   // North (+Y)
+            new Vector2Int(0, -1),  // South (-Y)
+            new Vector2Int(1, 0),   // East (+X)
+            new Vector2Int(-1, 0)   // West (-X)
+        };
+
+        GridEdgeDirection[] directions = {
+            GridEdgeDirection.North,
+            GridEdgeDirection.South,
+            GridEdgeDirection.East,
+            GridEdgeDirection.West
+        };
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            Vector2Int pos = cells[i];
+
+            for (int d = 0; d < 4; d++)
+            {
+                Vector2Int neighbor = pos + dirVectors[d];
+
+                // If the neighbor cell belongs to the same placed block, internal edge -> ignore
+                if (placedSet.Contains(neighbor)) continue;
+
+                // An edge is exposed if the neighbor is out of bounds or empty in the grid
+                bool isExposed = !IsWithinBounds(neighbor.x, neighbor.y) || !IsOccupied(neighbor.x, neighbor.y);
+                if (isExposed)
+                {
+                    result.Add(new DiscreteGridEdge(pos, directions[d]));
+                }
+            }
+        }
+
+        return result;
     }
 }
