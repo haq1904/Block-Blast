@@ -26,7 +26,7 @@ public class Bootstrapper : MonoBehaviour
 
     private void EnsureBootstrapCamera()
     {
-        if (Camera.main == null && FindFirstObjectByType<Camera>() == null)
+        if (Camera.main == null && FindAnyObjectByType<Camera>() == null)
         {
             GameObject camObj = new GameObject("Bootstrap Camera");
             camObj.transform.SetParent(transform);

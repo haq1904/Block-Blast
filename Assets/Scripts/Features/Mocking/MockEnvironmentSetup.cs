@@ -24,7 +24,7 @@ public class MockEnvironmentSetup : MonoBehaviour
     private void InjectFakeFullGrid()
     {
         // 1. Find and disable the real GridController before it runs Awake/Start
-        GridController realGrid = FindObjectOfType<GridController>();
+        GridController realGrid = FindAnyObjectByType<GridController>();
         if (realGrid != null)
         {
             realGrid.gameObject.SetActive(false);
