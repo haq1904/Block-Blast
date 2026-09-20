@@ -53,6 +53,15 @@ public class GridView : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        ClearActiveShadows();
+        CancelCurrentPreClearEffects();
+        lastShadowPositions.Clear();
+        lastPreviewRows.Clear();
+        lastPreviewCols.Clear();
+    }
+
     private void OnDestroy()
     {
         if (gridService != null)
@@ -209,15 +218,9 @@ public class GridView : MonoBehaviour
             }
         }
 
-        Vector3 previewCenterWorld = Vector3.zero;
-        if (lastShadowPositions != null && lastShadowPositions.Count > 0 && gridService != null)
-        {
-            for (int i = 0; i < lastShadowPositions.Count; i++)
-            {
-                previewCenterWorld += gridService.GetWorldPositionFromGrid(lastShadowPositions[i]);
-            }
-            previewCenterWorld /= lastShadowPositions.Count;
-        }
+        Vector3 previewCenterWorld = (lastShadowPositions != null && lastShadowPositions.Count > 0 && gridService != null)
+            ? gridService.GetWorldCenter(lastShadowPositions)
+            : Vector3.zero;
 
         foreach (var kvp in affectedBlocks)
         {
@@ -314,70 +317,19 @@ public class GridView : MonoBehaviour
         }
     }
 
-    private void HandleLinesCleared(List<int> rows, List<int> cols)
+    private void HandleLinesCleared(List<int> rows, List<int> cols, List<Vector3> comboPositions)
     {
         lastPreviewRows.Clear();
         lastPreviewCols.Clear();
 
         var theme = blockService?.CurrentBlockType;
 
-        int totalLines = (rows != null ? rows.Count : 0) + (cols != null ? cols.Count : 0);
-
-        // Spawn combo celebration VFX if multiple lines are cleared simultaneously
-        if (totalLines >= 2 && theme != null && theme.comboClearVFXPrefab != null && poolService != null && gridService != null)
+        // Spawn combo celebration VFX if multiple lines are cleared simultaneously (pre-calculated by Controller)
+        if (comboPositions != null && comboPositions.Count > 0 && theme != null && theme.comboClearVFXPrefab != null && poolService != null)
         {
-            List<Vector2Int> intersections = new List<Vector2Int>();
-            if (rows != null && cols != null)
+            for (int i = 0; i < comboPositions.Count; i++)
             {
-                for (int r = 0; r < rows.Count; r++)
-                {
-                    for (int c = 0; c < cols.Count; c++)
-                    {
-                        intersections.Add(new Vector2Int(cols[c], rows[r]));
-                    }
-                }
-            }
-
-            if (intersections.Count > 0)
-            {
-                for (int i = 0; i < intersections.Count; i++)
-                {
-                    Vector3 interPos = gridService.GetWorldPositionFromGrid(intersections[i]);
-                    poolService.SpawnObject(theme.comboClearVFXPrefab, interPos, Quaternion.identity, PoolType.ParticleSystem);
-                }
-            }
-            else
-            {
-                Vector3 centerWorld = Vector3.zero;
-                int count = 0;
-                if (rows != null && rows.Count > 0)
-                {
-                    for (int r = 0; r < rows.Count; r++)
-                    {
-                        for (int c = 0; c < 8; c++)
-                        {
-                            centerWorld += gridService.GetWorldPositionFromGrid(new Vector2Int(c, rows[r]));
-                            count++;
-                        }
-                    }
-                }
-                else if (cols != null && cols.Count > 0)
-                {
-                    for (int c = 0; c < cols.Count; c++)
-                    {
-                        for (int r = 0; r < 8; r++)
-                        {
-                            centerWorld += gridService.GetWorldPositionFromGrid(new Vector2Int(cols[c], r));
-                            count++;
-                        }
-                    }
-                }
-
-                if (count > 0)
-                {
-                    centerWorld /= count;
-                    poolService.SpawnObject(theme.comboClearVFXPrefab, centerWorld, Quaternion.identity, PoolType.ParticleSystem);
-                }
+                poolService.SpawnObject(theme.comboClearVFXPrefab, comboPositions[i], Quaternion.identity, PoolType.ParticleSystem);
             }
         }
 

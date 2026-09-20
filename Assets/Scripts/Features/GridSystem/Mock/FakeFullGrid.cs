@@ -18,7 +18,7 @@ namespace BlockBlast.Mocking
 
         public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
         public event Action<List<CellPlacementData>> OnBlockPlaced;
-        public event Action<List<int>, List<int>> OnLinesCleared;
+        public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
 

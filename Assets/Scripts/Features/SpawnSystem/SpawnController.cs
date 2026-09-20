@@ -44,6 +44,12 @@ public class SpawnController : MonoBehaviour, ISpawnService
         // Update model
         model.SetBatch(newBatch);
 
+        // Inter-system bridging: spawn blocks via IBlockService
+        if (blockService != null)
+        {
+            blockService.SpawnBatch(model.CurrentBatch, model.TrayPositions);
+        }
+
         // Notify View
         OnBatchSpawned?.Invoke(model.CurrentBatch, model.TrayPositions);
 

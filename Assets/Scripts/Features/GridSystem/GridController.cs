@@ -11,7 +11,7 @@ public class GridController : MonoBehaviour, IGridService
 
     public event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
     public event Action<List<CellPlacementData>> OnBlockPlaced;
-    public event Action<List<int>, List<int>> OnLinesCleared;
+    public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     public event Action<List<int>, List<int>> OnPreviewLinesToClear;
     public event Action<int, int, bool> OnPlacementResolved;
 
@@ -160,7 +160,8 @@ public class GridController : MonoBehaviour, IGridService
                 model.ClearCol(col);
             }
 
-            OnLinesCleared?.Invoke(clearedRows, clearedCols);
+            List<Vector3> comboVFXPositions = GetComboVFXPositions(clearedRows, clearedCols);
+            OnLinesCleared?.Invoke(clearedRows, clearedCols, comboVFXPositions);
         }
 
         // 4. Broadcast placement resolution for ScoreSystem and game flow
@@ -180,5 +181,72 @@ public class GridController : MonoBehaviour, IGridService
             }
         }
         PlaceBlocks(cells);
+    }
+
+    public List<Vector3> GetComboVFXPositions(List<int> rows, List<int> cols)
+    {
+        List<Vector3> positions = new List<Vector3>();
+        int totalLines = (rows != null ? rows.Count : 0) + (cols != null ? cols.Count : 0);
+        if (totalLines < 2) return positions;
+
+        // If intersecting rows and columns are cleared simultaneously, return all intersection points
+        if (rows != null && cols != null && rows.Count > 0 && cols.Count > 0)
+        {
+            for (int r = 0; r < rows.Count; r++)
+            {
+                for (int c = 0; c < cols.Count; c++)
+                {
+                    positions.Add(GetWorldPositionFromGrid(new Vector2Int(cols[c], rows[r])));
+                }
+            }
+        }
+        else
+        {
+            // Parallel rows or parallel columns: compute geometric center of cleared lines
+            Vector3 centerWorld = Vector3.zero;
+            int count = 0;
+
+            if (rows != null && rows.Count > 0)
+            {
+                for (int r = 0; r < rows.Count; r++)
+                {
+                    for (int c = 0; c < 8; c++)
+                    {
+                        centerWorld += GetWorldPositionFromGrid(new Vector2Int(c, rows[r]));
+                        count++;
+                    }
+                }
+            }
+            else if (cols != null && cols.Count > 0)
+            {
+                for (int c = 0; c < cols.Count; c++)
+                {
+                    for (int r = 0; r < 8; r++)
+                    {
+                        centerWorld += GetWorldPositionFromGrid(new Vector2Int(cols[c], r));
+                        count++;
+                    }
+                }
+            }
+
+            if (count > 0)
+            {
+                positions.Add(centerWorld / count);
+            }
+        }
+
+        return positions;
+    }
+
+    public Vector3 GetWorldCenter(List<Vector2Int> gridPositions)
+    {
+        if (gridPositions == null || gridPositions.Count == 0) return Vector3.zero;
+
+        Vector3 sum = Vector3.zero;
+        for (int i = 0; i < gridPositions.Count; i++)
+        {
+            sum += GetWorldPositionFromGrid(gridPositions[i]);
+        }
+        return sum / gridPositions.Count;
     }
 }

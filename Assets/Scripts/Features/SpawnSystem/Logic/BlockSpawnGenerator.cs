@@ -470,15 +470,7 @@ public static class BlockSpawnGenerator
 
     private static ScenarioDatabase GetScenarioDatabase(SpawnConfiguration config)
     {
-        if (config != null && config.scenarioDatabase != null)
-        {
-            return config.scenarioDatabase;
-        }
-        if (ServiceLocator.TryGet<ScenarioDatabase>(out var db))
-        {
-            return db;
-        }
-        return null;
+        return config != null ? config.scenarioDatabase : null;
     }
 
     public static BlockModel[] GenerateGridAssistedBatch(ShapeDatabase db, IGridService grid, SpawnConfiguration config) =>

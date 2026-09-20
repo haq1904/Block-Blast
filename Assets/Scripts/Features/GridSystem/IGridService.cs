@@ -13,7 +13,7 @@ public interface IGridService
     // --- EVENTS (View listeners) ---
     event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
     event Action<List<CellPlacementData>> OnBlockPlaced;
-    event Action<List<int>, List<int>> OnLinesCleared;
+    event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     event Action<List<int>, List<int>> OnPreviewLinesToClear;
     event Action<int, int, bool> OnPlacementResolved; // (tilesPlaced, totalLinesCleared, isAllClear)
 
@@ -27,4 +27,8 @@ public interface IGridService
     void RequestPreview(List<Vector2Int> gridPositions);
     void PlaceBlocks(List<CellPlacementData> cells);
     void PlaceBlocks(List<Vector2Int> gridPositions);
+
+    // --- PRESENTATION HELPERS (Humble View Support) ---
+    List<Vector3> GetComboVFXPositions(List<int> rows, List<int> cols) => new List<Vector3>();
+    Vector3 GetWorldCenter(List<Vector2Int> gridPositions) => Vector3.zero;
 }

@@ -18,7 +18,8 @@ public class ShakeEffectSO : PreClearEffectSO
         if (target == null) return;
         target.DOKill();
         target.DOShakePosition(duration, strength, vibrato, 90f, false, false)
-              .SetLoops(-1, LoopType.Restart);
+              .SetLoops(-1, LoopType.Restart)
+              .SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
     }
 
     public override void Cancel(Transform target, Vector3 originalPos, Quaternion originalRot)
