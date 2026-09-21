@@ -212,7 +212,7 @@ public class GridView : MonoBehaviour
         if (!hasLines) return;
 
         var theme = blockService?.CurrentBlockType;
-        var effect = theme?.preClearEffect;
+        var effect = theme?.preClearAnimation;
         if (effect == null) return;
 
         Dictionary<GameObject, Vector2Int> affectedBlocks = new Dictionary<GameObject, Vector2Int>();
@@ -282,7 +282,7 @@ public class GridView : MonoBehaviour
         if (activePreClearCells.Count == 0) return;
 
         var theme = blockService?.CurrentBlockType;
-        var effect = theme?.preClearEffect;
+        var effect = theme?.preClearAnimation;
 
         for (int i = 0; i < activePreClearCells.Count; i++)
         {
@@ -332,9 +332,9 @@ public class GridView : MonoBehaviour
                 GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, Quaternion.identity);
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
 
-                if (theme != null && theme.placementEffect != null)
+                if (theme != null && theme.placementAnimation != null)
                 {
-                    theme.placementEffect.Apply(block.transform);
+                    theme.placementAnimation.Apply(block.transform);
                 }
             }
         }
@@ -345,10 +345,10 @@ public class GridView : MonoBehaviour
         }
 
         // Trigger placement particle effects (smoke puff along exposed edges + debris at cell centers)
-        if (theme != null && theme.placementPSEffect != null && poolService != null && gridService != null)
+        if (theme != null && theme.placementVFX != null && poolService != null && gridService != null)
         {
             List<PlacementEdgeData> edges = gridService.GetExposedEdges(positions);
-            theme.placementPSEffect.Play(edges, cellWorldPositions, poolService);
+            theme.placementVFX.Play(edges, cellWorldPositions, poolService);
         }
 
         if (soundService != null && theme != null)
@@ -385,17 +385,7 @@ public class GridView : MonoBehaviour
     private void ExecuteLinesCleared(List<int> rows, List<int> cols, List<Vector3> comboPositions)
     {
         var theme = blockService?.CurrentBlockType;
-
-        // Spawn combo celebration VFX if multiple lines are cleared simultaneously (pre-calculated by Controller)
-        if (comboPositions != null && comboPositions.Count > 0 && theme != null && theme.comboClearVFXPrefab != null && poolService != null)
-        {
-            for (int i = 0; i < comboPositions.Count; i++)
-            {
-                poolService.SpawnObject(theme.comboClearVFXPrefab, comboPositions[i], Quaternion.identity, PoolType.ParticleSystem);
-            }
-        }
-
-        var clearEffect = theme?.clearAnimationEffect;
+        var clearEffect = theme?.clearAnimation;
         ClearStaggerPattern pattern = clearEffect != null 
             ? clearEffect.ResolvePattern() 
             : ClearStaggerPattern.InstantAll;
@@ -445,7 +435,7 @@ public class GridView : MonoBehaviour
         int indexInLine, 
         int totalInLine, 
         ClearStaggerPattern pattern, 
-        ClearAnimationEffectSO clearEffect, 
+        ClearAnimationSO clearEffect, 
         List<ClearCellTarget> list)
     {
         GameObject block = visualGrid[col, row];
@@ -481,7 +471,7 @@ public class GridView : MonoBehaviour
         });
     }
 
-    private void AnimateAndClearCell(ClearCellTarget target, BlockTypeSO theme, ClearAnimationEffectSO clearEffect)
+    private void AnimateAndClearCell(ClearCellTarget target, BlockTypeSO theme, ClearAnimationSO clearEffect)
     {
         GameObject block = target.gameObject;
         if (block == null) return;
@@ -498,10 +488,10 @@ public class GridView : MonoBehaviour
 
         Action onExplode = () =>
         {
-            if (theme != null && theme.clearVFXPrefab != null && poolService != null)
+            if (theme != null && theme.clearVFX != null && poolService != null)
             {
                 Vector3 burstPos = block != null ? block.transform.position : canonicalPos;
-                poolService.SpawnObject(theme.clearVFXPrefab, burstPos, Quaternion.identity, PoolType.ParticleSystem);
+                poolService.SpawnObject(theme.clearVFX, burstPos, Quaternion.identity, PoolType.ParticleSystem);
             }
 
             if (block != null)

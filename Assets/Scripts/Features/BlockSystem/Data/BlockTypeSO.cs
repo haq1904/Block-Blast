@@ -18,29 +18,26 @@ public class BlockTypeSO : ScriptableObject
     [Tooltip("If true, all cells in a single shape share the same variantId. If false, a shape mixes variants.")]
     public bool isMonochromePerShape = true;
 
-    [Header("Shared Pre-Clear Effect")]
-    [Tooltip("Dynamic pre-clear effect executed when lines are pending explosion.")]
-    public PreClearEffectSO preClearEffect;
+    [Header("Pre-Clear Feedback")]
+    [Tooltip("Dynamic pre-clear animation executed when lines are pending explosion.")]
+    public PreClearAnimationSO preClearAnimation;
 
     [Header("Placement Feedback")]
-    [Tooltip("Custom particle system effects spawned at cell positions and exposed edges when blocks of this type are placed.")]
-    public PlacementPSEffectSO placementPSEffect;
-
     [Tooltip("Custom placement impact animation executed on each cell when placed on the board.")]
-    public PlacementEffectSO placementEffect;
+    public PlacementAnimationSO placementAnimation;
+
+    [Tooltip("Custom particle system effects spawned at cell positions and exposed edges when blocks of this type are placed.")]
+    public PlacementVFXSO placementVFX;
 
     [Tooltip("Sound played when placing blocks.")]
     public SoundFXType placeSound = SoundFXType.BlockPlace;
 
     [Header("Clear Feedback")]
     [Tooltip("Dynamic animation & rhythm executed on each cell right before it shatters.")]
-    public ClearAnimationEffectSO clearAnimationEffect;
+    public ClearAnimationSO clearAnimation;
 
     [Tooltip("Particle VFX spawned when lines of this block type are cleared.")]
-    public GameObject clearVFXPrefab;
-
-    [Tooltip("Special celebration particle VFX spawned when multiple lines/combos are cleared.")]
-    public GameObject comboClearVFXPrefab;
+    public GameObject clearVFX;
 
     [Tooltip("Sound played when clearing lines.")]
     public SoundFXType clearSound = SoundFXType.LineClear;
