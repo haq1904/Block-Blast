@@ -47,3 +47,14 @@ When returning a GameObject or Transform to the Object Pool (`IPoolService.Retur
 
 ## 7. No Redundant Allocations in Update
 *   Avoid instantiating new tweens inside `Update()` without checking `DOTween.IsTweening(target)` or caching the active `Tween` reference.
+
+## 8. Mandatory Sequence Target Binding (`.SetTarget(target)`)
+*   Unlike individual tweens (e.g., `target.DOScale(...)`) where DOTween automatically assigns `target` as the tween owner, a `Sequence` created via `DOTween.Sequence()` has `target == null` by default.
+*   If `.SetTarget(target)` is omitted: calling `target.DOKill()` will ONLY kill individual inner tweens, but will **orphan the outer `Sequence` wrapper**, allowing its intervals and callbacks to linger, leak in internal pools, or fire on recycled objects.
+*   **Mandatory Rule**: Whenever creating a `Sequence` for a specific GameObject, Transform, or UI component, you MUST explicitly bind its target:
+    ```csharp
+    Sequence seq = DOTween.Sequence();
+    seq.SetTarget(target);
+    seq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
+    ```
+
