@@ -33,6 +33,9 @@ public class BlockTypeSO : ScriptableObject
     public SoundFXType placeSound = SoundFXType.BlockPlace;
 
     [Header("Clear Feedback")]
+    [Tooltip("Dynamic animation & rhythm executed on each cell right before it shatters.")]
+    public ClearAnimationEffectSO clearAnimationEffect;
+
     [Tooltip("Particle VFX spawned when lines of this block type are cleared.")]
     public GameObject clearVFXPrefab;
 

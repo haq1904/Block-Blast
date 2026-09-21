@@ -14,6 +14,12 @@ public class Bootstrapper : MonoBehaviour
     [Tooltip("Clear color used by the bootstrap camera to prevent stale GPU framebuffer artifacts from previous play sessions.")]
     [SerializeField] private Color _clearColor = new Color(0.12f, 0.13f, 0.16f, 1f);
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void InitializeDOTweenCapacity()
+    {
+        DG.Tweening.DOTween.SetTweensCapacity(500, 150);
+    }
+
     private void Awake()
     {
         EnsureBootstrapCamera();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
@@ -24,8 +25,24 @@ public class GridView : MonoBehaviour
         public Vector2Int gridPos;
     }
 
+    private struct ClearingBlock
+    {
+        public GameObject gameObject;
+        public Vector3 canonicalPos;
+    }
+
+    private struct ClearCellTarget
+    {
+        public GameObject gameObject;
+        public Vector2Int gridPos;
+        public Vector3 canonicalPos;
+        public float delay;
+    }
+
     private List<ShadowInstance> activeShadows = new List<ShadowInstance>();
     private List<AnimatingCell> activePreClearCells = new List<AnimatingCell>();
+    private List<ClearingBlock> activeClearingBlocks = new List<ClearingBlock>();
+    private Vector3 lastPlacedWorldCenter = Vector3.zero;
 
     // Cache to prevent restarting animations/shadows when dragging within the same grid cell
     private List<Vector2Int> lastShadowPositions = new List<Vector2Int>();
@@ -66,6 +83,7 @@ public class GridView : MonoBehaviour
 
         ClearActiveShadows();
         CancelCurrentPreClearEffects();
+        ClearActiveClearingBlocks();
         lastShadowPositions.Clear();
         lastPreviewRows.Clear();
         lastPreviewCols.Clear();
@@ -86,6 +104,7 @@ public class GridView : MonoBehaviour
 
         ClearActiveShadows();
         CancelCurrentPreClearEffects();
+        ClearActiveClearingBlocks();
         lastShadowPositions.Clear();
         lastPreviewRows.Clear();
         lastPreviewCols.Clear();
@@ -294,14 +313,17 @@ public class GridView : MonoBehaviour
         lastShadowPositions.Clear();
         lastPreviewRows.Clear();
         lastPreviewCols.Clear();
+        CancelCurrentPreClearEffects();
 
         var theme = blockService?.CurrentBlockType;
         List<Vector3> cellWorldPositions = new List<Vector3>(positions.Count);
+        Vector3 worldCenterSum = Vector3.zero;
 
         foreach (var cell in positions)
         {
             Vector3 worldPos = gridService.GetWorldPositionFromGrid(cell.gridPos);
             cellWorldPositions.Add(worldPos);
+            worldCenterSum += worldPos;
 
             GameObject prefabToSpawn = blockService != null ? blockService.GetCellPrefab(cell.variantIndex) : null;
 
@@ -315,6 +337,11 @@ public class GridView : MonoBehaviour
                     theme.placementEffect.Apply(block.transform);
                 }
             }
+        }
+
+        if (positions.Count > 0)
+        {
+            lastPlacedWorldCenter = worldCenterSum / positions.Count;
         }
 
         // Trigger placement particle effects (smoke puff along exposed edges + debris at cell centers)
@@ -368,13 +395,22 @@ public class GridView : MonoBehaviour
             }
         }
 
+        var clearEffect = theme?.clearAnimationEffect;
+        ClearStaggerPattern pattern = clearEffect != null 
+            ? clearEffect.ResolvePattern() 
+            : ClearStaggerPattern.InstantAll;
+
+        // 1. Collect unique cells to clear across rows and columns
+        List<ClearCellTarget> cellsToClear = new List<ClearCellTarget>();
+
         if (rows != null)
         {
             foreach (int row in rows)
             {
+                if (row < 0 || row >= 8) continue;
                 for (int col = 0; col < 8; col++)
                 {
-                    ClearVisualBlock(col, row, theme);
+                    TryQueueCellToClear(col, row, col, 8, pattern, clearEffect, cellsToClear);
                 }
             }
         }
@@ -383,11 +419,18 @@ public class GridView : MonoBehaviour
         {
             foreach (int col in cols)
             {
+                if (col < 0 || col >= 8) continue;
                 for (int row = 0; row < 8; row++)
                 {
-                    ClearVisualBlock(col, row, theme);
+                    TryQueueCellToClear(col, row, row, 8, pattern, clearEffect, cellsToClear);
                 }
             }
+        }
+
+        // 2. Animate and clear collected cells
+        for (int i = 0; i < cellsToClear.Count; i++)
+        {
+            AnimateAndClearCell(cellsToClear[i], theme, clearEffect);
         }
 
         if (soundService != null && theme != null)
@@ -396,36 +439,126 @@ public class GridView : MonoBehaviour
         }
     }
 
-    private void ClearVisualBlock(int col, int row, BlockTypeSO theme)
+    private void TryQueueCellToClear(
+        int col, 
+        int row, 
+        int indexInLine, 
+        int totalInLine, 
+        ClearStaggerPattern pattern, 
+        ClearAnimationEffectSO clearEffect, 
+        List<ClearCellTarget> list)
     {
         GameObject block = visualGrid[col, row];
-        if (block != null)
-        {
-            Vector3 canonicalPos = gridService != null 
-                ? gridService.GetWorldPositionFromGrid(new Vector2Int(col, row)) 
-                : block.transform.position;
+        if (block == null) return;
 
-            for (int i = activePreClearCells.Count - 1; i >= 0; i--)
+        // Immediately unbind from visual grid so the slot is considered free
+        visualGrid[col, row] = null;
+
+        Vector2Int gridPos = new Vector2Int(col, row);
+        Vector3 canonicalPos = gridService != null 
+            ? gridService.GetWorldPositionFromGrid(gridPos) 
+            : block.transform.position;
+
+        for (int i = activePreClearCells.Count - 1; i >= 0; i--)
+        {
+            if (activePreClearCells[i].gameObject == block)
             {
-                if (activePreClearCells[i].gameObject == block)
+                activePreClearCells.RemoveAt(i);
+                break;
+            }
+        }
+
+        float delay = clearEffect != null
+            ? clearEffect.CalculateDelay(pattern, indexInLine, totalInLine, canonicalPos, lastPlacedWorldCenter)
+            : 0f;
+
+        list.Add(new ClearCellTarget
+        {
+            gameObject = block,
+            gridPos = gridPos,
+            canonicalPos = canonicalPos,
+            delay = delay
+        });
+    }
+
+    private void AnimateAndClearCell(ClearCellTarget target, BlockTypeSO theme, ClearAnimationEffectSO clearEffect)
+    {
+        GameObject block = target.gameObject;
+        if (block == null) return;
+
+        Vector3 canonicalPos = target.canonicalPos;
+        var clearingEntry = new ClearingBlock { gameObject = block, canonicalPos = canonicalPos };
+        activeClearingBlocks.Add(clearingEntry);
+
+        // Force canonical ground transform before clear animation (kills mid-air placement or pre-clear tweens)
+        block.transform.DOKill();
+        block.transform.position = canonicalPos;
+        block.transform.rotation = Quaternion.identity;
+        block.transform.localScale = Vector3.one;
+
+        Action onExplode = () =>
+        {
+            if (theme != null && theme.clearVFXPrefab != null && poolService != null)
+            {
+                Vector3 burstPos = block != null ? block.transform.position : canonicalPos;
+                poolService.SpawnObject(theme.clearVFXPrefab, burstPos, Quaternion.identity, PoolType.ParticleSystem);
+            }
+
+            if (block != null)
+            {
+                block.transform.DOKill();
+                block.transform.position = canonicalPos;
+                block.transform.rotation = Quaternion.identity;
+                block.transform.localScale = Vector3.one;
+
+                if (poolService != null)
                 {
-                    activePreClearCells.RemoveAt(i);
-                    break;
+                    poolService.ReturnObjectToPool(block);
                 }
             }
 
-            if (theme != null && theme.clearVFXPrefab != null && poolService != null)
-            {
-                poolService.SpawnObject(theme.clearVFXPrefab, canonicalPos, Quaternion.identity, PoolType.ParticleSystem);
-            }
+            activeClearingBlocks.Remove(clearingEntry);
+        };
 
-            block.transform.DOKill();
-            block.transform.position = canonicalPos;
-            block.transform.rotation = Quaternion.identity;
-            block.transform.localScale = Vector3.one;
-            poolService.ReturnObjectToPool(block);
-            visualGrid[col, row] = null;
+        if (clearEffect != null)
+        {
+            ClearCellContext context = new ClearCellContext
+            {
+                gridPos = target.gridPos,
+                canonicalPos = canonicalPos,
+                indexInLine = 0,
+                totalInLine = 8,
+                delay = target.delay,
+                placementOrigin = lastPlacedWorldCenter
+            };
+
+            clearEffect.Play(block.transform, context, onExplode);
         }
+        else
+        {
+            onExplode();
+        }
+    }
+
+    private void ClearActiveClearingBlocks()
+    {
+        for (int i = activeClearingBlocks.Count - 1; i >= 0; i--)
+        {
+            var entry = activeClearingBlocks[i];
+            if (entry.gameObject != null)
+            {
+                entry.gameObject.transform.DOKill();
+                entry.gameObject.transform.position = entry.canonicalPos;
+                entry.gameObject.transform.rotation = Quaternion.identity;
+                entry.gameObject.transform.localScale = Vector3.one;
+
+                if (poolService != null)
+                {
+                    poolService.ReturnObjectToPool(entry.gameObject);
+                }
+            }
+        }
+        activeClearingBlocks.Clear();
     }
 
     private static bool AreListsEqual(List<int> a, List<int> b)

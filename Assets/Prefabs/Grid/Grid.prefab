@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4491635494201936000}
+  - component: {fileID: 5106838284083686899}
   m_Layer: 0
   m_Name: Grid
   m_TagString: Untagged
@@ -32,6 +33,18 @@ Transform:
   - {fileID: 1871444457022431979}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5106838284083686899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 48029581474629647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd04f4db3451714499acb68d5c76714e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::GridController
 --- !u!1001 &2193831000919721216
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -91,6 +104,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7320271298716996664}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4151200777682285454}
   m_SourcePrefab: {fileID: 100100000, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
 --- !u!1 &1347531205423298641 stripped
 GameObject:
@@ -109,6 +125,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b6350102144ae04497bb53fe4d09ecd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::GridView
+  lineClearDelay: 0
+--- !u!65 &4151200777682285454
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1347531205423298641}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 8.15, y: 1, z: 8.15}
+  m_Center: {x: 0.01, y: -0.5, z: 0.01}
 --- !u!4 &1871444457022431979 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}

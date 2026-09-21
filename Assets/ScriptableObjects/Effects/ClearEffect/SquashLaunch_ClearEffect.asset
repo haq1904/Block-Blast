@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 035d99d84a334e54abc67a319784e8cd, type: 3}
+  m_Name: SquashLaunch_ClearEffect
+  m_EditorClassIdentifier: BlockBlast.Feature::SquashLaunchClearEffectSO
+  staggerSelectionMode: 0
+  staggerPattern: 7
+  randomPool: 00000000010000000200000003000000040000000500000006000000
+  stepDelay: 0.08
+  squashScale: {x: 1.25, y: 0.55, z: 1.25}
+  squashDuration: 0.2
+  launchHeight: 0.418
+  launchScale: {x: 0.75, y: 1.4, z: 0.75}
+  randomTiltAngle: 19.9
+  launchDuration: 0.3
