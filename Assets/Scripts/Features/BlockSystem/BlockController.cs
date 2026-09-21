@@ -23,6 +23,8 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public event Action<Vector3> OnDragPositionUpdated;
     public event Action<Vector3> OnDragVelocityUpdated;
     public event Action OnDragStarted;
+    public event Action<Vector3> OnBlockLiftRequested;
+    public event Action<Vector3, Action> OnBlockPlaceSlideRequested;
     public event Action<bool> OnDragEnded;
     public event Action OnBlockReset;
 
@@ -53,11 +55,13 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private void OnDisable()
     {
+        if (ServiceLocator.TryGet<IBlockService>(out var blockService))
+        {
+            blockService.ReleaseDragLock(this);
+        }
+
         if (isDragging)
         {
-            var blockService = ServiceLocator.Get<IBlockService>();
-            blockService?.ReleaseDragLock(this);
-
             isDragging = false;
             activePointerId = -1;
             OnDragEnded?.Invoke(false);
@@ -78,8 +82,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var blockService = ServiceLocator.Get<IBlockService>();
-        if (blockService != null && !blockService.TryAcquireDragLock(this, eventData.pointerId))
+        if (ServiceLocator.TryGet<IBlockService>(out var blockService) && !blockService.TryAcquireDragLock(this, eventData.pointerId))
         {
             // Another block is already actively dragging -> reject this drag attempt
             return;
@@ -90,11 +93,11 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         wasAllInBounds = false;
 
         // On initial touch: slide up to height y=1 and advance z+2
-        Vector3 newPos = new Vector3(trayPosition.x, 1f, trayPosition.z + 2f);
+        Vector3 targetLiftPos = new Vector3(trayPosition.x, 1f, trayPosition.z + 2f);
         isDragging = true;
-        lastDragPosition = newPos;
+        lastDragPosition = targetLiftPos;
         OnDragStarted?.Invoke();
-        OnDragPositionUpdated?.Invoke(newPos);
+        OnBlockLiftRequested?.Invoke(targetLiftPos);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -139,9 +142,6 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         isDragging = false;
         activePointerId = -1;
 
-        var blockService = ServiceLocator.Get<IBlockService>();
-        blockService?.ReleaseDragLock(this);
-
         lastOriginGridPos = new Vector2Int(int.MinValue, int.MinValue);
         wasAllInBounds = false;
 
@@ -163,48 +163,63 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // 2. Evaluate block placement on the grid
         if (allInBounds && gridService.CanPlaceBlocks(placementData))
         {
-            // Placement confirmed!
-            gridService.PlaceBlocks(placementData);
             isPlaced = true;
         }
 
-        OnDragEnded?.Invoke(isPlaced);
-
-        // Post-release resolution
         if (isPlaced)
         {
-            OnBlockReset?.Invoke();
+            Vector3 snappedOrigin = gridService.GetWorldPositionFromGrid(originGridPos);
+            Vector3 groundSnapPos = new Vector3(snappedOrigin.x + center.x, -1f, snappedOrigin.z + center.y);
 
-            // 1. Return block to pool before triggering next batch spawn
-            if (blockService != null)
+            OnDragEnded?.Invoke(true);
+
+            OnBlockPlaceSlideRequested?.Invoke(groundSnapPos, () =>
             {
-                blockService.DespawnBlock(slotIndex);
-            }
-            else if (poolService != null)
-            {
-                try
+                if (ServiceLocator.TryGet<IBlockService>(out var blockService))
                 {
-                    poolService.ReturnObjectToPool(gameObject);
+                    blockService.ReleaseDragLock(this);
                 }
-                catch
+
+                // Placement confirmed on grid!
+                gridService.PlaceBlocks(placementData);
+                OnBlockReset?.Invoke();
+
+                // 1. Return block to pool before triggering next batch spawn
+                if (blockService != null)
+                {
+                    blockService.DespawnBlock(slotIndex);
+                }
+                else if (poolService != null)
+                {
+                    try
+                    {
+                        poolService.ReturnObjectToPool(gameObject);
+                    }
+                    catch
+                    {
+                        Destroy(gameObject);
+                    }
+                }
+                else
                 {
                     Destroy(gameObject);
                 }
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
 
-            // 2. Once block is safely returned to pool, notify SpawnService
-            var spawnService = ServiceLocator.Get<ISpawnService>();
-            if (spawnService != null)
-            {
-                spawnService.MarkSlotEmpty(slotIndex);
-            }
+                // 2. Once block is safely returned to pool, notify SpawnService
+                if (ServiceLocator.TryGet<ISpawnService>(out var spawnService))
+                {
+                    spawnService.MarkSlotEmpty(slotIndex);
+                }
+            });
         }
         else
         {
+            if (ServiceLocator.TryGet<IBlockService>(out var blockService))
+            {
+                blockService.ReleaseDragLock(this);
+            }
+
+            OnDragEnded?.Invoke(false);
             // Failed placement (blocked or dropped out of bounds) -> return to tray
             OnTrayPositionSet?.Invoke(trayPosition);
         }

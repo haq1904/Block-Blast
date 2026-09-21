@@ -37,6 +37,12 @@ public class GridView : MonoBehaviour
     private IBlockService blockService;
     private ISoundFXService soundService;
 
+    [Header("Line Clear Timing")]
+    [Tooltip("Delay in seconds after block placement before full lines explode, ensuring player sees the block placed.")]
+    [SerializeField] private float lineClearDelay = 0.20f;
+
+    private Tween lineClearDelayTween;
+
     private void Start()
     {
         gridService = ServiceLocator.Get<IGridService>();
@@ -55,6 +61,9 @@ public class GridView : MonoBehaviour
 
     private void OnDisable()
     {
+        lineClearDelayTween?.Kill();
+        lineClearDelayTween = null;
+
         ClearActiveShadows();
         CancelCurrentPreClearEffects();
         lastShadowPositions.Clear();
@@ -64,6 +73,9 @@ public class GridView : MonoBehaviour
 
     private void OnDestroy()
     {
+        lineClearDelayTween?.Kill();
+        lineClearDelayTween = null;
+
         if (gridService != null)
         {
             gridService.OnPreviewStateChanged -= HandlePreview;
@@ -323,6 +335,28 @@ public class GridView : MonoBehaviour
         lastPreviewRows.Clear();
         lastPreviewCols.Clear();
 
+        var cachedRows = rows != null ? new List<int>(rows) : null;
+        var cachedCols = cols != null ? new List<int>(cols) : null;
+        var cachedCombos = comboPositions != null ? new List<Vector3>(comboPositions) : null;
+
+        lineClearDelayTween?.Kill();
+
+        if (lineClearDelay > 0f)
+        {
+            lineClearDelayTween = DOVirtual.DelayedCall(lineClearDelay, () =>
+            {
+                ExecuteLinesCleared(cachedRows, cachedCols, cachedCombos);
+                lineClearDelayTween = null;
+            }).SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        }
+        else
+        {
+            ExecuteLinesCleared(cachedRows, cachedCols, cachedCombos);
+        }
+    }
+
+    private void ExecuteLinesCleared(List<int> rows, List<int> cols, List<Vector3> comboPositions)
+    {
         var theme = blockService?.CurrentBlockType;
 
         // Spawn combo celebration VFX if multiple lines are cleared simultaneously (pre-calculated by Controller)

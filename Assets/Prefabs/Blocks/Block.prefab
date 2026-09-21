@@ -87,3 +87,5 @@ MonoBehaviour:
   wobbleDuration: 0.52
   wobbleOvershootRatio: 0.702779
   stopVelocityThreshold: 0.15
+  liftDuration: 0.2
+  placeDuration: 0.2

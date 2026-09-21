@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
@@ -32,6 +33,13 @@ public class BlockView : MonoBehaviour
     [Tooltip("Velocity threshold below which the block is considered stationary and triggers settle wobble.")]
     [SerializeField] private float stopVelocityThreshold = 0.15f;
 
+    [Header("Pick-up & Place Slide Animation")]
+    [Tooltip("Duration of the fast slide up and scale animation when touching a block.")]
+    [SerializeField] private float liftDuration = 0.10f;
+
+    [Tooltip("Duration of the decisive slam down animation when placing a block on the grid.")]
+    [SerializeField] private float placeDuration = 0.08f;
+
     private BlockController blockController;
     private IPoolService poolService;
     private IBlockService blockService;
@@ -42,6 +50,13 @@ public class BlockView : MonoBehaviour
     private bool isSettling;
     private Sequence settleSequence;
 
+    private Tween liftMoveYTween;
+    private Tween liftMoveZTween;
+    private Tween liftScaleTween;
+    private Tween placeTween;
+    private bool isLifting;
+    private bool isPlacing;
+
     private void Awake()
     {
         blockController = GetComponent<BlockController>();
@@ -50,6 +65,8 @@ public class BlockView : MonoBehaviour
             blockController.OnShapeAssigned += DrawShape;
             blockController.OnDragVelocityUpdated += HandleDragVelocityUpdated;
             blockController.OnDragStarted += HandleDragStarted;
+            blockController.OnBlockLiftRequested += HandleBlockLiftRequested;
+            blockController.OnBlockPlaceSlideRequested += HandleBlockPlaceSlideRequested;
             blockController.OnDragEnded += HandleDragEnded;
             blockController.OnTrayPositionSet += HandleTrayPositionSet;
             blockController.OnDragPositionUpdated += HandleDragPositionUpdated;
@@ -59,7 +76,7 @@ public class BlockView : MonoBehaviour
 
     private void Update()
     {
-        if (isDragging && !isSettling)
+        if (isDragging && !isSettling && !isPlacing)
         {
             transform.localRotation = Quaternion.Slerp(
                 transform.localRotation,
@@ -71,6 +88,7 @@ public class BlockView : MonoBehaviour
 
     private void OnDisable()
     {
+        KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.DOKill();
         transform.localScale = Vector3.one;
@@ -82,6 +100,7 @@ public class BlockView : MonoBehaviour
 
     private void OnDestroy()
     {
+        KillLiftAndPlaceTweens();
         KillTiltTweens();
 
         if (blockController != null)
@@ -89,6 +108,8 @@ public class BlockView : MonoBehaviour
             blockController.OnShapeAssigned -= DrawShape;
             blockController.OnDragVelocityUpdated -= HandleDragVelocityUpdated;
             blockController.OnDragStarted -= HandleDragStarted;
+            blockController.OnBlockLiftRequested -= HandleBlockLiftRequested;
+            blockController.OnBlockPlaceSlideRequested -= HandleBlockPlaceSlideRequested;
             blockController.OnDragEnded -= HandleDragEnded;
             blockController.OnTrayPositionSet -= HandleTrayPositionSet;
             blockController.OnDragPositionUpdated -= HandleDragPositionUpdated;
@@ -106,6 +127,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleTrayPositionSet(Vector3 trayPos)
     {
+        KillLiftAndPlaceTweens();
         transform.position = trayPos;
         transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         transform.localRotation = Quaternion.identity;
@@ -113,11 +135,27 @@ public class BlockView : MonoBehaviour
 
     private void HandleDragPositionUpdated(Vector3 newPos)
     {
-        transform.position = newPos;
+        if (isPlacing) return;
+
+        if (isLifting)
+        {
+            // Player moved finger during initial lift -> track X and Z immediately
+            if (liftMoveZTween != null && liftMoveZTween.IsActive())
+            {
+                liftMoveZTween.Kill();
+                liftMoveZTween = null;
+            }
+            transform.position = new Vector3(newPos.x, transform.position.y, newPos.z);
+        }
+        else
+        {
+            transform.position = newPos;
+        }
     }
 
     private void HandleBlockReset()
     {
+        KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.DOKill();
         transform.localScale = Vector3.one;
@@ -129,16 +167,84 @@ public class BlockView : MonoBehaviour
 
     private void HandleDragStarted()
     {
+        KillLiftAndPlaceTweens();
         KillTiltTweens();
-        transform.localScale = Vector3.one;
         isDragging = true;
         isSettling = false;
         targetRotation = Quaternion.identity;
     }
 
+    private void HandleBlockLiftRequested(Vector3 targetLiftPos)
+    {
+        KillLiftAndPlaceTweens();
+        KillTiltTweens();
+
+        isLifting = true;
+        isPlacing = false;
+
+        transform.position = new Vector3(targetLiftPos.x, transform.position.y, targetLiftPos.z);
+
+        liftMoveYTween = transform.DOMoveY(targetLiftPos.y, liftDuration)
+            .SetEase(Ease.OutQuad)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+            .OnComplete(() =>
+            {
+                isLifting = false;
+                liftMoveYTween = null;
+            });
+
+        liftMoveZTween = transform.DOMoveZ(targetLiftPos.z, liftDuration)
+            .SetEase(Ease.OutQuad)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+            .OnComplete(() =>
+            {
+                liftMoveZTween = null;
+            });
+
+        liftScaleTween = transform.DOScale(Vector3.one, liftDuration)
+            .SetEase(Ease.OutQuad)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+            .OnComplete(() =>
+            {
+                liftScaleTween = null;
+            });
+    }
+
+    private void HandleBlockPlaceSlideRequested(Vector3 groundPos, Action onComplete)
+    {
+        KillLiftAndPlaceTweens();
+        KillTiltTweens();
+
+        isPlacing = true;
+        isLifting = false;
+        isDragging = false;
+        isSettling = false;
+
+        // Snap X and Z precisely to target grid center in the air
+        transform.position = new Vector3(groundPos.x, transform.position.y, groundPos.z);
+
+        // Straighten tilt rotation rapidly
+        transform.DOLocalRotate(Vector3.zero, placeDuration)
+            .SetEase(Ease.OutQuad)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+
+        // Slam down into the grid
+        placeTween = transform.DOMoveY(groundPos.y, placeDuration)
+            .SetEase(Ease.InQuad)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable)
+            .OnComplete(() =>
+            {
+                isPlacing = false;
+                placeTween = null;
+                transform.position = groundPos;
+                transform.localRotation = Quaternion.identity;
+                onComplete?.Invoke();
+            });
+    }
+
     private void HandleDragVelocityUpdated(Vector3 velocity)
     {
-        if (!isDragging) return;
+        if (!isDragging || isPlacing) return;
 
         float speed = velocity.magnitude;
         if (speed > stopVelocityThreshold)
@@ -176,13 +282,11 @@ public class BlockView : MonoBehaviour
         isDragging = false;
         if (isPlaced)
         {
-            KillTiltTweens();
-            transform.localRotation = Quaternion.identity;
-            isSettling = false;
-            targetRotation = Quaternion.identity;
+            // Settle or place is handled by HandleBlockPlaceSlideRequested
         }
         else
         {
+            KillLiftAndPlaceTweens();
             transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
             // Dropped back to tray: settle with a wobble
             PlaySettleWobbleSequence();
@@ -232,6 +336,32 @@ public class BlockView : MonoBehaviour
         });
     }
 
+    private void KillLiftAndPlaceTweens()
+    {
+        if (liftMoveYTween != null && liftMoveYTween.IsActive())
+        {
+            liftMoveYTween.Kill();
+            liftMoveYTween = null;
+        }
+        if (liftMoveZTween != null && liftMoveZTween.IsActive())
+        {
+            liftMoveZTween.Kill();
+            liftMoveZTween = null;
+        }
+        if (liftScaleTween != null && liftScaleTween.IsActive())
+        {
+            liftScaleTween.Kill();
+            liftScaleTween = null;
+        }
+        if (placeTween != null && placeTween.IsActive())
+        {
+            placeTween.Kill();
+            placeTween = null;
+        }
+        isLifting = false;
+        isPlacing = false;
+    }
+
     private void KillTiltTweens()
     {
         if (settleSequence != null && settleSequence.IsActive())
@@ -251,8 +381,8 @@ public class BlockView : MonoBehaviour
 
     private void DrawShape(List<(int x, int y)> offsets, Vector2 center, int[] variantIds)
     {
-        if (poolService == null) poolService = ServiceLocator.Get<IPoolService>();
-        if (blockService == null) blockService = ServiceLocator.Get<IBlockService>();
+        if (poolService == null) ServiceLocator.TryGet<IPoolService>(out poolService);
+        if (blockService == null) ServiceLocator.TryGet<IBlockService>(out blockService);
 
         ClearShape();
 
@@ -280,6 +410,7 @@ public class BlockView : MonoBehaviour
 
     private void ClearShape()
     {
+        KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.localRotation = Quaternion.identity;
         isDragging = false;
