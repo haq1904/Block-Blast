@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VortexTwist_ClearEffect
   m_EditorClassIdentifier: BlockBlast.Feature::VortexTwistClearEffectSO
   staggerSelectionMode: 0
-  staggerPattern: 7
+  staggerPattern: 2
   randomPool: 00000000010000000200000003000000040000000500000006000000
   stepDelay: 0.08
   twistDuration: 0.3

@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlockBlast.Feature::TensionShrinkEffectSO
   shrinkScale: 0.85
   duration: 0.22
-  shakeStrength: 0.03
+  shakeStrength: 0.09
   vibrato: 20

@@ -19,9 +19,9 @@ MonoBehaviour:
     prefab: {fileID: 3146870385133040111, guid: 845f12f1ae396a24687cae2725e06676, type: 3}
   shadowMaterial: {fileID: 2100000, guid: 5b8155dd4c211284abc49a2a9fde441f, type: 2}
   isMonochromePerShape: 0
-  preClearEffect: {fileID: 11400000, guid: 894411fcc7805d04f9cfd90fc091ad80, type: 2}
+  preClearEffect: {fileID: 11400000, guid: cb789ded1e72ad8469de7667c7086b0e, type: 2}
   placementPSEffect: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
-  placementEffect: {fileID: 11400000, guid: c8f257809fc31cc4b852c530c00c9866, type: 2}
+  placementEffect: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placeSound: 2
   clearAnimationEffect: {fileID: 11400000, guid: e239390d68944754f8de933635fa9c31, type: 2}
   clearVFXPrefab: {fileID: 0}

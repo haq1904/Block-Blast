@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a81b776981da6349a29a187a4065249, type: 3}
   m_Name: Shake_PreClearEffect
   m_EditorClassIdentifier: BlockBlast.Feature::ShakeEffectSO
-  strength: 0.08
+  strength: 0.13
   vibrato: 15
   duration: 0.3
