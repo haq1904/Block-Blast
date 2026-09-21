@@ -20,7 +20,7 @@ MonoBehaviour:
   shadowMaterial: {fileID: 2100000, guid: 5b8155dd4c211284abc49a2a9fde441f, type: 2}
   isMonochromePerShape: 0
   preClearEffect: {fileID: 11400000, guid: 894411fcc7805d04f9cfd90fc091ad80, type: 2}
-  placementPSEffect: {fileID: 0}
+  placementPSEffect: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placementEffect: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placeSound: 2
   clearVFXPrefab: {fileID: 0}
