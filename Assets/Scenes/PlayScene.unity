@@ -1232,6 +1232,32 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c34257379898ca04e893b9be67cb934e, type: 3}
+--- !u!1 &379108796 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1347531205423298641, guid: d54243012956e2b47a4f503b8810a907, type: 3}
+  m_PrefabInstance: {fileID: 918031982385502178}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &379108801
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 379108796}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 8.15, y: 1, z: 8.15}
+  m_Center: {x: 0.01, y: -0.5, z: 0.01}
 --- !u!1001 &379968992
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1725,6 +1751,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 463399293}
+  - component: {fileID: 463399294}
   m_Layer: 0
   m_Name: Ground
   m_TagString: Untagged
@@ -1750,6 +1777,27 @@ Transform:
   - {fileID: 528790806}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &463399294
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 463399292}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 40, y: 0.1, z: 70}
+  m_Center: {x: 0, y: -1.05, z: 5}
 --- !u!1001 &475778919
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7268,6 +7316,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 48029581474629647, guid: d54243012956e2b47a4f503b8810a907, type: 3}
       insertIndex: -1
       addedObject: {fileID: 14428625}
+    - targetCorrespondingSourceObject: {fileID: 1347531205423298641, guid: d54243012956e2b47a4f503b8810a907, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 379108801}
   m_SourcePrefab: {fileID: 100100000, guid: d54243012956e2b47a4f503b8810a907, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

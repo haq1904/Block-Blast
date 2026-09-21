@@ -13,4 +13,13 @@ MonoBehaviour:
   m_Name: WoodPlace_PSEffect
   m_EditorClassIdentifier: BlockBlast.Feature::PlacementPSEffectSO
   smokePuffPrefab: {fileID: 5853715195130315592, guid: ecc12edbdfa118b4e886a2139871f90c, type: 3}
-  debrisPrefab: {fileID: 0}
+  debrisPrefab: {fileID: 3316974441606042670, guid: 510632480a0c211409aefd4cf160bb38, type: 3}
+  debrisMesh: {fileID: 4300000, guid: 1f288a8f32712124e986229f12f51092, type: 2}
+  debrisMaterial: {fileID: 2100000, guid: a46b136ea91b6ec458534064e528e270, type: 2}
+  blockHeight: 1
+  debrisGravity: 3.5
+  debrisStartSpeed: {x: 0.8, y: 1.8}
+  debrisLifetime: 1
+  floorBehavior: 0
+  bounceStrength: 0.4
+  floorDampen: 0.3
