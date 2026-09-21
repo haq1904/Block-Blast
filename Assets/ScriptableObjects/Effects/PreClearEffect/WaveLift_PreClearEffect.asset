@@ -9,9 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29c28f4a968601243b1a1944b743ebe4, type: 3}
-  m_Name: PopHop_Effect
-  m_EditorClassIdentifier: BlockBlast.Feature::PopHopEffectSO
-  jumpPower: 0.3
-  duration: 0.32
-  randomDelay: 0.1
+  m_Script: {fileID: 11500000, guid: 0035c8d6e9b189449b478ff589fcb9be, type: 3}
+  m_Name: WaveLift_PreClearEffect
+  m_EditorClassIdentifier: BlockBlast.Feature::WaveLiftEffectSO
+  liftHeight: 0.35
+  duration: 0.35
+  waveSpeed: 0.06
+  easeType: 4

@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d32bcc03896fb1d45831dafa167dffb2, type: 3}
-  m_Name: Wobble_Effect
-  m_EditorClassIdentifier: BlockBlast.Feature::WobbleRotationEffectSO
-  tiltAngle: {x: 0, y: 0, z: 8}
-  duration: 0.2
-  easeType: 7
+  m_Script: {fileID: 11500000, guid: 29c28f4a968601243b1a1944b743ebe4, type: 3}
+  m_Name: PopHop_PreClearEffect
+  m_EditorClassIdentifier: BlockBlast.Feature::PopHopEffectSO
+  jumpPower: 0.3
+  duration: 0.32
+  randomDelay: 0.1

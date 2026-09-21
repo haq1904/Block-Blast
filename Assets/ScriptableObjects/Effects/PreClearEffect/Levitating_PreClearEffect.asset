@@ -9,10 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0035c8d6e9b189449b478ff589fcb9be, type: 3}
-  m_Name: WaveLift_Effect
-  m_EditorClassIdentifier: BlockBlast.Feature::WaveLiftEffectSO
-  liftHeight: 0.35
-  duration: 0.35
-  waveSpeed: 0.06
+  m_Script: {fileID: 11500000, guid: 34bd900e01944eb409d20d980d5962ee, type: 3}
+  m_Name: Levitating_PreClearEffect
+  m_EditorClassIdentifier: BlockBlast.Feature::LevitatingEffectSO
+  floatHeight: 0.5
+  tiltAngle: {x: 5, y: 5, z: 5}
+  duration: 0.5
   easeType: 4

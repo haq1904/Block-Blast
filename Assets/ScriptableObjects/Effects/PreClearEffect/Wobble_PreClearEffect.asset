@@ -9,10 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 263356567eb1dde4f98ca72ebf5344ee, type: 3}
-  m_Name: DropSlam_PlacementEffect
-  m_EditorClassIdentifier: BlockBlast.Feature::DropSlamPlacementEffectSO
-  dropHeight: 0.5
-  dropDuration: 0.08
-  bounceHeight: 0.2
-  bounceDuration: 0.2
+  m_Script: {fileID: 11500000, guid: d32bcc03896fb1d45831dafa167dffb2, type: 3}
+  m_Name: Wobble_PreClearEffect
+  m_EditorClassIdentifier: BlockBlast.Feature::WobbleRotationEffectSO
+  tiltAngle: {x: 0, y: 0, z: 8}
+  duration: 0.2
+  easeType: 7

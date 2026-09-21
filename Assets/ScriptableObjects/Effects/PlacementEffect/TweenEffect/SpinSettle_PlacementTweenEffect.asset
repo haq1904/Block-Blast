@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ab866f9932cfa71449052257d1568d54, type: 3}
-  m_Name: SpinSettle_PlacementEffect
+  m_Name: SpinSettle_PlacementTweenEffect
   m_EditorClassIdentifier: BlockBlast.Feature::SpinSettlePlacementEffectSO
   spinAngle: 30
   randomAngleOffset: 20

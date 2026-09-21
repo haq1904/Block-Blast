@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9e22566a99f7dfa418d01a273805344d, type: 3}
-  m_Name: WoodPlace_PSEffect
+  m_Name: Wood_PlacementPSEffect
   m_EditorClassIdentifier: BlockBlast.Feature::PlacementPSEffectSO
   smokePuffPrefab: {fileID: 5853715195130315592, guid: ecc12edbdfa118b4e886a2139871f90c, type: 3}
   debrisPrefab: {fileID: 3316974441606042670, guid: 510632480a0c211409aefd4cf160bb38, type: 3}
