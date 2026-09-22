@@ -42,6 +42,7 @@ public class GridView : MonoBehaviour
     private List<ShadowInstance> activeShadows = new List<ShadowInstance>();
     private List<AnimatingCell> activePreClearCells = new List<AnimatingCell>();
     private List<ClearingBlock> activeClearingBlocks = new List<ClearingBlock>();
+    private PreClearAnimationSO currentActivePreClearAnimation;
     private Vector3 lastPlacedWorldCenter = Vector3.zero;
 
     // Cache to prevent restarting animations/shadows when dragging within the same grid cell
@@ -212,8 +213,9 @@ public class GridView : MonoBehaviour
         if (!hasLines) return;
 
         var theme = blockService?.CurrentBlockType;
-        var effect = theme?.preClearAnimation;
+        var effect = theme?.GetPreClearAnimation();
         if (effect == null) return;
+        currentActivePreClearAnimation = effect;
 
         Dictionary<GameObject, Vector2Int> affectedBlocks = new Dictionary<GameObject, Vector2Int>();
 
@@ -281,8 +283,7 @@ public class GridView : MonoBehaviour
     {
         if (activePreClearCells.Count == 0) return;
 
-        var theme = blockService?.CurrentBlockType;
-        var effect = theme?.preClearAnimation;
+        var effect = currentActivePreClearAnimation;
 
         for (int i = 0; i < activePreClearCells.Count; i++)
         {
@@ -306,6 +307,7 @@ public class GridView : MonoBehaviour
             }
         }
         activePreClearCells.Clear();
+        currentActivePreClearAnimation = null;
     }
 
     private void HandleBlockPlaced(List<CellPlacementData> positions)
@@ -386,9 +388,7 @@ public class GridView : MonoBehaviour
     {
         var theme = blockService?.CurrentBlockType;
         var clearEffect = theme?.clearAnimation;
-        ClearStaggerPattern pattern = clearEffect != null 
-            ? clearEffect.ResolvePattern() 
-            : ClearStaggerPattern.InstantAll;
+        var stagger = theme?.GetClearStagger();
 
         // 1. Collect unique cells to clear across rows and columns
         List<ClearCellTarget> cellsToClear = new List<ClearCellTarget>();
@@ -400,7 +400,7 @@ public class GridView : MonoBehaviour
                 if (row < 0 || row >= 8) continue;
                 for (int col = 0; col < 8; col++)
                 {
-                    TryQueueCellToClear(col, row, col, 8, pattern, clearEffect, cellsToClear);
+                    TryQueueCellToClear(col, row, col, 8, stagger, cellsToClear);
                 }
             }
         }
@@ -412,7 +412,7 @@ public class GridView : MonoBehaviour
                 if (col < 0 || col >= 8) continue;
                 for (int row = 0; row < 8; row++)
                 {
-                    TryQueueCellToClear(col, row, row, 8, pattern, clearEffect, cellsToClear);
+                    TryQueueCellToClear(col, row, row, 8, stagger, cellsToClear);
                 }
             }
         }
@@ -420,7 +420,7 @@ public class GridView : MonoBehaviour
         // 2. Animate and clear collected cells
         for (int i = 0; i < cellsToClear.Count; i++)
         {
-            AnimateAndClearCell(cellsToClear[i], theme, clearEffect);
+            AnimateAndClearCell(cellsToClear[i], theme, clearEffect, stagger);
         }
 
         if (soundService != null && theme != null)
@@ -434,8 +434,7 @@ public class GridView : MonoBehaviour
         int row, 
         int indexInLine, 
         int totalInLine, 
-        ClearStaggerPattern pattern, 
-        ClearAnimationSO clearEffect, 
+        ClearStaggerSO stagger, 
         List<ClearCellTarget> list)
     {
         GameObject block = visualGrid[col, row];
@@ -458,8 +457,8 @@ public class GridView : MonoBehaviour
             }
         }
 
-        float delay = clearEffect != null
-            ? clearEffect.CalculateDelay(pattern, indexInLine, totalInLine, canonicalPos, lastPlacedWorldCenter)
+        float delay = stagger != null
+            ? stagger.CalculateDelay(indexInLine, totalInLine, canonicalPos, lastPlacedWorldCenter)
             : 0f;
 
         list.Add(new ClearCellTarget
@@ -471,7 +470,11 @@ public class GridView : MonoBehaviour
         });
     }
 
-    private void AnimateAndClearCell(ClearCellTarget target, BlockTypeSO theme, ClearAnimationSO clearEffect)
+    private void AnimateAndClearCell(
+        ClearCellTarget target, 
+        BlockTypeSO theme, 
+        ClearAnimationSO clearEffect, 
+        ClearStaggerSO stagger)
     {
         GameObject block = target.gameObject;
         if (block == null) return;
@@ -488,10 +491,20 @@ public class GridView : MonoBehaviour
 
         Action onExplode = () =>
         {
-            if (theme != null && theme.clearVFX != null && poolService != null)
+            if (theme != null && poolService != null)
             {
                 Vector3 burstPos = block != null ? block.transform.position : canonicalPos;
-                poolService.SpawnObject(theme.clearVFX, burstPos, Quaternion.identity, PoolType.ParticleSystem);
+                Quaternion burstRot = block != null ? block.transform.rotation : Quaternion.identity;
+
+                if (stagger != null)
+                {
+                    stagger.Play(burstPos, burstRot, poolService);
+                }
+
+                if (theme.clearVFX != null)
+                {
+                    poolService.SpawnObject(theme.clearVFX, burstPos, Quaternion.identity, PoolType.ParticleSystem);
+                }
             }
 
             if (block != null)

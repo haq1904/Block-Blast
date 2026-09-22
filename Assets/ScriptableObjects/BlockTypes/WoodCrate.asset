@@ -19,10 +19,15 @@ MonoBehaviour:
     prefab: {fileID: 3146870385133040111, guid: 845f12f1ae396a24687cae2725e06676, type: 3}
   shadowMaterial: {fileID: 2100000, guid: 5b8155dd4c211284abc49a2a9fde441f, type: 2}
   isMonochromePerShape: 0
+  preClearSelectionMode: 0
   preClearAnimation: {fileID: 11400000, guid: cb789ded1e72ad8469de7667c7086b0e, type: 2}
+  preClearAnimationPool: []
   placementAnimation: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placeSound: 2
   clearAnimation: {fileID: 11400000, guid: e239390d68944754f8de933635fa9c31, type: 2}
+  clearStaggerSelectionMode: 0
+  clearStagger: {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
+  clearStaggerPool: []
   clearVFX: {fileID: 0}
   clearSound: 3
