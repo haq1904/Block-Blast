@@ -22,6 +22,18 @@ public class HyperShakeClearAnimationSO : ClearAnimationSO
     [Range(1.0f, 1.5f)]
     public float anticipationScale = 1.15f;
 
+    [Header("Hyper Shake Shader Feedback")]
+    [Tooltip("Pulses high-intensity HDR emission during high-frequency vibration (requires useShaderFeedback = true).")]
+    public bool pulseEmission = true;
+
+    [ColorUsage(true, true)]
+    [Tooltip("HDR color used for overloading electrical emission.")]
+    public Color emissionColor = new Color(1f, 0.85f, 0.3f, 1f);
+
+    [Range(1f, 8f)]
+    [Tooltip("Maximum emission intensity multiplier at peak oscillation.")]
+    public float maxEmissionIntensity = 4.0f;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

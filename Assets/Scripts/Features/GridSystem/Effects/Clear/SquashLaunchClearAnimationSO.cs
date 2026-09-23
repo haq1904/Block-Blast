@@ -29,6 +29,18 @@ public class SquashLaunchClearAnimationSO : ClearAnimationSO
     [Range(0.04f, 0.3f)]
     public float launchDuration = 0.08f;
 
+    [Header("Squash Launch Shader Feedback")]
+    [Tooltip("Enables aerodynamic rim/fresnel glow around the block while flying upward (requires useShaderFeedback = true).")]
+    public bool enableFlightRim = true;
+
+    [ColorUsage(true, true)]
+    [Tooltip("Aerodynamic rim glow color.")]
+    public Color rimColor = Color.cyan;
+
+    [Range(0.5f, 5f)]
+    [Tooltip("Intensity multiplier for the flight rim glow.")]
+    public float rimIntensity = 2.5f;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

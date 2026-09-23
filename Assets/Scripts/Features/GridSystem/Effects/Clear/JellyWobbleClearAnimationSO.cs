@@ -21,6 +21,10 @@ public class JellyWobbleClearAnimationSO : ClearAnimationSO
     [Range(0.1f, 2.0f)]
     public float elasticity = 1.0f;
 
+    [Header("Jelly Wobble Shader Feedback")]
+    [Tooltip("Increases specular glossiness and wobble sheen while oscillating (requires useShaderFeedback = true).")]
+    public bool enableWobbleShine = true;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

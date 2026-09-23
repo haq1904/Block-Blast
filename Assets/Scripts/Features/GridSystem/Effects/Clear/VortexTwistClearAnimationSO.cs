@@ -18,6 +18,14 @@ public class VortexTwistClearAnimationSO : ClearAnimationSO
     [Range(0.01f, 0.2f)]
     public float endScale = 0.05f;
 
+    [Header("Vortex Twist Shader Feedback")]
+    [Tooltip("Triggers noise-based surface disintegration/dissolve as the block spins into center (requires useShaderFeedback = true).")]
+    public bool enableDissolve = true;
+
+    [ColorUsage(true, true)]
+    [Tooltip("HDR color glowing along the burning edges of the dissolve cutoff.")]
+    public Color dissolveEdgeColor = new Color(0.8f, 0.3f, 1f, 1f);
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

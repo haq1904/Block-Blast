@@ -11,7 +11,7 @@ public class SwellPopClearAnimationSO : ClearAnimationSO
     public float anticipationScale = 0.85f;
 
     [Tooltip("Duration of compression phase in seconds.")]
-    [Range(0.02f, 0.2f)]
+    [Range(0.02f, 1f)]
     public float anticipationDuration = 0.05f;
 
     [Header("Pop Burst")]
@@ -20,8 +20,16 @@ public class SwellPopClearAnimationSO : ClearAnimationSO
     public float burstScale = 1.35f;
 
     [Tooltip("Duration of sudden swelling burst in seconds.")]
-    [Range(0.02f, 0.2f)]
+    [Range(0.02f, 1f)]
     public float burstDuration = 0.07f;
+
+    [Header("Swell Pop Shader Feedback")]
+    [Tooltip("Triggers a white flash at the climax of swelling right before bursting (requires useShaderFeedback = true).")]
+    public bool flashOnSwell = true;
+
+    [Range(0.02f, 0.3f)]
+    [Tooltip("Duration of the white flash peak in seconds.")]
+    public float flashDuration = 0.08f;
 
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
