@@ -62,4 +62,56 @@ public abstract class ClearAnimationSO : ScriptableObject
         target.rotation = canonicalRot;
         target.localScale = Vector3.one;
     }
+
+    /// <summary>
+    /// Spawns the enabled particle layers for this clear animation via IPoolService.
+    /// Uses the 3-layer VFX configuration (Burst, Smoke Dynamics, Debris) matching the theme.
+    /// </summary>
+    public virtual void SpawnVFX(
+        Transform target, 
+        Vector3 fallbackPosition, 
+        Quaternion fallbackRotation, 
+        IPoolService poolService = null)
+    {
+        IPoolService pool = poolService ?? ServiceLocator.Get<IPoolService>();
+        if (pool == null) return;
+
+        Vector3 spawnPos = target != null ? target.position : fallbackPosition;
+        Quaternion spawnRot = target != null ? target.rotation : fallbackRotation;
+
+        // Layer 1: Primary Burst (e.g. Bomb Blast / Shockwave)
+        if (useLayer1_Burst && layer1_BurstPrefab != null)
+        {
+            pool.SpawnObject(layer1_BurstPrefab, spawnPos, spawnRot, PoolType.ParticleSystem);
+        }
+
+        // Layer 2: Dynamics / Smoke (e.g. Bomb Smoke Cloud / Puff)
+        if (useLayer2_Dynamics && layer2_DynamicsPrefab != null)
+        {
+            pool.SpawnObject(layer2_DynamicsPrefab, spawnPos, spawnRot, PoolType.ParticleSystem);
+        }
+
+        // Layer 3: Debris / Shards (uses the dedicated debris material and mesh configured on the prefab/theme)
+        if (useLayer3_Debris && layer3_DebrisPrefab != null)
+        {
+            GameObject debrisObj = pool.SpawnObject(layer3_DebrisPrefab, spawnPos, spawnRot, PoolType.ParticleSystem);
+            if (debrisObj != null)
+            {
+                var ps = debrisObj.GetComponentInChildren<ParticleSystem>();
+                if (ps != null)
+                {
+                    ps.Clear();
+                    ps.Play();
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Overload for backwards compatibility when target Transform is not available.
+    /// </summary>
+    public virtual void SpawnVFX(Vector3 position, Quaternion rotation, IPoolService poolService = null)
+    {
+        SpawnVFX(null, position, rotation, poolService);
+    }
 }
