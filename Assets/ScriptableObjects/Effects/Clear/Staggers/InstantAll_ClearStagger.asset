@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e37b199e18efc34f9627aa2d06733f4, type: 3}
   m_Name: InstantAll_ClearStagger
   m_EditorClassIdentifier: InstantAllStaggerSO
-  stepDelay: 0.8
+  stepDelay: 0.2
   stepParticlePrefabs: []

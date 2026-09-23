@@ -27,7 +27,7 @@ MonoBehaviour:
   placeSound: 2
   clearAnimation: {fileID: 11400000, guid: e239390d68944754f8de933635fa9c31, type: 2}
   clearStaggerSelectionMode: 0
-  clearStagger: {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
+  clearStagger: {fileID: 11400000, guid: 8badd4361ddc454489f3412d7493cd26, type: 2}
   clearStaggerPool: []
   clearVFX: {fileID: 0}
   clearSound: 3

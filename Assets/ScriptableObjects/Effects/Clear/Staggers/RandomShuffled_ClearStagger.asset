@@ -12,5 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e71cbb83b6ea7af46bd7166ad47bbb5c, type: 3}
   m_Name: RandomShuffled_ClearStagger
   m_EditorClassIdentifier: RandomShuffledStaggerSO
-  stepDelay: 0.8
+  stepDelay: 0.1
   stepParticlePrefabs: []
+  discreteSteps: 1

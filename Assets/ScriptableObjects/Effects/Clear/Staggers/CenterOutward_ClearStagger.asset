@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ea09bf0851784c44abadda49610b037, type: 3}
   m_Name: CenterOutward_ClearStagger
   m_EditorClassIdentifier: CenterOutwardStaggerSO
-  stepDelay: 0.8
+  stepDelay: 0.2
   stepParticlePrefabs: []

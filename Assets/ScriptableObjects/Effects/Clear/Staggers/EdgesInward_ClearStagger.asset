@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9c314cf412ecd14eb646fe2288eab3b, type: 3}
   m_Name: EdgesInward_ClearStagger
   m_EditorClassIdentifier: EdgesInwardStaggerSO
-  stepDelay: 0.8
+  stepDelay: 0.2
   stepParticlePrefabs: []

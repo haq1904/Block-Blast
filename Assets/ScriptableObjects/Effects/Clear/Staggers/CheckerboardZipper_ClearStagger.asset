@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af0cf2fdfcdd7e543a0623a78c413324, type: 3}
   m_Name: CheckerboardZipper_ClearStagger
   m_EditorClassIdentifier: CheckerboardZipperStaggerSO
-  stepDelay: 0.8
+  stepDelay: 0.2
   stepParticlePrefabs: []
