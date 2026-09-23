@@ -520,6 +520,7 @@ public class GridView : MonoBehaviour
                 }
             }
 
+            gridService?.ReleaseClearingCell(target.gridPos);
             activeClearingBlocks.Remove(clearingEntry);
         };
 
@@ -562,6 +563,7 @@ public class GridView : MonoBehaviour
             }
         }
         activeClearingBlocks.Clear();
+        gridService?.ReleaseAllClearingCells();
     }
 
     private static bool AreListsEqual(List<int> a, List<int> b)

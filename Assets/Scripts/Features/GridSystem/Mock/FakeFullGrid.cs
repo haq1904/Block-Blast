@@ -26,6 +26,9 @@ namespace BlockBlast.Mocking
         public bool CanPlaceBlocks(List<Vector2Int> gridPositions) => false;
 
         public bool IsCellOccupied(int col, int row) => true;
+        public bool IsCellClearing(int col, int row) => false;
+        public void ReleaseClearingCell(Vector2Int gridPos) { }
+        public void ReleaseAllClearingCells() { }
 
         public Vector2Int GetGridPositionFromWorld(Vector3 worldPos) => Vector2Int.zero;
         public Vector3 GetWorldPositionFromGrid(Vector2Int gridPos) => Vector3.zero;

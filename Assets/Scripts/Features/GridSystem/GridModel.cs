@@ -4,6 +4,7 @@ using UnityEngine;
 public struct GridCellState
 {
     public bool isOccupied;
+    public bool isClearing;
     public string blockTypeId;
     public int variantId;
 }
@@ -45,6 +46,24 @@ public class GridModel
     {
         if (!IsWithinBounds(col, row)) return false;
         return gridCells[col, row].isOccupied;
+    }
+
+    public bool IsClearing(int col, int row)
+    {
+        if (!IsWithinBounds(col, row)) return false;
+        return gridCells[col, row].isClearing;
+    }
+
+    public void SetClearing(int col, int row, bool isClearing)
+    {
+        if (!IsWithinBounds(col, row)) return;
+        gridCells[col, row].isClearing = isClearing;
+    }
+
+    public bool IsAvailableForPlacement(int col, int row)
+    {
+        if (!IsWithinBounds(col, row)) return false;
+        return !gridCells[col, row].isOccupied && !gridCells[col, row].isClearing;
     }
 
     public void SetOccupied(int col, int row, bool isOccupied, string blockTypeId = "", int variantId = 0)
@@ -92,23 +111,25 @@ public class GridModel
         return true;
     }
 
-    public void ClearRow(int row)
+    public void ClearRow(int row, bool markClearing = false)
     {
         if (row < 0 || row >= Rows) return;
         for (int col = 0; col < Cols; col++)
         {
             gridCells[col, row].isOccupied = false;
+            gridCells[col, row].isClearing = markClearing;
             gridCells[col, row].blockTypeId = "";
             gridCells[col, row].variantId = 0;
         }
     }
 
-    public void ClearCol(int col)
+    public void ClearCol(int col, bool markClearing = false)
     {
         if (col < 0 || col >= Cols) return;
         for (int row = 0; row < Rows; row++)
         {
             gridCells[col, row].isOccupied = false;
+            gridCells[col, row].isClearing = markClearing;
             gridCells[col, row].blockTypeId = "";
             gridCells[col, row].variantId = 0;
         }

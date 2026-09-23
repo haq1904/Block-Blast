@@ -23,6 +23,9 @@ public interface IGridService
     bool CanPlaceBlocks(List<CellPlacementData> cells);
     bool CanPlaceBlocks(List<Vector2Int> gridPositions);
     bool IsCellOccupied(int col, int row);
+    bool IsCellClearing(int col, int row) => false;
+    void ReleaseClearingCell(Vector2Int gridPos) { }
+    void ReleaseAllClearingCells() { }
     void RequestPreview(List<CellPlacementData> cells);
     void RequestPreview(List<Vector2Int> gridPositions);
     void PlaceBlocks(List<CellPlacementData> cells);

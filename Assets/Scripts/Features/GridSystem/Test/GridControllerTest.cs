@@ -123,4 +123,40 @@ public class GridControllerTest
         Assert.AreEqual(1, receivedComboPositions.Count);
         Assert.AreEqual(gridController.GetWorldPositionFromGrid(new Vector2Int(0, 0)), receivedComboPositions[0]);
     }
+
+    [Test]
+    public void CanPlaceBlocks_WhenCellIsClearing_ReturnsFalse()
+    {
+        // Fill Row 0 to trigger line clear
+        var blocks = new List<Vector2Int>();
+        for (int i = 0; i < 8; i++) blocks.Add(new Vector2Int(i, 0));
+        gridController.PlaceBlocks(blocks);
+
+        // Cells in row 0 are now clearing (waiting for tween animation to complete)
+        Assert.IsTrue(gridController.IsCellClearing(0, 0));
+
+        // Attempting to place on a clearing cell must return false
+        bool canPlace = gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) });
+        Assert.IsFalse(canPlace);
+    }
+
+    [Test]
+    public void ReleaseClearingCell_UnblocksPlacementOnCell()
+    {
+        // Fill Row 0 to trigger line clear
+        var blocks = new List<Vector2Int>();
+        for (int i = 0; i < 8; i++) blocks.Add(new Vector2Int(i, 0));
+        gridController.PlaceBlocks(blocks);
+
+        // Before release: locked
+        Assert.IsTrue(gridController.IsCellClearing(0, 0));
+        Assert.IsFalse(gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) }));
+
+        // Release cell (simulating tween onExplode finishing)
+        gridController.ReleaseClearingCell(new Vector2Int(0, 0));
+
+        // After release: unlocked and valid for placement
+        Assert.IsFalse(gridController.IsCellClearing(0, 0));
+        Assert.IsTrue(gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) }));
+    }
 }

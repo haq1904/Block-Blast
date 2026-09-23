@@ -56,8 +56,7 @@ public class GridController : MonoBehaviour, IGridService
         if (cells == null || cells.Count == 0) return false;
         foreach (var cell in cells)
         {
-            if (!model.IsWithinBounds(cell.gridPos.x, cell.gridPos.y)) return false;
-            if (model.IsOccupied(cell.gridPos.x, cell.gridPos.y)) return false;
+            if (!model.IsAvailableForPlacement(cell.gridPos.x, cell.gridPos.y)) return false;
         }
         return true;
     }
@@ -67,8 +66,7 @@ public class GridController : MonoBehaviour, IGridService
         if (gridPositions == null || gridPositions.Count == 0) return false;
         foreach (Vector2Int pos in gridPositions)
         {
-            if (!model.IsWithinBounds(pos.x, pos.y)) return false;
-            if (model.IsOccupied(pos.x, pos.y)) return false;
+            if (!model.IsAvailableForPlacement(pos.x, pos.y)) return false;
         }
         return true;
     }
@@ -77,6 +75,35 @@ public class GridController : MonoBehaviour, IGridService
     {
         if (model == null || !model.IsWithinBounds(col, row)) return false;
         return model.IsOccupied(col, row);
+    }
+
+    public bool IsCellClearing(int col, int row)
+    {
+        if (model == null || !model.IsWithinBounds(col, row)) return false;
+        return model.IsClearing(col, row);
+    }
+
+    public void ReleaseClearingCell(Vector2Int gridPos)
+    {
+        if (model != null && model.IsWithinBounds(gridPos.x, gridPos.y))
+        {
+            model.SetClearing(gridPos.x, gridPos.y, false);
+        }
+    }
+
+    public void ReleaseAllClearingCells()
+    {
+        if (model == null) return;
+        for (int col = 0; col < model.Cols; col++)
+        {
+            for (int row = 0; row < model.Rows; row++)
+            {
+                if (model.IsClearing(col, row))
+                {
+                    model.SetClearing(col, row, false);
+                }
+            }
+        }
     }
 
     public void RequestPreview(List<CellPlacementData> cells)
@@ -152,12 +179,12 @@ public class GridController : MonoBehaviour, IGridService
         {
             foreach (int row in clearedRows)
             {
-                model.ClearRow(row);
+                model.ClearRow(row, markClearing: true);
             }
 
             foreach (int col in clearedCols)
             {
-                model.ClearCol(col);
+                model.ClearCol(col, markClearing: true);
             }
 
             List<Vector3> comboVFXPositions = GetComboVFXPositions(clearedRows, clearedCols);
