@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 957a9ae5856cf894c8b2d9517d17beca, type: 3}
+  m_Name: Bomb_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::HyperShakeClearAnimationSO
+  useLayer1_Burst: 0
+  useLayer2_Dynamics: 1
+  useLayer3_Debris: 1
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 0}
+  layer2_DynamicsPrefab: {fileID: 5871748791918149993, guid: 1b25242240f5f084ebf69cbd60734f71, type: 3}
+  layer3_DebrisPrefab: {fileID: 4978794732736293224, guid: 17ed264e75bf3f040a89a35376614e45, type: 3}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  shakeDuration: 0.615
+  shakeStrength: 0.242
+  anticipationScale: 1.324
+  scaleShakeStrength: 0.04
+  rampEase: 14
+  pulseEmission: 1
+  emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  maxEmissionIntensity: 6
+  minPulseFrequency: 3.5
+  maxPulseFrequency: 28
+  pulseSharpness: 2

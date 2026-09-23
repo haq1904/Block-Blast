@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b28a99d5cf33d44da62c7af155f0d56, type: 3}
   m_Name: FromPlacementOrigin_ClearStagger
   m_EditorClassIdentifier: FromPlacementOriginStaggerSO
-  stepDelay: 0.2
+  stepDelay: 0.15
   stepParticlePrefabs: []
