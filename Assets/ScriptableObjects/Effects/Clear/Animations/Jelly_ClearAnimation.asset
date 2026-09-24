@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4d93fc598bd9e24abaee803dc0959c1, type: 3}
+  m_Name: Jelly_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::JellyWobbleClearAnimationSO
+  useLayer1_Burst: 1
+  useLayer2_Dynamics: 0
+  useLayer3_Debris: 1
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 8588130242048502810, guid: 67c8e84131e1b3e4083b609996e98e18, type: 3}
+  layer1_RandomizeScale: 1
+  layer1_ScaleRange: {x: 0.48, y: 1}
+  layer1_RandomizeCount: 1
+  layer1_CountRange: {x: 5, y: 10}
+  layer2_DynamicsPrefab: {fileID: 0}
+  layer2_RandomizeScale: 0
+  layer2_ScaleRange: {x: 0.9, y: 1}
+  layer2_RandomizeCount: 0
+  layer2_CountRange: {x: 3, y: 6}
+  layer3_DebrisPrefab: {fileID: 4894508325900971383, guid: 4b3d1705fd8665945b25337f57b26b67, type: 3}
+  layer3_RandomizeScale: 1
+  layer3_ScaleRange: {x: 0.7, y: 1}
+  layer3_RandomizeCount: 1
+  layer3_CountRange: {x: 3, y: 6}
+  randomYawRotation: 1
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  squashScale: {x: 1.56, y: 0.5, z: 1.64}
+  squashDuration: 0.156
+  squashEase: 6
+  swellScale: {x: 0.5, y: 2.11, z: 0.5}
+  swellDuration: 0.235
+  swellEase: 5
+  scaleRandomRange: 0.3
+  enableClimaxFlash: 1
+  glowColor: {r: 1, g: 1, b: 1, a: 1}
+  maxGlowIntensity: 4
