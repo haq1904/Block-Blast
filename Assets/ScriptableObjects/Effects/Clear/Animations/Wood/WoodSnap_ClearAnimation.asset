@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a0c7cec22df4514690726a50f58162e, type: 3}
+  m_Name: WoodSnap_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::WoodSnapClearAnimationSO
+  useLayer1_Burst: 1
+  useLayer2_Dynamics: 1
+  useLayer3_Debris: 1
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 4672517066348933276, guid: 35d8244f3705ba24794eaab797ee6e65, type: 3}
+  layer1_RandomizeScale: 1
+  layer1_ScaleRange: {x: 0.85, y: 1.15}
+  layer1_RandomizeCount: 0
+  layer1_CountRange: {x: 5, y: 10}
+  layer2_DynamicsPrefab: {fileID: 4450574487606399744, guid: 2d1c680d69add9d49a896529a8d07dd4, type: 3}
+  layer2_RandomizeScale: 1
+  layer2_ScaleRange: {x: 0.9, y: 1.2}
+  layer2_RandomizeCount: 0
+  layer2_CountRange: {x: 3, y: 6}
+  layer3_DebrisPrefab: {fileID: 784449142733895225, guid: a9149c36991df644c901d90d4bec37aa, type: 3}
+  layer3_RandomizeScale: 1
+  layer3_ScaleRange: {x: 0.85, y: 1.2}
+  layer3_RandomizeCount: 1
+  layer3_CountRange: {x: 8, y: 14}
+  randomYawRotation: 1
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  syncVfxFlashColor: 1
+  compressionScale: {x: 1.08, y: 0.85, z: 1.08}
+  compressionDuration: 0.25
+  compressionEase: 14
+  tremorDuration: 0.419
+  maxTiltAngle: 4.53
+  enablePositionRattle: 1
+  maxPositionRattle: 0.04
+  maxGlowIntensity: 1
+  enablePureWhiteSilhouette: 0
+  whiteSilhouetteThreshold: 1
