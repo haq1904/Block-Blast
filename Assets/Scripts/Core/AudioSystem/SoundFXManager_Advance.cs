@@ -57,11 +57,27 @@ public class SoundFXManager : MonoBehaviour, ISoundFXService
 
     public void PlaySound(SoundFXType soundType)
     {
-        float volume = 1;
+        PlaySound(soundType, 1f);
+    }
+
+    public void PlaySound(SoundFXType soundType, float volume)
+    {
+        if (soundList == null || (int)soundType < 0 || (int)soundType >= soundList.Length) return;
         AudioClip[] clips = soundList[(int)soundType].Sounds;
-        AudioClip clipToPlay;
-        clipToPlay = clips[UnityEngine.Random.Range(0, clips.Length)];
-        audioSource.PlayOneShot(clipToPlay, volume);
+        if (clips == null || clips.Length == 0) return;
+        AudioClip clipToPlay = clips[UnityEngine.Random.Range(0, clips.Length)];
+        if (clipToPlay != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clipToPlay, Mathf.Clamp01(volume));
+        }
+    }
+
+    public void PlaySound(AudioClip clip, float volume = 1f)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, Mathf.Clamp01(volume));
+        }
     }
 }
 [Serializable]
