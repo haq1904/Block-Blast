@@ -118,3 +118,6 @@ The State Machine must be designed using Generics `<T>` to ensure flexibility an
 
 ## 7. IDE and Configuration
 *   Do not commit/push generated Unity folders (`Library`, `Logs`) or metadata files unless necessary. The IDE is configured via `files.exclude` to hide visual clutter like `.meta`, `.csproj`, and `.asmdef` files to keep the workspace clean.
+
+## 8. Visual Feedback & Strategy Pattern
+*   All visual feedback, animation morphing, wave stagger propagation, and prop control rules are defined in [`visual_effects.md`](file:///D:/Dev%20game/Project/Block%20Blast/.agents/rules/visual_effects.md).

@@ -41,6 +41,8 @@ public class SquashLaunchClearAnimationSO : ClearAnimationSO
     [Tooltip("Intensity multiplier for the flight rim glow.")]
     public float rimIntensity = 2.5f;
 
+    public override float PreExplosionDuration => squashDuration + launchDuration;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

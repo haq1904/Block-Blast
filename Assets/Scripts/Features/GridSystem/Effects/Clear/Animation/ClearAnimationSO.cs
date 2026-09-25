@@ -9,6 +9,14 @@ using UnityEngine;
 /// </summary>
 public abstract class ClearAnimationSO : ScriptableObject
 {
+    [Header("Timing / Duration")]
+    [Tooltip("Total duration of pre-explosion animation in seconds (before onExplode climax is invoked).")]
+    public virtual float PreExplosionDuration => 0.15f;
+
+    [Header("Props (Theme Line Sweepers)")]
+    [Tooltip("Theme-specific prop prefab spawned and controlled by directional staggers (e.g. SawBlade for Wood theme).")]
+    public GameObject linePropPrefab;
+
     [Header("Layer Activation Toggles")]
     [Tooltip("Enable / disable Layer 1: Primary Burst particle effect.")]
     public bool useLayer1_Burst = true;

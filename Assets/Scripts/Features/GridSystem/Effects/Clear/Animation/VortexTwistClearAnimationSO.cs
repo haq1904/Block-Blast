@@ -26,6 +26,8 @@ public class VortexTwistClearAnimationSO : ClearAnimationSO
     [Tooltip("HDR color glowing along the burning edges of the dissolve cutoff.")]
     public Color dissolveEdgeColor = new Color(0.8f, 0.3f, 1f, 1f);
 
+    public override float PreExplosionDuration => twistDuration;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

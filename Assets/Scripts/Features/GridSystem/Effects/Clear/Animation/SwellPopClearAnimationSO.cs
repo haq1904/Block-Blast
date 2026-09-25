@@ -31,6 +31,8 @@ public class SwellPopClearAnimationSO : ClearAnimationSO
     [Tooltip("Duration of the white flash peak in seconds.")]
     public float flashDuration = 0.08f;
 
+    public override float PreExplosionDuration => anticipationDuration + burstDuration;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

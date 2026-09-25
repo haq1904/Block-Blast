@@ -49,6 +49,8 @@ public class JellyClearAnimationSO : ClearAnimationSO
     [Tooltip("Maximum emission intensity multiplier at peak climax.")]
     public float maxGlowIntensity = 4.0f;
 
+    public override float PreExplosionDuration => squashDuration + swellDuration;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;

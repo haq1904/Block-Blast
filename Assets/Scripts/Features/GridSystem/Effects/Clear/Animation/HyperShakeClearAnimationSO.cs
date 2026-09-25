@@ -54,6 +54,8 @@ public class HyperShakeClearAnimationSO : ClearAnimationSO
     [Range(1f, 4f)]
     public float pulseSharpness = 2.0f;
 
+    public override float PreExplosionDuration => shakeDuration;
+
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {
         if (target == null) return;
