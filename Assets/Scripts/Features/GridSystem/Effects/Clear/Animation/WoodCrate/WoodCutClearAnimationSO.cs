@@ -2,8 +2,8 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "WoodSnap_ClearAnimation", menuName = "Block Blast/Effects/Grid/Clear/Wood Snap Animation")]
-public class WoodSnapClearAnimationSO : ClearAnimationSO
+[CreateAssetMenu(fileName = "WoodCut_ClearAnimation", menuName = "Block Blast/Effects/Grid/Clear/Wood Cut Animation")]
+public class WoodCutClearAnimationSO : ClearAnimationSO
 {
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -48,6 +48,8 @@ public class WoodSnapClearAnimationSO : ClearAnimationSO
     [Tooltip("Progress threshold (0-1) in tremor phase when texture swaps to pure white silhouette.")]
     [Range(0f, 1f)]
     public float whiteSilhouetteThreshold = 0.75f;
+
+    public override float PreExplosionDuration => compressionDuration + tremorDuration;
 
     public override void Play(Transform target, ClearCellContext context, Action onExplode)
     {

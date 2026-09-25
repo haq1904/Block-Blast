@@ -10,8 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a0c7cec22df4514690726a50f58162e, type: 3}
-  m_Name: WoodSnap_ClearAnimation
+  m_Name: WoodCut_ClearAnimation
   m_EditorClassIdentifier: BlockBlast.Feature::WoodSnapClearAnimationSO
+  linePropPrefab: {fileID: 6718657309981214874, guid: 710736ed394692347afa366a8faa2330, type: 3}
   useLayer1_Burst: 1
   useLayer2_Dynamics: 1
   useLayer3_Debris: 1
@@ -35,9 +36,9 @@ MonoBehaviour:
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   syncVfxFlashColor: 1
   compressionScale: {x: 1.08, y: 0.85, z: 1.08}
-  compressionDuration: 0.25
+  compressionDuration: 0.0841
   compressionEase: 14
-  tremorDuration: 0.419
+  tremorDuration: 0.115
   maxTiltAngle: 4.53
   enablePositionRattle: 1
   maxPositionRattle: 0.04

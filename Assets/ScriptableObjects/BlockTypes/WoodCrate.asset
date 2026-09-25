@@ -25,9 +25,9 @@ MonoBehaviour:
   placementAnimation: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placeSound: 2
-  clearAnimation: {fileID: 11400000, guid: c9d4bec0bcb065b45bb7684639e3772e, type: 2}
+  clearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
   clearStaggerSelectionMode: 0
-  clearStagger: {fileID: 11400000, guid: e6a337b58b12613478510014708ff3c6, type: 2}
+  clearStagger: {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
   clearStaggerPool:
   - {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
   - {fileID: 11400000, guid: ea38cf69137467442a5be452260e5a9e, type: 2}
