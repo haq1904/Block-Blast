@@ -14,8 +14,10 @@ public abstract class ClearAnimationSO : ScriptableObject
     public virtual float PreExplosionDuration => 0.15f;
 
     [Header("Props (Theme Line Sweepers)")]
-    [Tooltip("Theme-specific prop prefab spawned and controlled by directional staggers (e.g. SawBlade for Wood theme).")]
-    public GameObject linePropPrefab;
+    [Tooltip("Theme-specific line sweeper prop configuration asset.")]
+    public ClearPropBase lineProp;
+
+    public bool HasProp => lineProp != null && lineProp.propPrefab != null;
 
     [Header("Layer Activation Toggles")]
     [Tooltip("Enable / disable Layer 1: Primary Burst particle effect.")]
@@ -233,5 +235,27 @@ public abstract class ClearAnimationSO : ScriptableObject
     public virtual void SpawnVFX(Vector3 position, Quaternion rotation, IPoolService poolService = null)
     {
         SpawnVFX(null, position, rotation, poolService);
+    }
+
+    /// <summary>
+    /// Plays the cell explosion sound configured on the current block type via ISoundFXService.
+    /// </summary>
+    public virtual void PlayExplosionSound()
+    {
+        if (ServiceLocator.TryGet<IBlockService>(out var blockService))
+        {
+            var theme = blockService.CurrentBlockType;
+            if (theme != null && ServiceLocator.TryGet<ISoundFXService>(out var soundService))
+            {
+                if (theme.explosionSound != null)
+                {
+                    soundService.PlaySound(theme.explosionSound, theme.explosionSoundVolume);
+                }
+                else
+                {
+                    soundService.PlaySound(theme.explosionSoundType, theme.explosionSoundVolume);
+                }
+            }
+        }
     }
 }

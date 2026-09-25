@@ -66,6 +66,7 @@ public abstract class ClearStaggerSO : ScriptableObject
                     Quaternion burstRot = cell.gameObject != null ? cell.transform.rotation : Quaternion.identity;
 
                     Play(burstPos, burstRot, poolService);
+                    clearAnimation.PlayExplosionSound();
 
                     if (cell.gameObject != null)
                     {

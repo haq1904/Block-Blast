@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a0c7cec22df4514690726a50f58162e, type: 3}
   m_Name: WoodCut_ClearAnimation
   m_EditorClassIdentifier: BlockBlast.Feature::WoodSnapClearAnimationSO
-  linePropPrefab: {fileID: 6718657309981214874, guid: 710736ed394692347afa366a8faa2330, type: 3}
+  lineProp: {fileID: 11400000, guid: cf88976e8f865444c9b1e7c50e3962a7, type: 2}
   useLayer1_Burst: 1
   useLayer2_Dynamics: 1
   useLayer3_Debris: 1

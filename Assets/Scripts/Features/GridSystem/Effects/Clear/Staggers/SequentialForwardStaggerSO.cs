@@ -10,19 +10,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "SequentialForwardStagger", menuName = "Block Blast/Effects/Clear Stagger/Sequential Forward")]
 public class SequentialForwardStaggerSO : ClearStaggerSO
 {
-    [Header("Prop Orchestration Settings")]
-    [Tooltip("Cutting height offset along the Y axis where the prop touches or cuts the blocks.")]
-    public float propHeightOffset = 0.5f;
-
-    [Tooltip("Vertical drop height above the cutting position before dropping down (e.g. +2.0 units).")]
-    public float propDropHeight = 2.0f;
-
-    [Tooltip("Duration in seconds for the prop to drop down and fade in before cutting starts.")]
-    public float propEntryDuration = 0.15f;
-
-    [Tooltip("Duration in seconds for the prop to exit and fade out after cutting completes.")]
-    public float propExitDuration = 0.1f;
-
+    [Header("Block Explosion Override")]
     [Tooltip("Manual override for block explosion tween duration in seconds. If <= 0, automatically uses clearAnimation.PreExplosionDuration.")]
     public float overrideBlockTweenDuration = 0f;
 
@@ -54,16 +42,19 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
         // Sweep duration for prop to travel across all N cells (from outer start edge to outer end edge, distance = N)
         float sweepDuration = lineCells.Count * stepInterval;
 
-        bool hasProp = clearAnimation != null && clearAnimation.linePropPrefab != null;
+        bool hasProp = clearAnimation != null && clearAnimation.HasProp;
+        ClearPropBase propData = hasProp ? clearAnimation.lineProp : null;
 
         float leadOffset = 0f;
         float firstBlockDelay = 0f;
 
         if (hasProp)
         {
+            float entryDuration = propData.entryDuration;
+
             // Time for prop to reach the center of cell 0:
-            // propEntryDuration (swoop down to outer edge) + 0.5f * stepInterval (travel 0.5 cell from edge to center)
-            float timeToFirstCenter = propEntryDuration + 0.5f * stepInterval;
+            // entryDuration (swoop down to outer edge) + 0.5f * stepInterval (travel 0.5 cell from edge to center)
+            float timeToFirstCenter = entryDuration + 0.5f * stepInterval;
 
             // In order for cell 0 to have enough time (tweenDuration) to prepare its squash/tremor before prop hits:
             leadOffset = Mathf.Max(0f, tweenDuration - timeToFirstCenter);
@@ -73,7 +64,7 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
         // If the theme animation has a prop (e.g. SawBlade for Wood), orchestrate the prop swoop and line sweep
         if (hasProp && poolService != null && lineCells.Count >= 2)
         {
-            PlayPropSequence(lineCells, clearAnimation.linePropPrefab, poolService, sweepDuration, leadOffset);
+            PlayPropSequence(lineCells, propData, poolService, sweepDuration, leadOffset);
         }
 
         for (int i = 0; i < lineCells.Count; i++)
@@ -103,6 +94,7 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
                     Quaternion burstRot = cell.gameObject != null ? cell.transform.rotation : Quaternion.identity;
 
                     Play(burstPos, burstRot, poolService);
+                    clearAnimation.PlayExplosionSound();
 
                     if (cell.gameObject != null)
                     {
@@ -134,18 +126,21 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
 
     private void PlayPropSequence(
         List<ClearCellItem> lineCells,
-        GameObject propPrefab,
+        ClearPropBase propData,
         IPoolService poolService,
         float sweepDuration,
         float leadOffset)
     {
+        if (propData == null || propData.propPrefab == null) return;
+
         Vector3 firstPos = lineCells[0].canonicalPos;
         Vector3 lastPos = lineCells[lineCells.Count - 1].canonicalPos;
         Vector3 dir = (lastPos - firstPos).normalized;
 
-        float height = propHeightOffset;
-        float dropHeight = propDropHeight;
-        float entryDuration = propEntryDuration;
+        float height = propData.heightOffset;
+        float dropHeight = propData.dropHeight;
+        float entryDuration = propData.entryDuration;
+        float exitDuration = propData.exitDuration;
 
         Vector3 spawnPos = firstPos - dir * 1.0f + Vector3.up * (height + dropHeight);
         Vector3 cutStartPos = firstPos - dir * 0.5f + Vector3.up * height;
@@ -158,7 +153,7 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
             : Quaternion.Euler(90f, 0f, 0f);
 
         GameObject prop = poolService.SpawnObject(
-            propPrefab,
+            propData.propPrefab,
             spawnPos,
             propRot,
             PoolType.GameObject);
@@ -178,22 +173,31 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
         }
 
         // Phase 1: Slide in from Y + dropHeight & Fade in
+        seq.AppendCallback(() => propData.PlayEntrySound());
         seq.Append(prop.transform.DOMove(cutStartPos, entryDuration).SetEase(Ease.OutQuad));
         if (spinner != null)
         {
             seq.Join(DOTween.To(() => 0f, a => spinner.SetAlpha(a), 1f, entryDuration));
         }
 
-        // Phase 2: Linear sweep across the line with sparks and mechanical micro-shake
-        seq.AppendCallback(() => spinner?.StartCuttingFeedback(dir));
+        // Phase 2: Linear sweep across the line with sparks, mechanical micro-shake, and sweep sound
+        seq.AppendCallback(() =>
+        {
+            spinner?.StartCuttingFeedback(dir);
+            propData.PlaySweepSound();
+        });
         seq.Append(prop.transform.DOMove(cutEndPos, sweepDuration).SetEase(Ease.Linear));
 
-        // Phase 3: Exit & Fade out (terminate feedback, particles finish naturally)
-        seq.AppendCallback(() => spinner?.StopCuttingFeedback());
-        seq.Append(prop.transform.DOMove(exitPos, propExitDuration).SetEase(Ease.InQuad));
+        // Phase 3: Exit & Fade out (terminate feedback, play exit sound, particles finish naturally)
+        seq.AppendCallback(() =>
+        {
+            spinner?.StopCuttingFeedback();
+            propData.PlayExitSound();
+        });
+        seq.Append(prop.transform.DOMove(exitPos, exitDuration).SetEase(Ease.InQuad));
         if (spinner != null)
         {
-            seq.Join(DOTween.To(() => 1f, a => spinner.SetAlpha(a), 0f, propExitDuration));
+            seq.Join(DOTween.To(() => 1f, a => spinner.SetAlpha(a), 0f, exitDuration));
         }
 
         seq.OnComplete(() =>
