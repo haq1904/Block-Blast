@@ -28,16 +28,10 @@ public class GridView : MonoBehaviour
     private struct ClearingBlock
     {
         public GameObject gameObject;
+        public Vector2Int gridPos;
         public Vector3 canonicalPos;
     }
 
-    private struct ClearCellTarget
-    {
-        public GameObject gameObject;
-        public Vector2Int gridPos;
-        public Vector3 canonicalPos;
-        public float delay;
-    }
 
     private List<ShadowInstance> activeShadows = new List<ShadowInstance>();
     private List<AnimatingCell> activePreClearCells = new List<AnimatingCell>();
@@ -190,7 +184,10 @@ public class GridView : MonoBehaviour
                 shadow.gameObject.transform.DOKill();
                 shadow.gameObject.transform.localScale = Vector3.one;
                 shadow.gameObject.transform.localRotation = Quaternion.identity;
-                poolService.ReturnObjectToPool(shadow.gameObject);
+                if (shadow.gameObject.activeSelf)
+                {
+                    poolService.ReturnObjectToPool(shadow.gameObject);
+                }
             }
         }
         activeShadows.Clear();
@@ -390,18 +387,17 @@ public class GridView : MonoBehaviour
         var clearEffect = theme?.clearAnimation;
         var stagger = theme?.GetClearStagger();
 
-        // 1. Collect unique cells to clear across rows and columns
-        List<ClearCellTarget> cellsToClear = new List<ClearCellTarget>();
-
         if (rows != null)
         {
             foreach (int row in rows)
             {
                 if (row < 0 || row >= 8) continue;
+                List<ClearCellItem> rowCells = new List<ClearCellItem>(8);
                 for (int col = 0; col < 8; col++)
                 {
-                    TryQueueCellToClear(col, row, col, 8, stagger, cellsToClear);
+                    TryQueueCellItem(col, row, col, 8, rowCells);
                 }
+                stagger?.Play(rowCells, clearEffect, poolService, ReleaseCellOnGrid);
             }
         }
 
@@ -410,17 +406,13 @@ public class GridView : MonoBehaviour
             foreach (int col in cols)
             {
                 if (col < 0 || col >= 8) continue;
+                List<ClearCellItem> colCells = new List<ClearCellItem>(8);
                 for (int row = 0; row < 8; row++)
                 {
-                    TryQueueCellToClear(col, row, row, 8, stagger, cellsToClear);
+                    TryQueueCellItem(col, row, row, 8, colCells);
                 }
+                stagger?.Play(colCells, clearEffect, poolService, ReleaseCellOnGrid);
             }
-        }
-
-        // 2. Animate and clear collected cells
-        for (int i = 0; i < cellsToClear.Count; i++)
-        {
-            AnimateAndClearCell(cellsToClear[i], theme, clearEffect, stagger);
         }
 
         if (soundService != null && theme != null)
@@ -429,118 +421,56 @@ public class GridView : MonoBehaviour
         }
     }
 
-    private void TryQueueCellToClear(
-        int col, 
-        int row, 
-        int indexInLine, 
-        int totalInLine, 
-        ClearStaggerSO stagger, 
-        List<ClearCellTarget> list)
+    private void TryQueueCellItem(int col, int row, int indexInLine, int totalInLine, List<ClearCellItem> list)
     {
-        GameObject block = visualGrid[col, row];
-        if (block == null) return;
-
-        // Immediately unbind from visual grid so the slot is considered free
-        visualGrid[col, row] = null;
-
         Vector2Int gridPos = new Vector2Int(col, row);
         Vector3 canonicalPos = gridService != null 
             ? gridService.GetWorldPositionFromGrid(gridPos) 
-            : block.transform.position;
+            : new Vector3(col, -1, row);
 
-        for (int i = activePreClearCells.Count - 1; i >= 0; i--)
+        GameObject block = visualGrid[col, row];
+        if (block != null)
         {
-            if (activePreClearCells[i].gameObject == block)
+            visualGrid[col, row] = null;
+
+            for (int i = activePreClearCells.Count - 1; i >= 0; i--)
             {
-                activePreClearCells.RemoveAt(i);
-                break;
+                if (activePreClearCells[i].gameObject == block)
+                {
+                    activePreClearCells.RemoveAt(i);
+                    break;
+                }
             }
+
+            block.transform.DOKill();
+            block.transform.position = canonicalPos;
+            block.transform.rotation = Quaternion.identity;
+            block.transform.localScale = Vector3.one;
+
+            activeClearingBlocks.Add(new ClearingBlock { gameObject = block, gridPos = gridPos, canonicalPos = canonicalPos });
         }
 
-        float delay = stagger != null
-            ? stagger.CalculateDelay(indexInLine, totalInLine, canonicalPos, lastPlacedWorldCenter)
-            : 0f;
-
-        list.Add(new ClearCellTarget
+        list.Add(new ClearCellItem
         {
             gameObject = block,
+            transform = block != null ? block.transform : null,
             gridPos = gridPos,
             canonicalPos = canonicalPos,
-            delay = delay
+            indexInLine = indexInLine,
+            totalInLine = totalInLine
         });
     }
 
-    private void AnimateAndClearCell(
-        ClearCellTarget target, 
-        BlockTypeSO theme, 
-        ClearAnimationSO clearEffect, 
-        ClearStaggerSO stagger)
+    private void ReleaseCellOnGrid(Vector2Int gridPos)
     {
-        GameObject block = target.gameObject;
-        if (block == null) return;
-
-        Vector3 canonicalPos = target.canonicalPos;
-        var clearingEntry = new ClearingBlock { gameObject = block, canonicalPos = canonicalPos };
-        activeClearingBlocks.Add(clearingEntry);
-
-        // Force canonical ground transform before clear animation (kills mid-air placement or pre-clear tweens)
-        block.transform.DOKill();
-        block.transform.position = canonicalPos;
-        block.transform.rotation = Quaternion.identity;
-        block.transform.localScale = Vector3.one;
-
-        Action onExplode = () =>
+        gridService?.ReleaseClearingCell(gridPos);
+        for (int i = activeClearingBlocks.Count - 1; i >= 0; i--)
         {
-            if (theme != null && poolService != null)
+            if (activeClearingBlocks[i].gridPos == gridPos)
             {
-                Vector3 burstPos = block != null ? block.transform.position : canonicalPos;
-                Quaternion burstRot = block != null ? block.transform.rotation : Quaternion.identity;
-
-                if (stagger != null)
-                {
-                    stagger.Play(burstPos, burstRot, poolService);
-                }
-
-                if (theme.clearVFX != null)
-                {
-                    poolService.SpawnObject(theme.clearVFX, burstPos, Quaternion.identity, PoolType.ParticleSystem);
-                }
+                activeClearingBlocks.RemoveAt(i);
+                break;
             }
-
-            if (block != null)
-            {
-                block.transform.DOKill();
-                block.transform.position = canonicalPos;
-                block.transform.rotation = Quaternion.identity;
-                block.transform.localScale = Vector3.one;
-
-                if (poolService != null)
-                {
-                    poolService.ReturnObjectToPool(block);
-                }
-            }
-
-            gridService?.ReleaseClearingCell(target.gridPos);
-            activeClearingBlocks.Remove(clearingEntry);
-        };
-
-        if (clearEffect != null)
-        {
-            ClearCellContext context = new ClearCellContext
-            {
-                gridPos = target.gridPos,
-                canonicalPos = canonicalPos,
-                indexInLine = 0,
-                totalInLine = 8,
-                delay = target.delay,
-                placementOrigin = lastPlacedWorldCenter
-            };
-
-            clearEffect.Play(block.transform, context, onExplode);
-        }
-        else
-        {
-            onExplode();
         }
     }
 
@@ -556,7 +486,7 @@ public class GridView : MonoBehaviour
                 entry.gameObject.transform.rotation = Quaternion.identity;
                 entry.gameObject.transform.localScale = Vector3.one;
 
-                if (poolService != null)
+                if (poolService != null && entry.gameObject.activeSelf)
                 {
                     poolService.ReturnObjectToPool(entry.gameObject);
                 }

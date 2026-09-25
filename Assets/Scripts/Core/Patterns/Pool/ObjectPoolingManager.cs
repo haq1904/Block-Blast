@@ -149,6 +149,8 @@ public class ObjectPoolingManager : MonoBehaviour, IPoolService
 
     public void ReturnObjectToPool(GameObject obj, PoolType poolType = PoolType.GameObject)
     {
+        if (obj == null || !obj.activeSelf) return;
+
         if (_cloneToPrefabMap.TryGetValue(obj, out GameObject prefab))
         {
             GameObject parentObject = SetParentObject(poolType);
