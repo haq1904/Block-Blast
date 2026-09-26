@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d66ad53f45025294086d2543a1c5ecb6, type: 3}
+  m_Name: Axe_ClearProp
+  m_EditorClassIdentifier: BlockBlast.Feature::AxeClearPropSO
+  propPrefab: {fileID: 6858495214291223514, guid: b268b59b8307bcb408d3d6f5d17361ef, type: 3}
+  spawnDistance: 1
+  forwardOffset: 1
+  heightOffset: 2
+  dropHeight: 2
+  entryDuration: 0.15
+  exitDuration: 0.15
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
+  entrySound: {fileID: 0}
+  sweepSound: {fileID: 0}
+  exitSound: {fileID: 0}
+  soundVolume: 1
+  baseRotationOffset: {x: 0, y: 0, z: 0}
+  windupAngleX: -20
+  windupDuration: 0.16
+  windupEase: 6
+  dragTiltAngleX: 120
+  chopDuration: 0.296
+  chopEase: 3
+  chopSound: {fileID: 0}
+  hoverHeight: 0.8
+  shakeStrength: 0.04
+  shakeVibrato: 35
+  swayAmplitudeRange: {x: 0.1, y: 0.25}
+  swayCycleDurationRange: {x: 1, y: 2}
+  swayBankYawRange: {x: 25, y: 50}
+  swayBankRollRange: {x: 25, y: 50}
