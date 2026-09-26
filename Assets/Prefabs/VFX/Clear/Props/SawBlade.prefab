@@ -99,7 +99,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6230351394578321952}
-  - component: {fileID: 5675897412473019548}
   - component: {fileID: 7563512548410693698}
   m_Layer: 0
   m_Name: SawBlade
@@ -118,32 +117,13 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4523874632733207371}
   - {fileID: 2644467078665707385}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5675897412473019548
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6718657309981214874}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: efd59b9d83cb6594a865ae3743e18059, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: BlockBlast.Feature::SawBladeSpinner
-  bladeVisual: {fileID: 4523874632733207371}
-  rpm: 1200
-  rotationAxis: {x: 0, y: 1, z: 0}
-  shakeStrength: 0.035
-  shakeVibrato: 40
-  sparksParticle: {fileID: 2093759062336605584}
-  sparksPivot: {fileID: 2644467078665707385}
 --- !u!114 &7563512548410693698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -151,7 +131,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6718657309981214874}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 43c60972d1288484c88d10bce913b353, type: 3}
   m_Name: 

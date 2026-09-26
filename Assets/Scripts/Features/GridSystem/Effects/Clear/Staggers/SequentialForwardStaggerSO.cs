@@ -42,29 +42,49 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
         // Sweep duration for prop to travel across all N cells (from outer start edge to outer end edge, distance = N)
         float sweepDuration = lineCells.Count * stepInterval;
 
-        bool hasProp = clearAnimation != null && clearAnimation.HasProp;
-        ClearPropBase propData = hasProp ? clearAnimation.lineProp : null;
+        ClearPropBase propData = clearAnimation != null ? clearAnimation.GetProp() : null;
+        bool hasProp = propData != null && propData.propPrefab != null;
 
         float leadOffset = 0f;
         float firstBlockDelay = 0f;
 
         if (hasProp)
         {
-            float entryDuration = propData.entryDuration;
+            float preSweepDuration = propData.TotalPreSweepDuration;
 
             // Time for prop to reach the center of cell 0:
-            // entryDuration (swoop down to outer edge) + 0.5f * stepInterval (travel 0.5 cell from edge to center)
-            float timeToFirstCenter = entryDuration + 0.5f * stepInterval;
+            // preSweepDuration (swoop down / windup / chop to outer edge) + 0.5f * stepInterval (travel 0.5 cell from edge to center)
+            float timeToFirstCenter = preSweepDuration + 0.5f * stepInterval;
 
             // In order for cell 0 to have enough time (tweenDuration) to prepare its squash/tremor before prop hits:
             leadOffset = Mathf.Max(0f, tweenDuration - timeToFirstCenter);
             firstBlockDelay = (timeToFirstCenter + leadOffset) - tweenDuration;
         }
 
-        // If the theme animation has a prop (e.g. SawBlade for Wood), orchestrate the prop swoop and line sweep
+        // If the theme animation has a prop (e.g. SawBlade or Axe for Wood), orchestrate the prop swoop and line sweep
         if (hasProp && poolService != null && lineCells.Count >= 2)
         {
-            PlayPropSequence(lineCells, propData, poolService, sweepDuration, leadOffset);
+            Vector3 firstPos = lineCells[0].canonicalPos;
+            Vector3 lastPos = lineCells[lineCells.Count - 1].canonicalPos;
+            Vector3 dir = (lastPos - firstPos).normalized;
+
+            GameObject prop = poolService.SpawnObject(
+                propData.propPrefab,
+                firstPos,
+                Quaternion.identity,
+                PoolType.GameObject);
+
+            if (prop != null)
+            {
+                propData.AnimatePropSequence(
+                    prop,
+                    firstPos,
+                    lastPos,
+                    dir,
+                    sweepDuration,
+                    leadOffset,
+                    poolService);
+            }
         }
 
         for (int i = 0; i < lineCells.Count; i++)
@@ -122,88 +142,5 @@ public class SequentialForwardStaggerSO : ClearStaggerSO
                 onCellExploded?.Invoke(cell.gridPos);
             }
         }
-    }
-
-    private void PlayPropSequence(
-        List<ClearCellItem> lineCells,
-        ClearPropBase propData,
-        IPoolService poolService,
-        float sweepDuration,
-        float leadOffset)
-    {
-        if (propData == null || propData.propPrefab == null) return;
-
-        Vector3 firstPos = lineCells[0].canonicalPos;
-        Vector3 lastPos = lineCells[lineCells.Count - 1].canonicalPos;
-        Vector3 dir = (lastPos - firstPos).normalized;
-
-        float height = propData.heightOffset;
-        float dropHeight = propData.dropHeight;
-        float entryDuration = propData.entryDuration;
-        float exitDuration = propData.exitDuration;
-
-        Vector3 spawnPos = firstPos - dir * 1.0f + Vector3.up * (height + dropHeight);
-        Vector3 cutStartPos = firstPos - dir * 0.5f + Vector3.up * height;
-        Vector3 cutEndPos = lastPos + dir * 0.5f + Vector3.up * height;
-        Vector3 exitPos = cutEndPos + dir * 1.0f;
-
-        // Prop orientation: blade disc stands upright along cutting direction
-        Quaternion propRot = Mathf.Abs(dir.z) > Mathf.Abs(dir.x)
-            ? Quaternion.Euler(90f, 90f, 0f)
-            : Quaternion.Euler(90f, 0f, 0f);
-
-        GameObject prop = poolService.SpawnObject(
-            propData.propPrefab,
-            spawnPos,
-            propRot,
-            PoolType.GameObject);
-
-        if (prop == null) return;
-
-        SawBladeSpinner spinner = prop.GetComponent<SawBladeSpinner>();
-        spinner?.SetAlpha(0f);
-
-        Sequence seq = DOTween.Sequence();
-        seq.SetTarget(prop);
-        seq.SetLink(prop, LinkBehaviour.KillOnDisable);
-
-        if (leadOffset > 0f)
-        {
-            seq.AppendInterval(leadOffset);
-        }
-
-        // Phase 1: Slide in from Y + dropHeight & Fade in
-        seq.AppendCallback(() => propData.PlayEntrySound());
-        seq.Append(prop.transform.DOMove(cutStartPos, entryDuration).SetEase(Ease.OutQuad));
-        if (spinner != null)
-        {
-            seq.Join(DOTween.To(() => 0f, a => spinner.SetAlpha(a), 1f, entryDuration));
-        }
-
-        // Phase 2: Linear sweep across the line with sparks, mechanical micro-shake, and sweep sound
-        seq.AppendCallback(() =>
-        {
-            spinner?.StartCuttingFeedback(dir);
-            propData.PlaySweepSound();
-        });
-        seq.Append(prop.transform.DOMove(cutEndPos, sweepDuration).SetEase(Ease.Linear));
-
-        // Phase 3: Exit & Fade out (terminate feedback, play exit sound, particles finish naturally)
-        seq.AppendCallback(() =>
-        {
-            spinner?.StopCuttingFeedback();
-            propData.PlayExitSound();
-        });
-        seq.Append(prop.transform.DOMove(exitPos, exitDuration).SetEase(Ease.InQuad));
-        if (spinner != null)
-        {
-            seq.Join(DOTween.To(() => 1f, a => spinner.SetAlpha(a), 0f, exitDuration));
-        }
-
-        seq.OnComplete(() =>
-        {
-            spinner?.SetAlpha(1f);
-            poolService.ReturnObjectToPool(prop);
-        });
     }
 }

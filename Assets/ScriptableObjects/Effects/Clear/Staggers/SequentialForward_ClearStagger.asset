@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08ce9f2cff23b8048afbe47285af462d, type: 3}
   m_Name: SequentialForward_ClearStagger
   m_EditorClassIdentifier: SequentialForwardStaggerSO
-  stepDelay: 0.07
+  stepDelay: 0.06
   stepParticlePrefabs: []
   overrideBlockTweenDuration: 0

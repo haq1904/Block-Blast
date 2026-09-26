@@ -9,15 +9,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fac0aa164067ba489ffed67846878ca, type: 3}
+  m_Script: {fileID: 11500000, guid: b02c3fd33024be24a9e97c66874892c4, type: 3}
   m_Name: SawBlade_ClearProp
-  m_EditorClassIdentifier: BlockBlast.Feature::ClearPropBase
+  m_EditorClassIdentifier: BlockBlast.Feature::SawBladeClearPropSO
   propPrefab: {fileID: 6718657309981214874, guid: 710736ed394692347afa366a8faa2330, type: 3}
+  spawnDistance: 1
+  forwardOffset: 0
   heightOffset: 1
   dropHeight: 2
   entryDuration: 0.15
   exitDuration: 0.1
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
   entrySound: {fileID: 0}
   sweepSound: {fileID: 0}
   exitSound: {fileID: 0}
   soundVolume: 1
+  rpm: 1200
+  rotationAxis: {x: 0, y: 1, z: 0}
+  shakeStrength: 0.08
+  shakeVibrato: 40

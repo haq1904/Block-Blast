@@ -27,7 +27,7 @@ MonoBehaviour:
   placeSound: 2
   clearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
   clearStaggerSelectionMode: 0
-  clearStagger: {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+  clearStagger: {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
   clearStaggerPool:
   - {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
   - {fileID: 11400000, guid: ea38cf69137467442a5be452260e5a9e, type: 2}
@@ -40,5 +40,5 @@ MonoBehaviour:
   clearVFX: {fileID: 0}
   clearSound: 3
   explosionSound: {fileID: 0}
-  explosionSoundType: 3
+  explosionSoundType: 0
   explosionSoundVolume: 0.8
