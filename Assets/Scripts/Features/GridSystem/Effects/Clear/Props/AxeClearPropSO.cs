@@ -61,6 +61,29 @@ public class AxeClearPropSO : ClearPropBase
     [Tooltip("Dynamic banking roll angle range in degrees (X=Min, Y=Max).")]
     public Vector2 swayBankRollRange = new Vector2(25f, 75f);
 
+    [Header("Dirt Furrow Trail (Blade-Tip Odometry)")]
+    [Tooltip("Low-poly dirt furrow prefabs spawned along the serpentine drag trail.")]
+    public GameObject[] dirtFurrowPrefabs;
+
+    [Tooltip("Distance step in meters between spawned dirt pieces along the blade tip trajectory.")]
+    [Range(0.15f, 0.8f)]
+    public float dirtSpawnInterval = 0.35f;
+
+    [Tooltip("Duration in seconds for the dirt mound to linger on the board before sinking.")]
+    [Range(0.1f, 1.5f)]
+    public float dirtLingerDuration = 0.6f;
+
+    [Tooltip("Duration in seconds for the dirt mound to pop up from scale 0 to 1.")]
+    [Range(0.04f, 0.2f)]
+    public float dirtPopDuration = 0.08f;
+
+    [Tooltip("Duration in seconds for the dirt mound to sink/shrink into the floor before returning to pool.")]
+    [Range(0.05f, 0.4f)]
+    public float dirtSinkDuration = 0.2f;
+
+    [Tooltip("Local offset from the axe visual origin to the cutting blade tip touching the board.")]
+    public Vector3 bladeTipOffset = new Vector3(0f, 2.4f, 0.7f);
+
     public override float TotalPreSweepDuration => entryDuration + windupDuration + chopDuration;
 
     public override Sequence AnimatePropSequence(
@@ -148,46 +171,76 @@ public class AxeClearPropSO : ClearPropBase
         float sampledBankRoll = UnityEngine.Random.Range(swayBankRollRange.x, swayBankRollRange.y);
         float initialSwayDirection = UnityEngine.Random.value < 0.5f ? -1f : 1f;
 
-        if (visual != null && visual != prop.transform)
+        Vector3 lastSpawnPos = Vector3.zero;
+        bool hasLastSpawnPos = false;
+        float groundY = startCellPos.y;
+        bool hasDirt = dirtFurrowPrefabs != null && dirtFurrowPrefabs.Length > 0 && poolService != null;
+
+        bool hasSway = sampledAmplitude > 0.001f && sampledCycleDuration > 0.01f;
+        bool hasShake = shakeStrength > 0.0001f && shakeVibrato > 0;
+
+        if (visual != null && (hasSway || hasShake || hasDirt))
         {
-            bool hasSway = sampledAmplitude > 0.001f && sampledCycleDuration > 0.01f;
-            bool hasShake = shakeStrength > 0.0001f && shakeVibrato > 0;
-
-            if (hasSway || hasShake)
+            // Continuous sinusoidal serpentine sway, micro-shake and blade-tip odometry
+            seq.Join(DOTween.To(() => 0f, elapsed =>
             {
-                // Continuous sinusoidal serpentine sway & micro-shake independent of sweepDuration
-                seq.Join(DOTween.To(() => 0f, elapsed =>
+                if (visual == null) return;
+
+                float progress = sweepDuration > 0.001f ? Mathf.Clamp01(elapsed / sweepDuration) : 0f;
+                // Sin envelope: 0 at start, 1 in middle, 0 at end -> smooth return to center
+                float envelope = Mathf.Sin(progress * Mathf.PI);
+
+                float currentSwayX = 0f;
+                float bankFactor = 0f;
+
+                if (hasSway)
                 {
-                    if (visual == null) return;
+                    float angle = (elapsed / sampledCycleDuration) * Mathf.PI * 2f;
+                    currentSwayX = Mathf.Sin(angle) * (sampledAmplitude * initialSwayDirection) * envelope;
+                    bankFactor = Mathf.Cos(angle) * initialSwayDirection * envelope;
+                }
 
-                    float progress = sweepDuration > 0.001f ? Mathf.Clamp01(elapsed / sweepDuration) : 0f;
-                    // Sin envelope: 0 at start, 1 in middle, 0 at end -> smooth return to center
-                    float envelope = Mathf.Sin(progress * Mathf.PI);
+                float shakeYaw = 0f;
+                float shakeRoll = 0f;
+                if (hasShake)
+                {
+                    float noiseY = (Mathf.PerlinNoise(elapsed * shakeVibrato, 0.2f) - 0.5f) * 2f;
+                    float noiseZ = (Mathf.PerlinNoise(0.8f, elapsed * shakeVibrato) - 0.5f) * 2f;
+                    shakeYaw = noiseY * shakeStrength * 100f;
+                    shakeRoll = noiseZ * shakeStrength * 100f;
+                }
 
-                    float currentSwayX = 0f;
-                    float bankFactor = 0f;
-
-                    if (hasSway)
-                    {
-                        float angle = (elapsed / sampledCycleDuration) * Mathf.PI * 2f;
-                        currentSwayX = Mathf.Sin(angle) * (sampledAmplitude * initialSwayDirection) * envelope;
-                        bankFactor = Mathf.Cos(angle) * initialSwayDirection * envelope;
-                    }
-
-                    float shakeYaw = 0f;
-                    float shakeRoll = 0f;
-                    if (hasShake)
-                    {
-                        float noiseY = (Mathf.PerlinNoise(elapsed * shakeVibrato, 0.2f) - 0.5f) * 2f;
-                        float noiseZ = (Mathf.PerlinNoise(0.8f, elapsed * shakeVibrato) - 0.5f) * 2f;
-                        shakeYaw = noiseY * shakeStrength * 100f;
-                        shakeRoll = noiseZ * shakeStrength * 100f;
-                    }
-
+                if (visual != prop.transform)
+                {
                     visual.localPosition = new Vector3(currentSwayX, 0f, 0f);
                     visual.localRotation = Quaternion.Euler(0f, bankFactor * sampledBankYaw + shakeYaw, bankFactor * sampledBankRoll + shakeRoll);
-                }, sweepDuration, sweepDuration).SetEase(Ease.Linear));
-            }
+                }
+
+                // Blade-Tip Odometry: Spawn dirt furrow along actual 3D blade path
+                if (hasDirt)
+                {
+                    Vector3 currentTipPos = visual.TransformPoint(bladeTipOffset);
+                    currentTipPos.y = groundY;
+
+                    if (!hasLastSpawnPos)
+                    {
+                        lastSpawnPos = currentTipPos;
+                        hasLastSpawnPos = true;
+                        SpawnDirtMound(currentTipPos, dir, poolService);
+                    }
+                    else
+                    {
+                        Vector3 delta = currentTipPos - lastSpawnPos;
+                        delta.y = 0f;
+                        if (delta.sqrMagnitude >= dirtSpawnInterval * dirtSpawnInterval)
+                        {
+                            Vector3 moveDir = delta.sqrMagnitude > 0.0001f ? delta.normalized : dir;
+                            SpawnDirtMound(currentTipPos, moveDir, poolService);
+                            lastSpawnPos = currentTipPos;
+                        }
+                    }
+                }
+            }, sweepDuration, sweepDuration).SetEase(Ease.Linear));
         }
 
         // Phase 5: Lift exit & fade out
@@ -212,5 +265,47 @@ public class AxeClearPropSO : ClearPropBase
         });
 
         return seq;
+    }
+
+    /// <summary>
+    /// Spawns an organic dirt furrow mound from pool with juicy pop-up and sink sequence.
+    /// Strictly adheres to dotween.md and visual_effects.md.
+    /// </summary>
+    private void SpawnDirtMound(Vector3 position, Vector3 moveDir, IPoolService poolService)
+    {
+        if (dirtFurrowPrefabs == null || dirtFurrowPrefabs.Length == 0 || poolService == null) return;
+
+        int randomIndex = UnityEngine.Random.Range(0, dirtFurrowPrefabs.Length);
+        GameObject prefab = dirtFurrowPrefabs[randomIndex];
+        if (prefab == null) return;
+
+        // Random yaw jitter +- 15 degrees for organic variation
+        float randomYaw = UnityEngine.Random.Range(-15f, 15f);
+        Quaternion baseRot = moveDir.sqrMagnitude > 0.001f ? Quaternion.LookRotation(moveDir, Vector3.up) : Quaternion.identity;
+        Quaternion spawnRot = baseRot * Quaternion.Euler(0f, randomYaw, 0f);
+
+        GameObject dirtObj = poolService.SpawnObject(prefab, position, spawnRot, PoolType.GameObject);
+        if (dirtObj == null) return;
+
+        dirtObj.transform.localScale = Vector3.zero;
+        dirtObj.transform.DOKill();
+
+        Sequence dirtSeq = DOTween.Sequence();
+        dirtSeq.SetTarget(dirtObj);
+        dirtSeq.SetLink(dirtObj, LinkBehaviour.KillOnDisable);
+
+        // Phase 1: Pop up with juicy bounce
+        dirtSeq.Append(dirtObj.transform.DOScale(Vector3.one, dirtPopDuration).SetEase(Ease.OutBack));
+        // Phase 2: Linger on the board surface
+        dirtSeq.AppendInterval(dirtLingerDuration);
+        // Phase 3: Sink / shrink into the ground
+        dirtSeq.Append(dirtObj.transform.DOScale(Vector3.zero, dirtSinkDuration).SetEase(Ease.InQuad));
+
+        dirtSeq.OnComplete(() =>
+        {
+            dirtObj.transform.localScale = Vector3.one;
+            dirtObj.transform.rotation = Quaternion.identity;
+            poolService.ReturnObjectToPool(dirtObj, PoolType.GameObject);
+        });
     }
 }

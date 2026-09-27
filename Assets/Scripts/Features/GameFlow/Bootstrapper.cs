@@ -17,7 +17,7 @@ public class Bootstrapper : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void InitializeDOTweenCapacity()
     {
-        DG.Tweening.DOTween.SetTweensCapacity(500, 150);
+        DG.Tweening.DOTween.SetTweensCapacity(1000, 400);
     }
 
     private void Awake()

@@ -29,16 +29,27 @@ MonoBehaviour:
   soundVolume: 1
   baseRotationOffset: {x: 0, y: 0, z: 0}
   windupAngleX: -20
-  windupDuration: 0.16
+  windupDuration: 0.1
   windupEase: 6
   dragTiltAngleX: 120
-  chopDuration: 0.296
-  chopEase: 3
+  chopDuration: 0.226
+  chopEase: 1
   chopSound: {fileID: 0}
   hoverHeight: 0.8
-  shakeStrength: 0.04
+  shakeStrength: 0.06
   shakeVibrato: 35
-  swayAmplitudeRange: {x: 0.1, y: 0.25}
+  swayAmplitudeRange: {x: 0.1, y: 0.2}
   swayCycleDurationRange: {x: 1, y: 2}
-  swayBankYawRange: {x: 25, y: 50}
-  swayBankRollRange: {x: 25, y: 50}
+  swayBankYawRange: {x: 10, y: 20}
+  swayBankRollRange: {x: 10, y: 20}
+  dirtFurrowPrefabs:
+  - {fileID: 7009215598190062633, guid: 8f30b90254c654840ab292f0827e31b6, type: 3}
+  - {fileID: 501179081632042055, guid: 2bb72961b22a8884aa262272f962fd51, type: 3}
+  - {fileID: 2004205544713242525, guid: 922c6bd2005bbd04ca56a991ffca738f, type: 3}
+  - {fileID: 930156195246824805, guid: bd0f3091e310e3a408d00ebc836fde44, type: 3}
+  - {fileID: 3308642113786218838, guid: 8713ec1499cccea408cdff7fa90fa26b, type: 3}
+  dirtSpawnInterval: 0.21
+  dirtLingerDuration: 0.15
+  dirtPopDuration: 0.1255
+  dirtSinkDuration: 0.2
+  bladeTipOffset: {x: 0, y: 2.4, z: 0.7}
