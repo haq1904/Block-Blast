@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum PreClearSelectionMode
 {
@@ -44,18 +45,33 @@ public class BlockTypeSO : ScriptableObject
     [Tooltip("Sound played when placing blocks.")]
     public SoundFXType placeSound = SoundFXType.BlockPlace;
 
-    [Header("Clear Feedback")]
-    [Tooltip("Dynamic animation executed on each cell right before it shatters.")]
-    public ClearAnimationSO clearAnimation;
+    [Header("=== 1. Signature Clear Combos (Theme Exclusive) ===")]
+    [Tooltip("Cohesive signature combos combining cell animation, compatible wave staggers, and sweepers with custom prop prefabs. 100% synchrony guaranteed.")]
+    public SignatureClearCombo[] signatureCombos;
 
-    [Tooltip("Selection mode: Single fixed stagger rhythm or Random from list.")]
-    public ClearStaggerSelectionMode clearStaggerSelectionMode = ClearStaggerSelectionMode.Single;
+    [Header("=== 2. Generic Clears Integration ===")]
+    [Tooltip("If true, occasionally mixes in universal animations (Jelly, SquashLaunch...) with universal wave patterns.")]
+    public bool allowGenericClears = true;
 
-    [Tooltip("Single clear stagger wave rhythm used when selection mode is Single (also acts as fallback).")]
+    [Range(0f, 1f)]
+    [Tooltip("Probability of triggering a theme signature combo vs generic clear (0.7 = 70% signature, 30% generic).")]
+    public float signatureChance = 0.7f;
+
+    [Tooltip("Shared database of generic animations and staggers. Inherited across all themes.")]
+    public ClearFeedbackDatabaseSO globalClearDatabase;
+
+    [Header("=== 3. Fallbacks & Legacy ===")]
+    [Tooltip("Single clear stagger wave rhythm used as fallback.")]
     public ClearStaggerSO clearStagger;
 
-    [Tooltip("Pool of clear stagger wave rhythms randomly chosen when selection mode is RandomFromList.")]
-    public ClearStaggerSO[] clearStaggerPool;
+    [FormerlySerializedAs("clearAnimation")]
+    [FormerlySerializedAs("signatureAnimation")]
+    [Tooltip("Fallback clear animation if no combos are configured.")]
+    public ClearAnimationSO fallbackClearAnimation;
+
+    // Backwards-compatibility properties
+    public ClearAnimationSO clearAnimation => fallbackClearAnimation;
+    public ClearAnimationSO signatureAnimation => fallbackClearAnimation;
 
     [Tooltip("Particle VFX spawned when lines of this block type are cleared.")]
     public GameObject clearVFX;
@@ -72,6 +88,90 @@ public class BlockTypeSO : ScriptableObject
 
     [Tooltip("Volume multiplier for cell explosion sound.")]
     [Range(0f, 1f)] public float explosionSoundVolume = 0.8f;
+
+    /// <summary>
+    /// Resolves a coordinated 4-element tuple (ClearAnimationSO, ClearStaggerSO, ClearSweeperBase, GameObject) for line clearing.
+    /// Guarantees that sweepers always run with compatible staggers and proper 3D prop prefabs.
+    /// </summary>
+    public void ResolveClearFeedback(
+        out ClearAnimationSO chosenAnim, 
+        out ClearStaggerSO chosenStagger, 
+        out ClearSweeperBase chosenSweeper,
+        out GameObject chosenPropPrefab)
+    {
+        bool hasCombos = signatureCombos != null && signatureCombos.Length > 0;
+        bool playSignature = hasCombos && (!allowGenericClears || UnityEngine.Random.value < signatureChance);
+
+        if (playSignature)
+        {
+            SignatureClearCombo combo = PickWeightedCombo();
+            chosenAnim = combo != null ? combo.animation : fallbackClearAnimation;
+            chosenStagger = combo != null ? combo.GetRandomStagger() : clearStagger;
+
+            SweeperOption sweeperOpt = combo?.GetRandomSweeperOption();
+            chosenSweeper = sweeperOpt?.sweeper;
+            chosenPropPrefab = sweeperOpt?.GetRandomPrefab();
+        }
+        else
+        {
+            if (globalClearDatabase != null)
+            {
+                chosenAnim = globalClearDatabase.GetRandomGenericAnimation();
+                chosenStagger = globalClearDatabase.GetRandomGenericStagger();
+            }
+            else
+            {
+                chosenAnim = fallbackClearAnimation;
+                chosenStagger = clearStagger;
+            }
+            chosenSweeper = null;
+            chosenPropPrefab = null;
+        }
+
+        // Safety fallback against nulls
+        if (chosenAnim == null) chosenAnim = fallbackClearAnimation;
+        if (chosenStagger == null) chosenStagger = clearStagger;
+    }
+
+    /// <summary>
+    /// Backwards-compatibility overload without sweeper and prop parameters.
+    /// </summary>
+    public void ResolveClearFeedback(out ClearAnimationSO chosenAnim, out ClearStaggerSO chosenStagger)
+    {
+        ResolveClearFeedback(out chosenAnim, out chosenStagger, out _, out _);
+    }
+
+    private SignatureClearCombo PickWeightedCombo()
+    {
+        if (signatureCombos == null || signatureCombos.Length == 0) return null;
+        if (signatureCombos.Length == 1) return signatureCombos[0];
+
+        int totalWeight = 0;
+        for (int i = 0; i < signatureCombos.Length; i++)
+        {
+            if (signatureCombos[i] != null)
+            {
+                totalWeight += Mathf.Max(1, signatureCombos[i].weight);
+            }
+        }
+
+        if (totalWeight <= 0) return signatureCombos[0];
+
+        int roll = UnityEngine.Random.Range(0, totalWeight);
+        int accumulated = 0;
+        for (int i = 0; i < signatureCombos.Length; i++)
+        {
+            if (signatureCombos[i] != null)
+            {
+                accumulated += Mathf.Max(1, signatureCombos[i].weight);
+                if (roll < accumulated)
+                {
+                    return signatureCombos[i];
+                }
+            }
+        }
+        return signatureCombos[0];
+    }
 
     /// <summary>
     /// Resolves the active pre-clear animation according to the configured selection mode.
@@ -92,20 +192,10 @@ public class BlockTypeSO : ScriptableObject
     }
 
     /// <summary>
-    /// Resolves the active clear stagger rhythm according to the configured selection mode.
-    /// Falls back to clearStagger if the pool is empty or invalid.
+    /// Resolves the fallback clear stagger rhythm.
     /// </summary>
     public ClearStaggerSO GetClearStagger()
     {
-        if (clearStaggerSelectionMode == ClearStaggerSelectionMode.RandomFromList &&
-            clearStaggerPool != null && clearStaggerPool.Length > 0)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, clearStaggerPool.Length);
-            if (clearStaggerPool[randomIndex] != null)
-            {
-                return clearStaggerPool[randomIndex];
-            }
-        }
         return clearStagger;
     }
 

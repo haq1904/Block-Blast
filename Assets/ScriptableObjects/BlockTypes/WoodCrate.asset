@@ -25,18 +25,32 @@ MonoBehaviour:
   placementAnimation: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
   placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placeSound: 2
-  clearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
-  clearStaggerSelectionMode: 0
-  clearStagger: {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
-  clearStaggerPool:
-  - {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
-  - {fileID: 11400000, guid: ea38cf69137467442a5be452260e5a9e, type: 2}
-  - {fileID: 11400000, guid: 6777b7001962834478e2109308cec817, type: 2}
-  - {fileID: 11400000, guid: e24ab957a92ba8a4d9a86af21b52a02d, type: 2}
-  - {fileID: 11400000, guid: e6a337b58b12613478510014708ff3c6, type: 2}
-  - {fileID: 11400000, guid: 8badd4361ddc454489f3412d7493cd26, type: 2}
-  - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
-  - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+  signatureCombos:
+  - comboName: Wood Chop & Drag Style
+    animation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
+    - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+    sweepers:
+    - sweeper: {fileID: 11400000, guid: 9e7383d17dd5d7b43945fe23cc6b4c81, type: 2}
+      propPrefabs:
+      - {fileID: 6858495214291223514, guid: b268b59b8307bcb408d3d6f5d17361ef, type: 3}
+    weight: 70
+  - comboName: Wood Spin & Cut Style
+    animation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
+    - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+    sweepers:
+    - sweeper: {fileID: 11400000, guid: cf88976e8f865444c9b1e7c50e3962a7, type: 2}
+      propPrefabs:
+      - {fileID: 6718657309981214874, guid: 710736ed394692347afa366a8faa2330, type: 3}
+    weight: 30
+  allowGenericClears: 1
+  signatureChance: 1
+  globalClearDatabase: {fileID: 11400000, guid: 3f89e24681ab456489de789012345678, type: 2}
+  clearStagger: {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+  fallbackClearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
   clearVFX: {fileID: 0}
   clearSound: 3
   explosionSound: {fileID: 0}

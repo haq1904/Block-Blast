@@ -384,8 +384,15 @@ public class GridView : MonoBehaviour
     private void ExecuteLinesCleared(List<int> rows, List<int> cols, List<Vector3> comboPositions)
     {
         var theme = blockService?.CurrentBlockType;
-        var clearEffect = theme?.clearAnimation;
-        var stagger = theme?.GetClearStagger();
+        ClearAnimationSO clearEffect = null;
+        ClearStaggerSO stagger = null;
+        ClearSweeperBase sweeper = null;
+        GameObject propPrefab = null;
+
+        if (theme != null)
+        {
+            theme.ResolveClearFeedback(out clearEffect, out stagger, out sweeper, out propPrefab);
+        }
 
         if (rows != null)
         {
@@ -397,7 +404,7 @@ public class GridView : MonoBehaviour
                 {
                     TryQueueCellItem(col, row, col, 8, rowCells);
                 }
-                stagger?.Play(rowCells, clearEffect, poolService, ReleaseCellOnGrid);
+                stagger?.Play(rowCells, clearEffect, sweeper, propPrefab, poolService, ReleaseCellOnGrid);
             }
         }
 
@@ -411,7 +418,7 @@ public class GridView : MonoBehaviour
                 {
                     TryQueueCellItem(col, row, row, 8, colCells);
                 }
-                stagger?.Play(colCells, clearEffect, poolService, ReleaseCellOnGrid);
+                stagger?.Play(colCells, clearEffect, sweeper, propPrefab, poolService, ReleaseCellOnGrid);
             }
         }
 

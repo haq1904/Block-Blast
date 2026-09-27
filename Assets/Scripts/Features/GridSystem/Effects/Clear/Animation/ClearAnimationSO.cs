@@ -2,11 +2,7 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 
-public enum ClearPropSelectionMode
-{
-    Single,
-    RandomFromList
-}
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Abstract base ScriptableObject for block destruction animations.
@@ -18,50 +14,6 @@ public abstract class ClearAnimationSO : ScriptableObject
     [Header("Timing / Duration")]
     [Tooltip("Total duration of pre-explosion animation in seconds (before onExplode climax is invoked).")]
     public virtual float PreExplosionDuration => 0.15f;
-
-    [Header("Props (Theme Line Sweepers)")]
-    [Tooltip("Selection mode: Single fixed prop or Random from list.")]
-    public ClearPropSelectionMode propSelectionMode = ClearPropSelectionMode.Single;
-
-    [Tooltip("Theme-specific line sweeper prop configuration asset (Single / fallback).")]
-    public ClearPropBase lineProp;
-
-    [Tooltip("Pool of line sweeper props randomly chosen when selection mode is RandomFromList.")]
-    public ClearPropBase[] linePropPool;
-
-    /// <summary>
-    /// Resolves the active line sweeper prop according to configured selection mode.
-    /// Returns lineProp if mode is Single or if linePropPool is empty.
-    /// </summary>
-    public virtual ClearPropBase GetProp()
-    {
-        if (propSelectionMode == ClearPropSelectionMode.RandomFromList &&
-            linePropPool != null && linePropPool.Length > 0)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, linePropPool.Length);
-            if (linePropPool[randomIndex] != null)
-            {
-                return linePropPool[randomIndex];
-            }
-        }
-        return lineProp;
-    }
-
-    public bool HasProp
-    {
-        get
-        {
-            if (propSelectionMode == ClearPropSelectionMode.RandomFromList && linePropPool != null && linePropPool.Length > 0)
-            {
-                for (int i = 0; i < linePropPool.Length; i++)
-                {
-                    if (linePropPool[i] != null && linePropPool[i].propPrefab != null)
-                        return true;
-                }
-            }
-            return lineProp != null && lineProp.propPrefab != null;
-        }
-    }
 
     [Header("Layer Activation Toggles")]
     [Tooltip("Enable / disable Layer 1: Primary Burst particle effect.")]

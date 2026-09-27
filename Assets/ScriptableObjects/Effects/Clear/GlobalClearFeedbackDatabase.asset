@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1c0d45b7f234918bcde0123456789af, type: 3}
+  m_Name: GlobalClearFeedbackDatabase
+  m_EditorClassIdentifier: ClearFeedbackDatabaseSO
+  genericAnimations:
+  - {fileID: 11400000, guid: 75fe325c197fc1d46b76cc8eebfa9660, type: 2}
+  - {fileID: 11400000, guid: bbc2c19689b4a6d4db68dd3fb941d427, type: 2}
+  - {fileID: 11400000, guid: 5b40ecb1b0c007945a8d79452d48b2e2, type: 2}
+  - {fileID: 11400000, guid: e239390d68944754f8de933635fa9c31, type: 2}
+  - {fileID: 11400000, guid: c9d4bec0bcb065b45bb7684639e3772e, type: 2}
+  genericStaggers:
+  - {fileID: 11400000, guid: 5a5383533deb6004188740f86e5766d7, type: 2}
+  - {fileID: 11400000, guid: ea38cf69137467442a5be452260e5a9e, type: 2}
+  - {fileID: 11400000, guid: 6777b7001962834478e2109308cec817, type: 2}
+  - {fileID: 11400000, guid: e24ab957a92ba8a4d9a86af21b52a02d, type: 2}
+  - {fileID: 11400000, guid: e6a337b58b12613478510014708ff3c6, type: 2}
+  - {fileID: 11400000, guid: 8badd4361ddc454489f3412d7493cd26, type: 2}
+  - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+  - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
