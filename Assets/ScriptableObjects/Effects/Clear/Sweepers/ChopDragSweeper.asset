@@ -10,9 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d66ad53f45025294086d2543a1c5ecb6, type: 3}
-  m_Name: Axe_ClearProp
-  m_EditorClassIdentifier: BlockBlast.Feature::AxeClearPropSO
-  propPrefab: {fileID: 6858495214291223514, guid: b268b59b8307bcb408d3d6f5d17361ef, type: 3}
+  m_Name: ChopDragSweeper
+  m_EditorClassIdentifier: ChopDragSweeperSO
   spawnDistance: 1
   forwardOffset: 1
   heightOffset: 2
@@ -42,14 +41,14 @@ MonoBehaviour:
   swayCycleDurationRange: {x: 1, y: 2}
   swayBankYawRange: {x: 10, y: 20}
   swayBankRollRange: {x: 10, y: 20}
-  dirtFurrowPrefabs:
+  trailDebrisPrefabs:
   - {fileID: 7009215598190062633, guid: 8f30b90254c654840ab292f0827e31b6, type: 3}
   - {fileID: 501179081632042055, guid: 2bb72961b22a8884aa262272f962fd51, type: 3}
   - {fileID: 2004205544713242525, guid: 922c6bd2005bbd04ca56a991ffca738f, type: 3}
   - {fileID: 930156195246824805, guid: bd0f3091e310e3a408d00ebc836fde44, type: 3}
   - {fileID: 3308642113786218838, guid: 8713ec1499cccea408cdff7fa90fa26b, type: 3}
-  dirtSpawnInterval: 0.21
-  dirtLingerDuration: 0.15
-  dirtPopDuration: 0.1255
-  dirtSinkDuration: 0.2
-  bladeTipOffset: {x: 0, y: 2.4, z: 0.7}
+  debrisSpawnInterval: 0.21
+  debrisLingerDuration: 0.15
+  debrisPopDuration: 0.1255
+  debrisSinkDuration: 0.2
+  contactPointOffset: {x: 0, y: 2.4, z: 0.7}
