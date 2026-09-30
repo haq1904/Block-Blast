@@ -83,9 +83,6 @@ public class BlockTypeSO : ScriptableObject
     [Tooltip("Custom audio clip played when individual cells of this block type explode. If null, falls back to explosionSoundType.")]
     public AudioClip explosionSound;
 
-    [Tooltip("Audio FX type fallback when individual cells explode.")]
-    public SoundFXType explosionSoundType = SoundFXType.LineClear;
-
     [Tooltip("Volume multiplier for cell explosion sound.")]
     [Range(0f, 1f)] public float explosionSoundVolume = 0.8f;
 

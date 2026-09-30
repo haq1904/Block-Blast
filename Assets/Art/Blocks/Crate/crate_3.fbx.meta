@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 08d8e05f90436e94a8168dfc314d6d5f
+guid: edf19f6206f60054f85f6a990c3848d3
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -7,13 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Non Metallic.002
-    second: {fileID: 2100000, guid: 8c05465279fc2114088d6d2332ea5133, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Non Metallic.003
-    second: {fileID: 2100000, guid: 8c05465279fc2114088d6d2332ea5133, type: 2}
+      name: Non Metallic
+    second: {fileID: 2100000, guid: ce64e0b9d1afd9d46b45bd840244f2f6, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

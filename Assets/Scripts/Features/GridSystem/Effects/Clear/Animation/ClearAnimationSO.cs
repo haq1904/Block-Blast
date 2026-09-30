@@ -247,10 +247,6 @@ public abstract class ClearAnimationSO : ScriptableObject
                 {
                     soundService.PlaySound(theme.explosionSound, theme.explosionSoundVolume);
                 }
-                else
-                {
-                    soundService.PlaySound(theme.explosionSoundType, theme.explosionSoundVolume);
-                }
             }
         }
     }
