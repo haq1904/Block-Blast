@@ -39,3 +39,17 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
     3. **Imperative Mood**: Start the subject with a lowercase imperative verb (e.g., `implement`, `add`, `fix`, `configure`, `refactor`, `remove`).
     4. **No Trailing Period**: Do NOT put a period (`.`) at the end of the commit subject line.
     5. **Concise & Atomic**: Commits must be atomic, focused on a single logical change, and keep the subject line within 72 characters.
+
+## 6. Planning & Execution Workflow (Approval Gate & Autonomous Execution)
+*   **Planning Phase (Mandatory User Approval Gate)**:
+    *   Whenever the user requests an implementation plan (or when planning is initiated):
+        *   Create the plan in Vietnamese (`implementation_plan.md`) following Section 3.
+        *   **Mandatory Stop & Wait**: You MUST set `RequestFeedback: true` and STOP execution to wait for explicit user approval/feedback before touching or modifying any code.
+        *   **Strict Prohibition**: You MUST NEVER automatically start executing or modifying code right after creating a plan. Always wait for user confirmation.
+*   **Execution Phase (Autonomous Continuous Execution)**:
+    *   Once the user approves the plan (e.g., clicks "Proceed", types "ok", "tiến hành", "làm đi", etc.):
+        *   **Execute End-to-End**: Autonomously implement all steps outlined in the plan continuously from start to finish without pausing between steps.
+        *   **No Step-by-Step Interruptions**: Do NOT stop to ask for confirmation or request sub-approvals for individual intermediate tasks (e.g., do NOT ask "Step 1 done, should I do Step 2?").
+        *   Perform required validation and compiler checks automatically until the entire plan is completed, then present the final summary.
+*   **Direct Tasks (No Plan Requested)**:
+    *   When the user gives a direct command to fix, modify, or implement something without asking for a plan, proceed directly with code execution.

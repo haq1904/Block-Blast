@@ -4,7 +4,13 @@ Performance, visual consistency, and memory efficiency are paramount for mobile 
 
 ---
 
-## 1. Polygon & Triangle Budget (Mesh Optimization)
+## 1. Strict Scope Rule: Model ONLY What Is Requested (Strict Prohibition)
+* **Strict Rule**: Whenever receiving a 3D modeling request in Blender from the user, ONLY model the exact object/asset that the user explicitly requested.
+* **Strict Prohibition**: Absolutely do NOT model, generate, or add any extra objects, props, background accessories, environment elements, or unrequested variations. Keep the Blender scene clean, focused, and 100% limited strictly to the requested subject.
+
+---
+
+## 2. Polygon & Triangle Budget (Mesh Optimization)
 
 Keep geometry strictly stylized, clean, and low-poly. Eliminate unnecessary edge loops and subdivisions that provide zero visual value from a top-down camera perspective.
 
@@ -32,7 +38,7 @@ Keep geometry strictly stylized, clean, and low-poly. Eliminate unnecessary edge
 
 ---
 
-## 2. UV Mapping & Color Palette Workflow (1 Draw Call Standard)
+## 3. UV Mapping & Color Palette Workflow (1 Draw Call Standard)
 
 To achieve maximum draw call batching via the **URP SRP Batcher**, all models must share the global color palette atlas.
 
@@ -48,7 +54,7 @@ To achieve maximum draw call batching via the **URP SRP Batcher**, all models mu
 
 ---
 
-## 3. Pivot Point (Origin) & Part Separation
+## 4. Pivot Point (Origin) & Part Separation
 
 Correct pivot placement is vital for procedural animations, DOTween rotations, and physical juice.
 
@@ -74,7 +80,7 @@ Correct pivot placement is vital for procedural animations, DOTween rotations, a
 
 ---
 
-## 4. Shading & Normals (Eliminating Dirty Shading Artifacts)
+## 5. Shading & Normals (Eliminating Dirty Shading Artifacts)
 
 1. **Auto Smooth Standard**:
    * Never apply unconditional `Shade Smooth` over 90-degree planar angles without angle gating.
@@ -86,7 +92,7 @@ Correct pivot placement is vital for procedural animations, DOTween rotations, a
 
 ---
 
-## 5. Freeze Transforms & FBX Export Settings
+## 6. Freeze Transforms & FBX Export Settings
 
 Dirty transformations (unapplied rotations or inverted scaling) cause severe runtime coordinate glitches and desynchronized tweens in Unity.
 
@@ -114,7 +120,7 @@ When exporting via `File` $\rightarrow$ `Export` $\rightarrow$ `FBX (.fbx)`:
 
 ---
 
-## 6. Pre-Export Quality Checklist (5-Point Verification)
+## 7. Pre-Export Quality Checklist (5-Point Verification)
 
 Before dragging any newly created or modified FBX into the Unity project, verify every item on this checklist:
 
