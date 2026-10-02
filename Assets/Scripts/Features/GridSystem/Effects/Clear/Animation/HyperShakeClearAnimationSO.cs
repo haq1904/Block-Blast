@@ -65,7 +65,7 @@ public class HyperShakeClearAnimationSO : ClearAnimationSO
         // 1. Enforce start strictly at root canonical transform
         Vector3 rootPos = context.canonicalPos != Vector3.zero ? context.canonicalPos : target.position;
         target.position = rootPos;
-        target.rotation = Quaternion.identity;
+        target.rotation = context.canonicalRotation;
         target.localScale = Vector3.one;
 
         // Cache renderer & baseline albedo color via sharedMaterial (never create runtime material instance)

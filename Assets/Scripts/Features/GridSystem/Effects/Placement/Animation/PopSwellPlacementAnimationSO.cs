@@ -18,7 +18,6 @@ public class PopSwellPlacementAnimationSO : PlacementAnimationSO
         if (target == null) return;
         target.DOKill();
         target.localScale = Vector3.one * startScaleMultiplier;
-        target.localRotation = Quaternion.identity;
 
         Sequence popSeq = DOTween.Sequence();
         popSeq.SetTarget(target);

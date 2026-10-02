@@ -23,6 +23,7 @@ public class GridView : MonoBehaviour
     {
         public GameObject gameObject;
         public Vector2Int gridPos;
+        public Quaternion originalRotation;
     }
 
     private struct ClearingBlock
@@ -141,7 +142,9 @@ public class GridView : MonoBehaviour
             GameObject prefabToSpawn = blockService != null ? blockService.GetCellPrefab(cell.variantIndex) : null;
             if (prefabToSpawn == null) continue;
 
-            GameObject shadowObj = poolService.SpawnObject(prefabToSpawn, worldPos, Quaternion.identity);
+            Quaternion cellRot = Quaternion.Euler(0f, cell.rotationY, 0f);
+            GameObject shadowObj = poolService.SpawnObject(prefabToSpawn, worldPos, cellRot);
+            shadowObj.transform.rotation = cellRot;
             var shadowInstance = new ShadowInstance { gameObject = shadowObj };
 
             if (shadowMat != null)
@@ -260,16 +263,19 @@ public class GridView : MonoBehaviour
                 ? gridService.GetWorldPositionFromGrid(gridPos) 
                 : block.transform.position;
 
+            Quaternion currentRotation = block.transform.rotation;
+
             // Clean hand-off: Kill any active placement or movement tween and force to canonical state
             block.transform.DOKill();
             block.transform.position = canonicalPos;
-            block.transform.rotation = Quaternion.identity;
+            block.transform.rotation = currentRotation;
             block.transform.localScale = Vector3.one;
 
             activePreClearCells.Add(new AnimatingCell
             {
                 gameObject = block,
-                gridPos = gridPos
+                gridPos = gridPos,
+                originalRotation = currentRotation
             });
 
             effect.Apply(block.transform, previewCenterWorld);
@@ -293,13 +299,13 @@ public class GridView : MonoBehaviour
 
                 if (effect != null)
                 {
-                    effect.Cancel(anim.gameObject.transform, canonicalPos, Quaternion.identity);
+                    effect.Cancel(anim.gameObject.transform, canonicalPos, anim.originalRotation);
                 }
 
                 // Explicit safety net: ensure transform is 100% canonical after cancel
                 anim.gameObject.transform.DOKill();
                 anim.gameObject.transform.position = canonicalPos;
-                anim.gameObject.transform.rotation = Quaternion.identity;
+                anim.gameObject.transform.rotation = anim.originalRotation;
                 anim.gameObject.transform.localScale = Vector3.one;
             }
         }
@@ -328,7 +334,9 @@ public class GridView : MonoBehaviour
 
             if (prefabToSpawn != null)
             {
-                GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, Quaternion.identity);
+                Quaternion cellRot = Quaternion.Euler(0f, cell.rotationY, 0f);
+                GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, cellRot);
+                block.transform.rotation = cellRot;
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
 
                 if (theme != null && theme.placementAnimation != null)
@@ -436,6 +444,7 @@ public class GridView : MonoBehaviour
             : new Vector3(col, -1, row);
 
         GameObject block = visualGrid[col, row];
+        Quaternion originalRot = block != null ? block.transform.rotation : Quaternion.identity;
         if (block != null)
         {
             visualGrid[col, row] = null;
@@ -451,7 +460,7 @@ public class GridView : MonoBehaviour
 
             block.transform.DOKill();
             block.transform.position = canonicalPos;
-            block.transform.rotation = Quaternion.identity;
+            block.transform.rotation = originalRot;
             block.transform.localScale = Vector3.one;
 
             activeClearingBlocks.Add(new ClearingBlock { gameObject = block, gridPos = gridPos, canonicalPos = canonicalPos });
@@ -463,6 +472,7 @@ public class GridView : MonoBehaviour
             transform = block != null ? block.transform : null,
             gridPos = gridPos,
             canonicalPos = canonicalPos,
+            canonicalRotation = originalRot,
             indexInLine = indexInLine,
             totalInLine = totalInLine
         });

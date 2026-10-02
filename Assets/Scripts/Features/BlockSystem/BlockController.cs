@@ -18,7 +18,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private bool wasAllInBounds = false;
 
     // Pure C# events for View communication (Tier 1 Event standard)
-    public event Action<List<(int x, int y)>, Vector2, int[]> OnShapeAssigned;
+    public event Action<List<(int x, int y)>, Vector2, int[], int[]> OnShapeAssigned;
     public event Action<Vector3> OnTrayPositionSet;
     public event Action<Vector3> OnDragPositionUpdated;
     public event Action<Vector3> OnDragVelocityUpdated;
@@ -77,7 +77,7 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         activePointerId = -1;
 
         OnTrayPositionSet?.Invoke(trayPosition);
-        OnShapeAssigned?.Invoke(model.ShapeOffsets, model.CenterOffset, model.VariantIds);
+        OnShapeAssigned?.Invoke(model.ShapeOffsets, model.CenterOffset, model.VariantIds, model.RotationsY);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -242,7 +242,8 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
                 }
 
                 int variantId = (model.VariantIds != null && i < model.VariantIds.Length) ? model.VariantIds[i] : 0;
-                result.Add(new CellPlacementData(pos, model.BlockTypeId, variantId));
+                int rotY = (model.RotationsY != null && i < model.RotationsY.Length) ? model.RotationsY[i] : 0;
+                result.Add(new CellPlacementData(pos, model.BlockTypeId, variantId, rotY));
             }
         }
 

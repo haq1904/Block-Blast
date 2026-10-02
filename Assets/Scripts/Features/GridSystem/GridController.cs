@@ -145,7 +145,7 @@ public class GridController : MonoBehaviour, IGridService
         // 1. Record data in model
         foreach (var cell in cells)
         {
-            model.SetOccupied(cell.gridPos.x, cell.gridPos.y, true, cell.blockTypeId, cell.variantIndex);
+            model.SetOccupied(cell.gridPos.x, cell.gridPos.y, true, cell.blockTypeId, cell.variantIndex, cell.rotationY);
         }
 
         // Broadcast placement event to View

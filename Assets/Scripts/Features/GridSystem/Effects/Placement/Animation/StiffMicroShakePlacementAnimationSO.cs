@@ -18,7 +18,6 @@ public class StiffMicroShakePlacementAnimationSO : PlacementAnimationSO
         if (target == null) return;
         target.DOKill();
         target.localScale = Vector3.one;
-        target.localRotation = Quaternion.identity;
 
         target.DOShakePosition(duration, shakeStrength, vibrato, 90f, false, true)
             .SetTarget(target)

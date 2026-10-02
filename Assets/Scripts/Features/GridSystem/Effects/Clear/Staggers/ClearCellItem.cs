@@ -10,6 +10,7 @@ public struct ClearCellItem
     public Transform transform;
     public Vector2Int gridPos;
     public Vector3 canonicalPos;
+    public Quaternion canonicalRotation;
     public int indexInLine;
     public int totalInLine;
 }

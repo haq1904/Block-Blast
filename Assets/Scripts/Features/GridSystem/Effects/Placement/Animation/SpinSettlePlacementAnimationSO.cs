@@ -25,14 +25,15 @@ public class SpinSettlePlacementAnimationSO : PlacementAnimationSO
         target.DOKill();
         target.localScale = Vector3.one;
 
+        float initialY = target.localEulerAngles.y;
         float baseMagnitude = Mathf.Abs(spinAngle);
         float actualMagnitude = Mathf.Max(1f, baseMagnitude + Random.Range(-randomAngleOffset, randomAngleOffset));
         float sign = randomizeDirection ? (Random.value < 0.5f ? 1f : -1f) : (spinAngle >= 0f ? 1f : -1f);
         float effectiveSpinAngle = actualMagnitude * sign;
 
-        target.localRotation = Quaternion.Euler(0f, effectiveSpinAngle, 0f);
+        target.localRotation = Quaternion.Euler(0f, initialY + effectiveSpinAngle, 0f);
 
-        target.DOLocalRotate(Vector3.zero, duration)
+        target.DOLocalRotate(new Vector3(0f, initialY, 0f), duration)
             .SetEase(easeType)
             .SetTarget(target)
             .SetLink(target.gameObject, LinkBehaviour.KillOnDisable);

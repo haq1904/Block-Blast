@@ -21,7 +21,6 @@ public class DropSlamPlacementAnimationSO : PlacementAnimationSO
         if (target == null) return;
         target.DOKill();
         target.localScale = Vector3.one;
-        target.localRotation = Quaternion.identity;
 
         float groundY = target.position.y;
         target.position = new Vector3(target.position.x, groundY + dropHeight, target.position.z);

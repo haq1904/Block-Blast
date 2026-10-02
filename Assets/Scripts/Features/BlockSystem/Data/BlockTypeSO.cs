@@ -25,6 +25,9 @@ public class BlockTypeSO : ScriptableObject
     [Tooltip("If true, all cells in a single shape share the same variantId. If false, a shape mixes variants.")]
     public bool isMonochromePerShape = true;
 
+    [Tooltip("If true, each individual cell in a spawned shape is randomly rotated by 0, 90, 180, or 270 degrees around the Y axis.")]
+    public bool randomCellRotationY = true;
+
     [Header("Pre-Clear Feedback")]
     [Tooltip("Selection mode: Single fixed animation or Random from list.")]
     public PreClearSelectionMode preClearSelectionMode = PreClearSelectionMode.Single;

@@ -58,8 +58,9 @@ public class WoodCutClearAnimationSO : ClearAnimationSO
         target.DOKill();
 
         Vector3 rootPos = context.canonicalPos != Vector3.zero ? context.canonicalPos : target.position;
+        Quaternion rootRot = context.canonicalRotation;
         target.position = rootPos;
-        target.rotation = Quaternion.identity;
+        target.rotation = rootRot;
         target.localScale = Vector3.one;
 
         MeshRenderer renderer = useShaderFeedback ? target.GetComponentInChildren<MeshRenderer>() : null;
@@ -91,11 +92,11 @@ public class WoodCutClearAnimationSO : ClearAnimationSO
             float frequencyProgress = Mathf.Pow(p, 2.2f); // Non-linear chirp ramp (starts slow, escalates frantically)
             float amplitudeFactor = Mathf.Lerp(0.45f, 1.35f, p);
 
-            // 1. Angular Creaking Tilt (X & Z)
+            // 1. Angular Creaking Tilt (X & Z) relative to rootRot
             float tiltFreq = frequencyProgress * Mathf.PI * 2f * dynamicCycles;
             float tiltZ = Mathf.Sin(tiltFreq) * (maxTiltAngle * amplitudeFactor);
             float tiltX = Mathf.Cos(tiltFreq * 0.78f) * (maxTiltAngle * 0.65f * amplitudeFactor);
-            target.rotation = Quaternion.Euler(tiltX, 0f, tiltZ);
+            target.rotation = rootRot * Quaternion.Euler(tiltX, 0f, tiltZ);
 
             // 2. Micro Position Rattle (Physical vibration against floor)
             if (enablePositionRattle)

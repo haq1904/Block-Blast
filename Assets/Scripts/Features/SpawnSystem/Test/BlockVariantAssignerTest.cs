@@ -4,11 +4,12 @@ using UnityEngine;
 
 public class BlockVariantAssignerTest
 {
-    private BlockTypeSO CreateTestTheme(bool isMonochrome, int variantCount)
+    private BlockTypeSO CreateTestTheme(bool isMonochrome, int variantCount, bool randomRotation = true)
     {
         var theme = ScriptableObject.CreateInstance<BlockTypeSO>();
         theme.typeId = "test_theme";
         theme.isMonochromePerShape = isMonochrome;
+        theme.randomCellRotationY = randomRotation;
         theme.variants = new BlockVariantData[variantCount];
         for (int i = 0; i < variantCount; i++)
         {
@@ -149,5 +150,54 @@ public class BlockVariantAssignerTest
             Assert.IsTrue(BlockVariantAssigner.IsConnected(offsets, clusterB),
                 $"Cluster B must be a contiguous connected component. Iteration {iter}");
         }
+    }
+
+    [Test]
+    public void AssignThemeVariants_RandomRotationEnabled_GeneratesOrthogonalAngles()
+    {
+        var theme = CreateTestTheme(isMonochrome: false, variantCount: 2, randomRotation: true);
+        var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
+        var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
+
+        var validAngles = new HashSet<int> { 0, 90, 180, 270 };
+
+        for (int iter = 0; iter < 50; iter++)
+        {
+            BlockVariantAssigner.AssignThemeVariants(batch, theme);
+            Assert.IsNotNull(batch[0].RotationsY);
+            Assert.AreEqual(offsets.Count, batch[0].RotationsY.Length);
+
+            for (int i = 0; i < batch[0].RotationsY.Length; i++)
+            {
+                Assert.IsTrue(validAngles.Contains(batch[0].RotationsY[i]),
+                    $"Rotation must be an orthogonal angle (0, 90, 180, 270), got: {batch[0].RotationsY[i]}");
+            }
+        }
+    }
+
+    [Test]
+    public void AssignThemeVariants_RandomRotationDisabled_AllAnglesZero()
+    {
+        var theme = CreateTestTheme(isMonochrome: false, variantCount: 2, randomRotation: false);
+        var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
+        var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
+
+        BlockVariantAssigner.AssignThemeVariants(batch, theme);
+        Assert.IsNotNull(batch[0].RotationsY);
+
+        for (int i = 0; i < batch[0].RotationsY.Length; i++)
+        {
+            Assert.AreEqual(0, batch[0].RotationsY[i], "When randomCellRotationY is disabled, all rotations must be 0.");
+        }
+    }
+
+    [Test]
+    public void CellPlacementData_StoresAndTransfersRotationY()
+    {
+        var placement = new CellPlacementData(new Vector2Int(3, 4), "wood_crate", 101, 180);
+        Assert.AreEqual(new Vector2Int(3, 4), placement.gridPos);
+        Assert.AreEqual("wood_crate", placement.blockTypeId);
+        Assert.AreEqual(101, placement.variantIndex);
+        Assert.AreEqual(180, placement.rotationY);
     }
 }

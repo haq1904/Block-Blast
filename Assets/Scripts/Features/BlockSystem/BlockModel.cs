@@ -9,13 +9,15 @@ public class BlockModel
     public Vector2 CenterOffset { get; private set; }
     public string BlockTypeId { get; private set; }
     public int[] VariantIds { get; private set; }
+    public int[] RotationsY { get; private set; }
 
-    public BlockModel(List<(int x, int y)> shapeOffsets, string blockTypeId = "", int[] variantIds = null)
+    public BlockModel(List<(int x, int y)> shapeOffsets, string blockTypeId = "", int[] variantIds = null, int[] rotationsY = null)
     {
         ShapeOffsets = shapeOffsets;
         CenterOffset = CalculateCenter(shapeOffsets);
         BlockTypeId = blockTypeId ?? "";
         VariantIds = variantIds;
+        RotationsY = rotationsY ?? (shapeOffsets != null ? new int[shapeOffsets.Count] : null);
     }
 
     private static Vector2 CalculateCenter(List<(int x, int y)> offsets)

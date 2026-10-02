@@ -22,7 +22,6 @@ public class SquashBouncePlacementAnimationSO : PlacementAnimationSO
         if (target == null) return;
         target.DOKill();
         target.localScale = Vector3.one;
-        target.localRotation = Quaternion.identity;
 
         target.DOPunchScale(punchScale, duration, vibrato, elasticity)
             .SetTarget(target)

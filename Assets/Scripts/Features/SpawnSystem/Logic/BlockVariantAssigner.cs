@@ -38,7 +38,16 @@ public static class BlockVariantAssigner
                 variants = GenerateClusteredVariants(batch[b].ShapeOffsets, idA, idB);
             }
 
-            batch[b] = new BlockModel(batch[b].ShapeOffsets, theme.typeId, variants);
+            int[] rotationsY = new int[cellCount];
+            if (theme.randomCellRotationY)
+            {
+                for (int i = 0; i < cellCount; i++)
+                {
+                    rotationsY[i] = Random.Range(0, 4) * 90;
+                }
+            }
+
+            batch[b] = new BlockModel(batch[b].ShapeOffsets, theme.typeId, variants, rotationsY);
         }
     }
 

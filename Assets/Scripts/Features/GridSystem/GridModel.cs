@@ -7,6 +7,7 @@ public struct GridCellState
     public bool isClearing;
     public string blockTypeId;
     public int variantId;
+    public int rotationY;
 }
 
 public enum GridEdgeDirection
@@ -66,12 +67,13 @@ public class GridModel
         return !gridCells[col, row].isOccupied && !gridCells[col, row].isClearing;
     }
 
-    public void SetOccupied(int col, int row, bool isOccupied, string blockTypeId = "", int variantId = 0)
+    public void SetOccupied(int col, int row, bool isOccupied, string blockTypeId = "", int variantId = 0, int rotationY = 0)
     {
         if (!IsWithinBounds(col, row)) return;
         gridCells[col, row].isOccupied = isOccupied;
         gridCells[col, row].blockTypeId = isOccupied ? blockTypeId : "";
         gridCells[col, row].variantId = isOccupied ? variantId : 0;
+        gridCells[col, row].rotationY = isOccupied ? rotationY : 0;
     }
 
     public string GetBlockTypeId(int col, int row)
@@ -84,6 +86,12 @@ public class GridModel
     {
         if (!IsWithinBounds(col, row)) return 0;
         return gridCells[col, row].variantId;
+    }
+
+    public int GetRotationY(int col, int row)
+    {
+        if (!IsWithinBounds(col, row)) return 0;
+        return gridCells[col, row].rotationY;
     }
 
     public bool IsWithinBounds(int col, int row)
@@ -120,6 +128,7 @@ public class GridModel
             gridCells[col, row].isClearing = markClearing;
             gridCells[col, row].blockTypeId = "";
             gridCells[col, row].variantId = 0;
+            gridCells[col, row].rotationY = 0;
         }
     }
 
@@ -132,6 +141,7 @@ public class GridModel
             gridCells[col, row].isClearing = markClearing;
             gridCells[col, row].blockTypeId = "";
             gridCells[col, row].variantId = 0;
+            gridCells[col, row].rotationY = 0;
         }
     }
 

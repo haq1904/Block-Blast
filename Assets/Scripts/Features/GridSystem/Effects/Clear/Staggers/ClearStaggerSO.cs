@@ -137,6 +137,7 @@ public abstract class ClearStaggerSO : ScriptableObject
                 {
                     gridPos = cell.gridPos,
                     canonicalPos = cell.canonicalPos,
+                    canonicalRotation = cell.canonicalRotation,
                     indexInLine = cell.indexInLine,
                     totalInLine = cell.totalInLine,
                     delay = delay,

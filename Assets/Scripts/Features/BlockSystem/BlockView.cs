@@ -379,7 +379,7 @@ public class BlockView : MonoBehaviour
         return angle;
     }
 
-    private void DrawShape(List<(int x, int y)> offsets, Vector2 center, int[] variantIds)
+    private void DrawShape(List<(int x, int y)> offsets, Vector2 center, int[] variantIds, int[] rotationsY)
     {
         if (poolService == null) ServiceLocator.TryGet<IPoolService>(out poolService);
         if (blockService == null) ServiceLocator.TryGet<IBlockService>(out blockService);
@@ -392,6 +392,8 @@ public class BlockView : MonoBehaviour
         {
             var offset = offsets[i];
             int variantId = (variantIds != null && i < variantIds.Length) ? variantIds[i] : 0;
+            int rotY = (rotationsY != null && i < rotationsY.Length) ? rotationsY[i] : 0;
+            Quaternion cellRotation = Quaternion.Euler(0f, rotY, 0f);
 
             GameObject prefabToSpawn = blockService != null ? blockService.GetCellPrefab(variantId) : null;
             if (prefabToSpawn == null)
@@ -400,10 +402,11 @@ public class BlockView : MonoBehaviour
                 continue;
             }
 
-            GameObject cell = poolService.SpawnObject(prefabToSpawn, Vector3.zero, Quaternion.identity);
+            GameObject cell = poolService.SpawnObject(prefabToSpawn, Vector3.zero, cellRotation);
             cell.transform.SetParent(this.transform, false);
             cell.transform.localScale = Vector3.one;
             cell.transform.localPosition = new Vector3(offset.x - center.x, 0, offset.y - center.y);
+            cell.transform.localRotation = cellRotation;
             activeCells.Add(cell);
         }
     }

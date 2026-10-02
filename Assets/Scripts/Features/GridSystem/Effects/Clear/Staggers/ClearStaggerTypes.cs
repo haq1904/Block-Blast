@@ -16,6 +16,7 @@ public struct ClearCellContext
 {
     public Vector2Int gridPos;
     public Vector3 canonicalPos;
+    public Quaternion canonicalRotation;
     public int indexInLine;           // 0 to 7 along the cleared row or column
     public int totalInLine;           // Total cells in this line (typically 8)
     public float delay;               // Calculated stagger delay in seconds

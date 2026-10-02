@@ -40,7 +40,6 @@ public class JellyWobblePlacementAnimationSO : PlacementAnimationSO
         if (target == null) return;
         target.DOKill();
         target.localScale = Vector3.one;
-        target.localRotation = Quaternion.identity;
 
         float baseY = target.position.y;
         float t1 = duration * 0.22f;
@@ -91,17 +90,19 @@ public class JellyWobblePlacementAnimationSO : PlacementAnimationSO
         rotSeq.SetTarget(target);
         rotSeq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
 
-        // Phase 1: Tilt to effectiveTilt
-        rotSeq.Append(target.DOLocalRotate(effectiveTilt, t1).SetEase(Ease.OutQuad));
+        Quaternion baseRot = target.localRotation;
+
+        // Phase 1: Tilt to effectiveTilt relative to baseRot
+        rotSeq.Append(target.DORotateQuaternion(baseRot * Quaternion.Euler(effectiveTilt), t1).SetEase(Ease.OutQuad));
 
         // Phase 2: Swing across to opposite side with damped overshoot
-        rotSeq.Append(target.DOLocalRotate(-effectiveTilt * 0.65f, t2).SetEase(Ease.InOutQuad));
+        rotSeq.Append(target.DORotateQuaternion(baseRot * Quaternion.Euler(-effectiveTilt * 0.65f), t2).SetEase(Ease.InOutQuad));
 
         // Phase 3: Swing back with decaying oscillation
-        rotSeq.Append(target.DOLocalRotate(effectiveTilt * 0.3f, t3).SetEase(Ease.InOutQuad));
+        rotSeq.Append(target.DORotateQuaternion(baseRot * Quaternion.Euler(effectiveTilt * 0.3f), t3).SetEase(Ease.InOutQuad));
 
-        // Phase 4: Settle back upright
-        rotSeq.Append(target.DOLocalRotate(Vector3.zero, t4).SetEase(Ease.OutQuad));
+        // Phase 4: Settle back to baseRot
+        rotSeq.Append(target.DORotateQuaternion(baseRot, t4).SetEase(Ease.OutQuad));
     }
 
     private static Vector3 ApplyRandomScaleOffset(Vector3 baseScale, float offsetRange)
