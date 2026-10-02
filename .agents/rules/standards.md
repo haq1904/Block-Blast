@@ -53,3 +53,9 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
         *   Perform required validation and compiler checks automatically until the entire plan is completed, then present the final summary.
 *   **Direct Tasks (No Plan Requested)**:
     *   When the user gives a direct command to fix, modify, or implement something without asking for a plan, proceed directly with code execution.
+
+## 7. Mandatory Dead Code Elimination & Logic Sweep
+Whenever implementing a new feature, modifying an existing feature, or fixing a bug in ANY component (C#, Python, Shaders, Editor tools):
+*   **Sweep & Prune**: You MUST scan the affected subsystem's entire logic flow to identify and proactively delete redundant, unused, or bypassed code.
+*   **No Dead Code Left Behind**: Immediately remove obsolete helper methods, deprecated properties/fields, unreferenced assets/enums, dead branches, and commented-out code blocks.
+*   **Prevent Architectural Debt**: Do NOT preserve legacy workarounds or superseded algorithms alongside newly implemented solutions. Keep the codebase clean, lean, and strictly purposeful.
