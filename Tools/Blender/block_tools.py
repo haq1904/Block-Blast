@@ -9,7 +9,7 @@ bl_info = {
 }
 
 import bpy, bmesh, math, os, subprocess
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 # ==============================================================================
 # CONSTANTS & CONFIGURATION
@@ -110,6 +110,114 @@ def get_side_name(pt, min_x, max_x, min_y, max_y, min_z, max_z):
     return min(dists, key=dists.get)
 
 
+def align_mesh_to_axes(obj):
+    """
+    Automatically aligns the mesh to the Cartesian coordinate axes:
+    1. Levels the ground/up plane with world Z if tilted in 3D.
+    2. Uses 2D Convex Hull & Minimum Area Bounding Box on XY to find the optimal
+       orthogonal yaw angle, snapping 4 side walls perfectly parallel to X and Y.
+    Returns:
+        float: Total angle in degrees applied around Z.
+    """
+    if not obj or obj.type != 'MESH': return 0.0
+    was_edit = (bpy.context.mode == 'EDIT_MESH')
+    if was_edit: bpy.ops.object.mode_set(mode='OBJECT')
+
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.faces.ensure_lookup_table()
+    bm.verts.ensure_lookup_table()
+
+    if len(bm.verts) < 4:
+        bm.free()
+        if was_edit: bpy.ops.object.mode_set(mode='EDIT')
+        return 0.0
+
+    # 1. 3D Ground Levelling: Check if top/bottom plane is tilted relative to world Z
+    up_candidates = []
+    for f in bm.faces:
+        n = f.normal
+        if abs(n.z) > 0.7:
+            sign = 1.0 if n.z > 0 else -1.0
+            up_candidates.append((f.calc_area(), n * sign))
+
+    if up_candidates:
+        total_w = sum(w for w, _ in up_candidates)
+        if total_w > 1e-5:
+            avg_up = Vector((0.0, 0.0, 0.0))
+            for w, n in up_candidates:
+                avg_up += w * n
+            avg_up.normalize()
+            world_z = Vector((0.0, 0.0, 1.0))
+            dot_z = avg_up.dot(world_z)
+            if 0.707 < dot_z < 0.99998:
+                rot_q = avg_up.rotation_difference(world_z)
+                bm.transform(rot_q.to_matrix().to_4x4())
+                bm.normal_update()
+
+    # 2. 2D Minimum Area Bounding Box on XY ground plane
+    verts_2d = list(set((round(v.co.x, 4), round(v.co.y, 4)) for v in bm.verts))
+
+    def convex_hull_2d(pts):
+        pts = sorted(pts)
+        if len(pts) <= 1: return pts
+        def cross(o, a, b):
+            return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+        lower = []
+        for p in pts:
+            while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+                lower.pop()
+            lower.append(p)
+        upper = []
+        for p in reversed(pts):
+            while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+                upper.pop()
+            upper.append(p)
+        return lower[:-1] + upper[:-1]
+
+    hull = convex_hull_2d(verts_2d)
+    best_theta = 0.0
+    min_area = float('inf')
+
+    for i in range(len(hull)):
+        p1 = hull[i]
+        p2 = hull[(i + 1) % len(hull)]
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+        edge_len = math.hypot(dx, dy)
+        if edge_len < 1e-5: continue
+
+        theta = math.atan2(dy, dx)
+        cos_t = math.cos(-theta)
+        sin_t = math.sin(-theta)
+
+        rot_xs = [p[0] * cos_t - p[1] * sin_t for p in hull]
+        rot_ys = [p[0] * sin_t + p[1] * cos_t for p in hull]
+
+        area = (max(rot_xs) - min(rot_xs)) * (max(rot_ys) - min(rot_ys))
+        if area < min_area:
+            min_area = area
+            best_theta = theta
+
+    # Calculate minimal orthogonal snap angle (fold into [-45°, 45°])
+    half_pi = math.pi * 0.5
+    quarter_pi = math.pi * 0.25
+    snap_rot = (-best_theta) % half_pi
+    if snap_rot > quarter_pi:
+        snap_rot -= half_pi
+
+    if abs(snap_rot) > 1e-4:
+        rot_z = Matrix.Rotation(snap_rot, 4, 'Z')
+        bm.transform(rot_z)
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+
+    if was_edit: bpy.ops.object.mode_set(mode='EDIT')
+    return math.degrees(snap_rot)
+
+
 def store_original_coordinates(obj, overwrite=False):
     if not obj or obj.type != 'MESH': return
     if bpy.context.mode == 'EDIT_MESH':
@@ -195,6 +303,7 @@ class BlockToolsSettings(bpy.types.PropertyGroup):
     target_size: bpy.props.FloatProperty(name="Kích Thước", default=1.0, min=0.1, max=100.0)
     scale_mode: bpy.props.EnumProperty(name="Kiểu Scale", items=[('UNIFORM', "Giữ Tỉ Lệ", ""), ('EXACT', "1x1x1 Tuyệt Đối", "")], default='UNIFORM')
     smooth_angle: bpy.props.FloatProperty(name="Góc Mượt", default=35.0, min=0.0, max=180.0)
+    auto_align_axes: bpy.props.BoolProperty(name="Tự Động Căn Trục", description="Tự động căn 4 vách của khối vuông góc tuyệt đối với các trục X, Y khi chuẩn hóa", default=True)
 
     # Palette
     palette_source: bpy.props.EnumProperty(name="Nguồn", items=[('LEAPLAND', "LeapLand", ""), ('CRATE', "Crate Theme", ""), ('CUSTOM', "Tùy Chọn", "")], default='CRATE')
@@ -477,17 +586,9 @@ def auto_segment_mesh(obj, force_heuristic=False):
             center_faces.append(f)
 
     # 3. Phân tầng độ sâu cho phần trung tâm: Nan Lồi (Raised) vs Ván Nền (Recessed)
-    def get_side_name_local(pt):
-        dists = {
-            '+X': max_x - pt.x, '-X': pt.x - min_x,
-            '+Y': max_y - pt.y, '-Y': pt.y - min_y,
-            '+Z': max_z - pt.z, '-Z': pt.z - min_z
-        }
-        return min(dists, key=dists.get)
-
     side_center = {}
     for f in center_faces:
-        side_center.setdefault(get_side_name_local(f.calc_center_median()), []).append(f)
+        side_center.setdefault(get_side_name(f.calc_center_median(), min_x, max_x, min_y, max_y, min_z, max_z), []).append(f)
 
     raised_faces, recessed_faces = set(), set()
     for s, flist in side_center.items():
@@ -552,12 +653,18 @@ class BLOCKTOOLS_OT_standardize(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
+        if not obj or obj.type != 'MESH': return {'CANCELLED'}
         if context.mode != 'OBJECT': bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+        settings = context.scene.block_tools_settings
+        align_deg = 0.0
+        if settings.auto_align_axes:
+            align_deg = align_mesh_to_axes(obj)
+
         verts = obj.data.vertices
         if not verts: return {'CANCELLED'}
 
-        settings = context.scene.block_tools_settings
         min_x, max_x = min(v.co.x for v in verts), max(v.co.x for v in verts)
         min_y, max_y = min(v.co.y for v in verts), max(v.co.y for v in verts)
         min_z, max_z = min(v.co.z for v in verts), max(v.co.z for v in verts)
@@ -575,7 +682,29 @@ class BLOCKTOOLS_OT_standardize(bpy.types.Operator):
         except Exception: pass
         store_original_coordinates(obj, overwrite=True)
         store_original_color(obj, overwrite=True)
-        self.report({'INFO'}, f"Đã chuẩn hóa '{obj.name}' về 1.0m (Pivot Bottom-Center)")
+
+        align_msg = f" (Căn thẳng trục xoay {align_deg:+.1f}°)" if abs(align_deg) > 0.01 else ""
+        self.report({'INFO'}, f"Đã chuẩn hóa '{obj.name}' về 1.0m (Pivot Bottom-Center){align_msg}")
+        return {'FINISHED'}
+
+
+class BLOCKTOOLS_OT_align_axes(bpy.types.Operator):
+    bl_idname, bl_label, bl_options = "blocktools.align_axes", "Căn Thẳng Trục", {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.edit_object or context.active_object
+        if not obj or obj.type != 'MESH': return {'CANCELLED'}
+        was_edit = (context.mode == 'EDIT_MESH')
+        if was_edit: bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+        rot_deg = align_mesh_to_axes(obj)
+        if was_edit: bpy.ops.object.mode_set(mode='EDIT')
+
+        if abs(rot_deg) > 0.01:
+            self.report({'INFO'}, f"Đã căn thẳng trục '{obj.name}' (xoay {rot_deg:+.1f}°)")
+        else:
+            self.report({'INFO'}, f"Khối '{obj.name}' đã vuông góc sẵn với các trục")
         return {'FINISHED'}
 
 
@@ -1510,7 +1639,10 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 box.prop(settings, "target_size")
                 box.prop(settings, "scale_mode")
                 box.prop(settings, "smooth_angle")
+                box.prop(settings, "auto_align_axes")
                 box.column().operator("blocktools.standardize", text="⚡ Chuẩn Hóa Khối (1.0m)", icon='MOD_REMESH')
+                r_align = box.row(align=True)
+                r_align.operator("blocktools.align_axes", text="🎯 Căn Thẳng Trục", icon='ORIENTATION_GLOBAL')
                 r_rot = box.row(align=True)
                 r_rot.operator("blocktools.rotate_z", text="+90°").angle_degrees = 90.0
                 r_rot.operator("blocktools.rotate_z", text="-90°").angle_degrees = -90.0
@@ -1723,7 +1855,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
 # ==============================================================================
 classes = (
     BlockToolsPaletteItem, BlockToolsSettings,
-    BLOCKTOOLS_OT_standardize, BLOCKTOOLS_OT_rotate_z,
+    BLOCKTOOLS_OT_standardize, BLOCKTOOLS_OT_align_axes, BLOCKTOOLS_OT_rotate_z,
     BLOCKTOOLS_OT_analyze_mesh, BLOCKTOOLS_OT_toggle_debug_colors,
     BLOCKTOOLS_OT_group_select, BLOCKTOOLS_OT_group_assign,
     BLOCKTOOLS_OT_load_curated_swatches, BLOCKTOOLS_OT_scan_palette_image,
