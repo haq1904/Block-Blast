@@ -195,7 +195,7 @@ public static class BlockSpawnGenerator
                     testPositions[i] = new Vector2Int(gx, gy);
                 }
 
-                if (!outOfBounds && grid.CanPlaceBlocks(testPositions))
+                if (!outOfBounds && grid.CanPlaceBlocks(testPositions, allowClearing: true))
                 {
                     foundX = x;
                     foundY = y;
