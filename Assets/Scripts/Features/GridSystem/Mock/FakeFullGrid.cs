@@ -21,9 +21,12 @@ namespace BlockBlast.Mocking
         public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
         public event Action<List<int>, List<int>> OnPreviewLinesToClear;
         public event Action<int, int, bool> OnPlacementResolved;
+        public event Action<Vector2Int> OnCellReleased;
 
         public bool CanPlaceBlocks(List<CellPlacementData> cells) => false;
+        public bool CanPlaceBlocks(List<CellPlacementData> cells, bool allowClearing) => false;
         public bool CanPlaceBlocks(List<Vector2Int> gridPositions) => false;
+        public bool CanPlaceBlocks(List<Vector2Int> gridPositions, bool allowClearing) => false;
 
         public bool IsCellOccupied(int col, int row) => true;
         public bool IsCellClearing(int col, int row) => false;

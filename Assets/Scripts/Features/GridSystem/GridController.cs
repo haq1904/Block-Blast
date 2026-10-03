@@ -14,6 +14,7 @@ public class GridController : MonoBehaviour, IGridService
     public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     public event Action<List<int>, List<int>> OnPreviewLinesToClear;
     public event Action<int, int, bool> OnPlacementResolved;
+    public event Action<Vector2Int> OnCellReleased;
 
     public int GridWidth => model != null ? model.Cols : 8;
     public int GridHeight => model != null ? model.Rows : 8;
@@ -51,22 +52,26 @@ public class GridController : MonoBehaviour, IGridService
         return new Vector3(x, -1, z);
     }
 
-    public bool CanPlaceBlocks(List<CellPlacementData> cells)
+    public bool CanPlaceBlocks(List<CellPlacementData> cells) => CanPlaceBlocks(cells, false);
+
+    public bool CanPlaceBlocks(List<CellPlacementData> cells, bool allowClearing)
     {
         if (cells == null || cells.Count == 0) return false;
         foreach (var cell in cells)
         {
-            if (!model.IsAvailableForPlacement(cell.gridPos.x, cell.gridPos.y)) return false;
+            if (!model.IsAvailableForPlacement(cell.gridPos.x, cell.gridPos.y, allowClearing)) return false;
         }
         return true;
     }
 
-    public bool CanPlaceBlocks(List<Vector2Int> gridPositions)
+    public bool CanPlaceBlocks(List<Vector2Int> gridPositions) => CanPlaceBlocks(gridPositions, false);
+
+    public bool CanPlaceBlocks(List<Vector2Int> gridPositions, bool allowClearing)
     {
         if (gridPositions == null || gridPositions.Count == 0) return false;
         foreach (Vector2Int pos in gridPositions)
         {
-            if (!model.IsAvailableForPlacement(pos.x, pos.y)) return false;
+            if (!model.IsAvailableForPlacement(pos.x, pos.y, allowClearing)) return false;
         }
         return true;
     }
@@ -88,6 +93,7 @@ public class GridController : MonoBehaviour, IGridService
         if (model != null && model.IsWithinBounds(gridPos.x, gridPos.y))
         {
             model.SetClearing(gridPos.x, gridPos.y, false);
+            OnCellReleased?.Invoke(gridPos);
         }
     }
 
@@ -101,6 +107,7 @@ public class GridController : MonoBehaviour, IGridService
                 if (model.IsClearing(col, row))
                 {
                     model.SetClearing(col, row, false);
+                    OnCellReleased?.Invoke(new Vector2Int(col, row));
                 }
             }
         }

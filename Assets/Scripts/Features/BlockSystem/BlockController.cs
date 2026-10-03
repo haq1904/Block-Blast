@@ -41,6 +41,19 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         poolService = ServiceLocator.Get<IPoolService>();
     }
 
+    private void OnEnable()
+    {
+        if (gridService == null)
+        {
+            gridService = ServiceLocator.Get<IGridService>();
+        }
+
+        if (gridService != null)
+        {
+            gridService.OnCellReleased += HandleCellReleased;
+        }
+    }
+
     private void Update()
     {
         if (isDragging)
@@ -55,6 +68,11 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private void OnDisable()
     {
+        if (gridService != null)
+        {
+            gridService.OnCellReleased -= HandleCellReleased;
+        }
+
         if (ServiceLocator.TryGet<IBlockService>(out var blockService))
         {
             blockService.ReleaseDragLock(this);
@@ -65,6 +83,24 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             isDragging = false;
             activePointerId = -1;
             OnDragEnded?.Invoke(false);
+        }
+    }
+
+    private void HandleCellReleased(Vector2Int releasedPos)
+    {
+        if (!isDragging || gridService == null) return;
+
+        if (lastOriginGridPos.x != int.MinValue && lastOriginGridPos.y != int.MinValue)
+        {
+            List<CellPlacementData> placementData = GetCellPlacementData(lastOriginGridPos, out bool allInBounds);
+            if (allInBounds)
+            {
+                gridService.RequestPreview(placementData);
+            }
+            else
+            {
+                gridService.RequestPreview(new List<CellPlacementData>());
+            }
         }
     }
 
@@ -253,6 +289,8 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     // Helper: Raycast from Camera to plane y=0 to find 3D pointer coordinates
     private Vector3 GetWorldPositionFromMouse(Vector2 screenPos)
     {
+        if (mainCamera == null) mainCamera = Camera.main;
+        if (mainCamera == null) return transform.position;
         Plane plane = new Plane(Vector3.up, Vector3.zero);
         Ray ray = mainCamera.ScreenPointToRay(screenPos);
 

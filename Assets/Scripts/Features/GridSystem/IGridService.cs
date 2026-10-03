@@ -16,12 +16,15 @@ public interface IGridService
     event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     event Action<List<int>, List<int>> OnPreviewLinesToClear;
     event Action<int, int, bool> OnPlacementResolved; // (tilesPlaced, totalLinesCleared, isAllClear)
+    event Action<Vector2Int> OnCellReleased { add { } remove { } }
 
     // --- COMMANDS (Invoked by Block/Input) ---
     Vector2Int GetGridPositionFromWorld(Vector3 worldPos);
     Vector3 GetWorldPositionFromGrid(Vector2Int gridPos);
     bool CanPlaceBlocks(List<CellPlacementData> cells);
+    bool CanPlaceBlocks(List<CellPlacementData> cells, bool allowClearing) => CanPlaceBlocks(cells);
     bool CanPlaceBlocks(List<Vector2Int> gridPositions);
+    bool CanPlaceBlocks(List<Vector2Int> gridPositions, bool allowClearing) => CanPlaceBlocks(gridPositions);
     bool IsCellOccupied(int col, int row);
     bool IsCellClearing(int col, int row) => false;
     void ReleaseClearingCell(Vector2Int gridPos) { }

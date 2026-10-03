@@ -61,10 +61,11 @@ public class GridModel
         gridCells[col, row].isClearing = isClearing;
     }
 
-    public bool IsAvailableForPlacement(int col, int row)
+    public bool IsAvailableForPlacement(int col, int row, bool allowClearing = false)
     {
         if (!IsWithinBounds(col, row)) return false;
-        return !gridCells[col, row].isOccupied && !gridCells[col, row].isClearing;
+        if (gridCells[col, row].isOccupied) return false;
+        return allowClearing || !gridCells[col, row].isClearing;
     }
 
     public void SetOccupied(int col, int row, bool isOccupied, string blockTypeId = "", int variantId = 0, int rotationY = 0)

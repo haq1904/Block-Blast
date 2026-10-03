@@ -159,4 +159,37 @@ public class GridControllerTest
         Assert.IsFalse(gridController.IsCellClearing(0, 0));
         Assert.IsTrue(gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) }));
     }
+
+    [Test]
+    public void CanPlaceBlocks_WithAllowClearing_ReturnsTrueWhenCellsClearing()
+    {
+        // Fill Row 0 to trigger line clear
+        var blocks = new List<Vector2Int>();
+        for (int i = 0; i < 8; i++) blocks.Add(new Vector2Int(i, 0));
+        gridController.PlaceBlocks(blocks);
+
+        Assert.IsTrue(gridController.IsCellClearing(0, 0));
+
+        // When allowClearing is false: placement is rejected
+        Assert.IsFalse(gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) }, allowClearing: false));
+
+        // When allowClearing is true (Game Over / Move Check): returns true
+        Assert.IsTrue(gridController.CanPlaceBlocks(new List<Vector2Int> { new Vector2Int(0, 0) }, allowClearing: true));
+    }
+
+    [Test]
+    public void ReleaseClearingCell_FiresOnCellReleasedEvent()
+    {
+        var blocks = new List<Vector2Int>();
+        for (int i = 0; i < 8; i++) blocks.Add(new Vector2Int(i, 0));
+        gridController.PlaceBlocks(blocks);
+
+        Vector2Int receivedPos = new Vector2Int(-1, -1);
+        gridController.OnCellReleased += pos => receivedPos = pos;
+
+        gridController.ReleaseClearingCell(new Vector2Int(3, 0));
+
+        Assert.AreEqual(new Vector2Int(3, 0), receivedPos);
+        Assert.IsFalse(gridController.IsCellClearing(3, 0));
+    }
 }
