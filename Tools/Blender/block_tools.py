@@ -218,6 +218,58 @@ def align_mesh_to_axes(obj):
     return math.degrees(snap_rot)
 
 
+def align_mesh_to_selected_face(obj):
+    if not obj or obj.type != 'MESH':
+        return False
+
+    was_edit = (bpy.context.mode == 'EDIT_MESH')
+    if was_edit:
+        bm = bmesh.from_edit_mesh(obj.data)
+    else:
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+
+    bm.faces.ensure_lookup_table()
+    sel_faces = [f for f in bm.faces if f.select]
+    if not sel_faces or len(sel_faces) == len(bm.faces):
+        if not was_edit:
+            bm.free()
+        return False
+
+    total_area = sum(f.calc_area() for f in sel_faces)
+    if total_area > 1e-6:
+        norm = sum((f.normal * f.calc_area() for f in sel_faces), Vector((0.0, 0.0, 0.0))).normalized()
+        center = sum((f.calc_center_median() * f.calc_area() for f in sel_faces), Vector((0.0, 0.0, 0.0))) / total_area
+    else:
+        norm = sum((f.normal for f in sel_faces), Vector((0.0, 0.0, 0.0))).normalized()
+        center = sum((f.calc_center_median() for f in sel_faces), Vector((0.0, 0.0, 0.0))) / len(sel_faces)
+
+    down_vec = Vector((0.0, 0.0, -1.0))
+    rot_q = norm.rotation_difference(down_vec)
+    rot_mat = rot_q.to_matrix().to_4x4()
+
+    for v in bm.verts:
+        v.co = rot_mat @ (v.co - center)
+
+    # Inverted normal fail-safe (ensure mesh extends upwards into +Z)
+    z_coords = [v.co.z for v in bm.verts]
+    if max(z_coords) < 0.001 and min(z_coords) < -0.01:
+        rot_flip = Matrix.Rotation(math.pi, 4, 'X')
+        for v in bm.verts:
+            v.co = rot_flip @ v.co
+
+    bm.normal_update()
+
+    if was_edit:
+        bmesh.update_edit_mesh(obj.data)
+    else:
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+
+    return True
+
+
 def store_original_coordinates(obj, overwrite=False):
     if not obj or obj.type != 'MESH': return
     if bpy.context.mode == 'EDIT_MESH':
@@ -658,6 +710,8 @@ class BLOCKTOOLS_OT_standardize(bpy.types.Operator):
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
         settings = context.scene.block_tools_settings
+        face_aligned = align_mesh_to_selected_face(obj)
+
         align_deg = 0.0
         if settings.auto_align_axes:
             align_deg = align_mesh_to_axes(obj)
@@ -674,8 +728,10 @@ class BLOCKTOOLS_OT_standardize(bpy.types.Operator):
         obj.scale = scale_vec
         bpy.ops.object.transform_apply(scale=True)
 
-        offset = Vector(((min_x + max_x) * 0.5 * scale_vec[0], (min_y + max_y) * 0.5 * scale_vec[1], min_z * scale_vec[2]))
-        for v in verts: v.co -= offset
+        if not face_aligned:
+            offset = Vector(((min_x + max_x) * 0.5 * scale_vec[0], (min_y + max_y) * 0.5 * scale_vec[1], min_z * scale_vec[2]))
+            for v in verts: v.co -= offset
+
         obj.location = (0, 0, 0)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         try: bpy.ops.object.shade_smooth_by_angle(angle=math.radians(settings.smooth_angle))
@@ -683,8 +739,9 @@ class BLOCKTOOLS_OT_standardize(bpy.types.Operator):
         store_original_coordinates(obj, overwrite=True)
         store_original_color(obj, overwrite=True)
 
+        face_msg = " [Đáy: Mặt Chọn]" if face_aligned else ""
         align_msg = f" (Căn thẳng trục xoay {align_deg:+.1f}°)" if abs(align_deg) > 0.01 else ""
-        self.report({'INFO'}, f"Đã chuẩn hóa '{obj.name}' về 1.0m (Pivot Bottom-Center){align_msg}")
+        self.report({'INFO'}, f"Đã chuẩn hóa '{obj.name}' về {settings.target_size:.2f}m{face_msg}{align_msg}")
         return {'FINISHED'}
 
 
@@ -705,6 +762,41 @@ class BLOCKTOOLS_OT_align_axes(bpy.types.Operator):
             self.report({'INFO'}, f"Đã căn thẳng trục '{obj.name}' (xoay {rot_deg:+.1f}°)")
         else:
             self.report({'INFO'}, f"Khối '{obj.name}' đã vuông góc sẵn với các trục")
+        return {'FINISHED'}
+
+
+class BLOCKTOOLS_OT_align_to_face(bpy.types.Operator):
+    bl_idname, bl_label, bl_options = "blocktools.align_to_face", "Đặt Đáy Từ Mặt Chọn", {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.edit_object or context.active_object
+        if not obj or obj.type != 'MESH':
+            self.report({'ERROR'}, "Hãy chọn một Mesh!")
+            return {'CANCELLED'}
+
+        was_edit = (context.mode == 'EDIT_MESH')
+        if was_edit: bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+        if was_edit: bpy.ops.object.mode_set(mode='EDIT')
+
+        aligned = align_mesh_to_selected_face(obj)
+        if not aligned:
+            self.report({'WARNING'}, "Hãy chọn ít nhất một mặt làm đáy (hoặc không chọn toàn bộ mặt)!")
+            return {'CANCELLED'}
+
+        if was_edit: bpy.ops.object.mode_set(mode='OBJECT')
+        settings = context.scene.block_tools_settings
+        rot_deg = 0.0
+        if settings.auto_align_axes:
+            rot_deg = align_mesh_to_axes(obj)
+
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        store_original_coordinates(obj, overwrite=True)
+        store_original_color(obj, overwrite=True)
+
+        if was_edit: bpy.ops.object.mode_set(mode='EDIT')
+        align_msg = f" (Căn thẳng trục {rot_deg:+.1f}°)" if abs(rot_deg) > 0.01 else ""
+        self.report({'INFO'}, f"Đã đặt mặt chọn làm đáy & dời Pivot về (0,0,0){align_msg}")
         return {'FINISHED'}
 
 
@@ -1640,9 +1732,10 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 box.prop(settings, "scale_mode")
                 box.prop(settings, "smooth_angle")
                 box.prop(settings, "auto_align_axes")
-                box.column().operator("blocktools.standardize", text="⚡ Chuẩn Hóa Khối (1.0m)", icon='MOD_REMESH')
+                box.column().operator("blocktools.standardize", text=f"⚡ Chuẩn Hóa Khối ({settings.target_size:.2f}m)", icon='MOD_REMESH')
                 r_align = box.row(align=True)
-                r_align.operator("blocktools.align_axes", text="🎯 Căn Thẳng Trục", icon='ORIENTATION_GLOBAL')
+                r_align.operator("blocktools.align_to_face", text="📐 Đặt Đáy Từ Mặt Chọn", icon='SNAP_FACE')
+                r_align.operator("blocktools.align_axes", text="🎯 Căn Trục", icon='ORIENTATION_GLOBAL')
                 r_rot = box.row(align=True)
                 r_rot.operator("blocktools.rotate_z", text="+90°").angle_degrees = 90.0
                 r_rot.operator("blocktools.rotate_z", text="-90°").angle_degrees = -90.0
@@ -1855,7 +1948,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
 # ==============================================================================
 classes = (
     BlockToolsPaletteItem, BlockToolsSettings,
-    BLOCKTOOLS_OT_standardize, BLOCKTOOLS_OT_align_axes, BLOCKTOOLS_OT_rotate_z,
+    BLOCKTOOLS_OT_standardize, BLOCKTOOLS_OT_align_axes, BLOCKTOOLS_OT_align_to_face, BLOCKTOOLS_OT_rotate_z,
     BLOCKTOOLS_OT_analyze_mesh, BLOCKTOOLS_OT_toggle_debug_colors,
     BLOCKTOOLS_OT_group_select, BLOCKTOOLS_OT_group_assign,
     BLOCKTOOLS_OT_load_curated_swatches, BLOCKTOOLS_OT_scan_palette_image,
