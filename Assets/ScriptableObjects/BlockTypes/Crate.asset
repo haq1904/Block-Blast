@@ -26,7 +26,7 @@ MonoBehaviour:
   - variantId: 8
     prefab: {fileID: 3303461509996034713, guid: b408eb2bf7007b14781b6fedf5056a53, type: 3}
   shadowMaterial: {fileID: 2100000, guid: a2275aa97eb734148b2ff9a6bc81c2b4, type: 2}
-  isMonochromePerShape: 0
+  mixedVariantChance: 0.2
   randomCellRotationY: 1
   preClearSelectionMode: 0
   preClearAnimation: {fileID: 11400000, guid: cb789ded1e72ad8469de7667c7086b0e, type: 2}

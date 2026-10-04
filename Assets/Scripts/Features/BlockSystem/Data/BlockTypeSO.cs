@@ -22,8 +22,9 @@ public class BlockTypeSO : ScriptableObject
     public Material shadowMaterial;
 
     [Header("Color Palette Rules")]
-    [Tooltip("If true, all cells in a single shape share the same variantId. If false, a shape mixes variants.")]
-    public bool isMonochromePerShape = true;
+    [Range(0f, 1f)]
+    [Tooltip("Probability (0.0 to 1.0) of mixing multiple variants within a single shape. 0 = 100% monochrome, 1 = 100% mixed variants, 0.5 = 50/50 balance.")]
+    public float mixedVariantChance = 0f;
 
     [Tooltip("If true, each individual cell in a spawned shape is randomly rotated by 0, 90, 180, or 270 degrees around the Y axis.")]
     public bool randomCellRotationY = true;

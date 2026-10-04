@@ -23,7 +23,8 @@ public static class BlockVariantAssigner
             int cellCount = batch[b].ShapeOffsets.Count;
             int[] variants = new int[cellCount];
 
-            if (theme.isMonochromePerShape || totalVariants <= 1 || cellCount <= 1)
+            bool isMonochrome = (theme.mixedVariantChance <= 0f) || (Random.value >= theme.mixedVariantChance);
+            if (isMonochrome || totalVariants <= 1 || cellCount <= 1)
             {
                 int singleId = theme.variants[Random.Range(0, totalVariants)].variantId;
                 for (int i = 0; i < cellCount; i++) variants[i] = singleId;

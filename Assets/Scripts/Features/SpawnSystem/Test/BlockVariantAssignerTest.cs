@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class BlockVariantAssignerTest
 {
-    private BlockTypeSO CreateTestTheme(bool isMonochrome, int variantCount, bool randomRotation = true)
+    private BlockTypeSO CreateTestTheme(float mixedVariantChance, int variantCount, bool randomRotation = true)
     {
         var theme = ScriptableObject.CreateInstance<BlockTypeSO>();
         theme.typeId = "test_theme";
-        theme.isMonochromePerShape = isMonochrome;
+        theme.mixedVariantChance = mixedVariantChance;
         theme.randomCellRotationY = randomRotation;
         theme.variants = new BlockVariantData[variantCount];
         for (int i = 0; i < variantCount; i++)
@@ -19,9 +19,9 @@ public class BlockVariantAssignerTest
     }
 
     [Test]
-    public void AssignThemeVariants_Monochrome_AllCellsSameVariant()
+    public void AssignThemeVariants_MonochromeChanceZero_AllCellsSameVariant()
     {
-        var theme = CreateTestTheme(isMonochrome: true, variantCount: 4);
+        var theme = CreateTestTheme(mixedVariantChance: 0f, variantCount: 4);
         var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
         var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
 
@@ -30,14 +30,14 @@ public class BlockVariantAssignerTest
         int first = batch[0].VariantIds[0];
         for (int i = 1; i < batch[0].VariantIds.Length; i++)
         {
-            Assert.AreEqual(first, batch[0].VariantIds[i], "All cells in a monochrome block must share the identical variantId.");
+            Assert.AreEqual(first, batch[0].VariantIds[i], "All cells in a block with mixedVariantChance=0 must share the identical variantId.");
         }
     }
 
     [Test]
     public void AssignThemeVariants_SingleVariantTheme_AllCellsSameVariant()
     {
-        var theme = CreateTestTheme(isMonochrome: false, variantCount: 1);
+        var theme = CreateTestTheme(mixedVariantChance: 1f, variantCount: 1);
         var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (2, 0) };
         var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
 
@@ -52,7 +52,7 @@ public class BlockVariantAssignerTest
     [Test]
     public void AssignThemeVariants_SingleCellBlock_ValidVariant()
     {
-        var theme = CreateTestTheme(isMonochrome: false, variantCount: 3);
+        var theme = CreateTestTheme(mixedVariantChance: 1f, variantCount: 3);
         var offsets = new List<(int x, int y)> { (0, 0) };
         var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
 
@@ -153,9 +153,45 @@ public class BlockVariantAssignerTest
     }
 
     [Test]
+    public void AssignThemeVariants_MixedChanceOne_ProducesMixedVariants()
+    {
+        var theme = CreateTestTheme(mixedVariantChance: 1f, variantCount: 4);
+        var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
+        var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
+
+        BlockVariantAssigner.AssignThemeVariants(batch, theme);
+
+        var uniqueVariants = new HashSet<int>(batch[0].VariantIds);
+        Assert.AreEqual(2, uniqueVariants.Count, "A 2x2 shape with mixedVariantChance=1 must partition into exactly 2 distinct variants.");
+    }
+
+    [Test]
+    public void AssignThemeVariants_MixedChanceHalf_ProducesBothMonochromeAndMixed()
+    {
+        var theme = CreateTestTheme(mixedVariantChance: 0.5f, variantCount: 4);
+        var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
+
+        int monochromeCount = 0;
+        int mixedCount = 0;
+
+        for (int i = 0; i < 100; i++)
+        {
+            var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
+            BlockVariantAssigner.AssignThemeVariants(batch, theme);
+
+            var uniqueVariants = new HashSet<int>(batch[0].VariantIds);
+            if (uniqueVariants.Count == 1) monochromeCount++;
+            else if (uniqueVariants.Count == 2) mixedCount++;
+        }
+
+        Assert.Greater(monochromeCount, 15, "With mixedVariantChance=0.5 over 100 trials, monochrome blocks should appear significantly.");
+        Assert.Greater(mixedCount, 15, "With mixedVariantChance=0.5 over 100 trials, mixed blocks should appear significantly.");
+    }
+
+    [Test]
     public void AssignThemeVariants_RandomRotationEnabled_GeneratesOrthogonalAngles()
     {
-        var theme = CreateTestTheme(isMonochrome: false, variantCount: 2, randomRotation: true);
+        var theme = CreateTestTheme(mixedVariantChance: 0f, variantCount: 2, randomRotation: true);
         var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
         var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
 
@@ -178,7 +214,7 @@ public class BlockVariantAssignerTest
     [Test]
     public void AssignThemeVariants_RandomRotationDisabled_AllAnglesZero()
     {
-        var theme = CreateTestTheme(isMonochrome: false, variantCount: 2, randomRotation: false);
+        var theme = CreateTestTheme(mixedVariantChance: 0f, variantCount: 2, randomRotation: false);
         var offsets = new List<(int x, int y)> { (0, 0), (1, 0), (0, 1), (1, 1) };
         var batch = new BlockModel[] { new BlockModel(offsets, theme.typeId) };
 

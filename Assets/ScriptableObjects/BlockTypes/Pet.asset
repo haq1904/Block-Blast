@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed438edba8499e24ca1fb7d6c90671ea, type: 3}
+  m_Name: Pet
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockTypeSO
+  typeId: pet_animals
+  displayName: Pet Animals
+  variants:
+  - variantId: 1
+    prefab: {fileID: 1976896278341509624, guid: 29c84200ca394114ad3c5cea890217a1, type: 3}
+  - variantId: 2
+    prefab: {fileID: 2125226750967708426, guid: 7ef289ad222046769322be47663d9391, type: 3}
+  - variantId: 3
+    prefab: {fileID: 1981075279187005387, guid: b585c3c0c4d04802a85951eba8f98911, type: 3}
+  - variantId: 4
+    prefab: {fileID: 2000864851075580464, guid: fc01bcc0e81d435e84fb182381c3dd7a, type: 3}
+  - variantId: 5
+    prefab: {fileID: 1976504897942247817, guid: 8b07f9585ef741b194e73d583a1474d8, type: 3}
+  - variantId: 6
+    prefab: {fileID: 2172453718707874948, guid: f88d9380a2954f10b2a665622d87c529, type: 3}
+  - variantId: 7
+    prefab: {fileID: 222860131077826260, guid: f9c42475a07c489b9e36eb4e83b9374f, type: 3}
+  - variantId: 8
+    prefab: {fileID: 241365456285354959, guid: 29ba88066e1141e08e9c610c8f66804c, type: 3}
+  - variantId: 9
+    prefab: {fileID: 1786455058968772225, guid: 46b682d12b2441a681bc8211a5f709a9, type: 3}
+  - variantId: 10
+    prefab: {fileID: 1857745559343976817, guid: 05f8407d1fb34c4a84f9cdfa5367fdd7, type: 3}
+  - variantId: 11
+    prefab: {fileID: 2136166642454636558, guid: 333526270fdd4c9bab3ee3c97f7af17d, type: 3}
+  - variantId: 12
+    prefab: {fileID: 2184220895454040861, guid: 961acd53b2e14c059e7f70b16831177e, type: 3}
+  - variantId: 13
+    prefab: {fileID: 1571921800252100635, guid: 291bad867ded418394e08e7c75246c88, type: 3}
+  - variantId: 14
+    prefab: {fileID: 151727938276011742, guid: a84a67c39cc54cac9ad5d70eebc69cbb, type: 3}
+  - variantId: 15
+    prefab: {fileID: 1723621480554312571, guid: c690e0140b454c17af53ff1679587b4a, type: 3}
+  - variantId: 16
+    prefab: {fileID: 2295821496563723599, guid: e11df01fd2e64df7bdc668b5a9c9a61d, type: 3}
+  - variantId: 17
+    prefab: {fileID: 250698080126614934, guid: fcec1da2f30747e5b023e100d6c1b24f, type: 3}
+  - variantId: 18
+    prefab: {fileID: 1703978040391979184, guid: 75deeeb21b1e4bd580045d10a91a3edf, type: 3}
+  - variantId: 19
+    prefab: {fileID: 189697955806324128, guid: 45e7453646b84863b1538b794ec53c41, type: 3}
+  shadowMaterial: {fileID: 2100000, guid: 80d0724b1b234f088e72a4f81f0811c7, type: 2}
+  mixedVariantChance: 0.2
+  randomCellRotationY: 0
+  preClearSelectionMode: 0
+  preClearAnimation: {fileID: 11400000, guid: cb789ded1e72ad8469de7667c7086b0e, type: 2}
+  preClearAnimationPool: []
+  placementAnimation: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
+  placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
+  placeSound: 2
+  signatureCombos: []
+  allowGenericClears: 1
+  signatureChance: 0
+  globalClearDatabase: {fileID: 11400000, guid: 3f89e24681ab456489de789012345678, type: 2}
+  clearStagger: {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+  fallbackClearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
+  clearVFX: {fileID: 0}
+  clearSound: 3
+  explosionSound: {fileID: 0}
+  explosionSoundVolume: 0.8
