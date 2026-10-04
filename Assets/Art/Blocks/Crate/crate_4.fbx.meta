@@ -9,6 +9,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Non Metallic
     second: {fileID: 2100000, guid: ce64e0b9d1afd9d46b45bd840244f2f6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Non Metallic.002
+    second: {fileID: 2100000, guid: ce64e0b9d1afd9d46b45bd840244f2f6, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

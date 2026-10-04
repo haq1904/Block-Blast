@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 4a64ce255e45e5246959f12ca69cc8e7
+guid: bfe0500d9201415ca95aff792f9da64d
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -7,13 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Non Metallic
-    second: {fileID: 2100000, guid: ce64e0b9d1afd9d46b45bd840244f2f6, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Non Metallic.003
-    second: {fileID: 2100000, guid: ce64e0b9d1afd9d46b45bd840244f2f6, type: 2}
+      name: PetMat
+    second: {fileID: 2100000, guid: 0bbea4f4f8b547fbad6c5cb6142d2a51, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -81,7 +76,7 @@ ModelImporter:
     useFileScale: 1
     strictVertexDataChecks: 0
   tangentSpace:
-    normalSmoothAngle: 60
+    normalSmoothAngle: 61
     normalImportMode: 0
     tangentImportMode: 3
     normalCalculationMode: 4
@@ -107,14 +102,7 @@ ModelImporter:
     hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
-  autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 2
-  humanoidOversampling: 1
-  avatarSetup: 0
-  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
-  importBlendShapeDeformPercent: 1
-  remapMaterialsIfMaterialImportModeIsNone: 0
-  additionalBone: 0
-  userData: 
+  autoGenerateAvatarMappingIfEmpty: 0
+  cleanUnusedClippingNode: 0
   assetBundleName: 
   assetBundleVariant: 
