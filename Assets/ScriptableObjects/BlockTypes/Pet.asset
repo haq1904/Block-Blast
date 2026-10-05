@@ -59,10 +59,21 @@ MonoBehaviour:
   preClearSelectionMode: 0
   preClearAnimation: {fileID: 11400000, guid: cb789ded1e72ad8469de7667c7086b0e, type: 2}
   preClearAnimationPool: []
-  placementAnimation: {fileID: 11400000, guid: b020bfed0b564004ea6f657b451bdf10, type: 2}
+  placementAnimationSelectionMode: 1
+  placementAnimation: {fileID: 11400000, guid: 3280fa70a610cdd4480e6374b23fcd93, type: 2}
+  placementAnimationPool:
+  - {fileID: 11400000, guid: 46adfb8fb9163f54d828a09c90b5fac2, type: 2}
+  - {fileID: 11400000, guid: bc28db14142716f4888390d50f3a6d1f, type: 2}
+  - {fileID: 11400000, guid: 71124c8d6c335de4cb8a432c8a2abdfc, type: 2}
+  - {fileID: 11400000, guid: 3280fa70a610cdd4480e6374b23fcd93, type: 2}
   placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placeSound: 2
-  signatureCombos: []
+  signatureCombos:
+  - comboName: 
+    animation: {fileID: 0}
+    staggers: []
+    sweepers: []
+    weight: 1
   allowGenericClears: 1
   signatureChance: 0
   globalClearDatabase: {fileID: 11400000, guid: 3f89e24681ab456489de789012345678, type: 2}
