@@ -321,6 +321,9 @@ public class GridView : MonoBehaviour
         CancelCurrentPreClearEffects();
 
         var theme = blockService?.CurrentBlockType;
+        PlacementAnimationSO activePlacementAnimation = theme != null
+            ? theme.GetPlacementAnimation()
+            : null;
         List<Vector3> cellWorldPositions = new List<Vector3>(positions.Count);
         Vector3 worldCenterSum = Vector3.zero;
 
@@ -339,10 +342,7 @@ public class GridView : MonoBehaviour
                 block.transform.rotation = cellRot;
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
 
-                if (theme != null && theme.placementAnimation != null)
-                {
-                    theme.placementAnimation.Apply(block.transform);
-                }
+                activePlacementAnimation?.Apply(block.transform);
             }
         }
 

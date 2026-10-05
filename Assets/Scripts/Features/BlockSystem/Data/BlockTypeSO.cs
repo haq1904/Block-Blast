@@ -7,6 +7,12 @@ public enum PreClearSelectionMode
     RandomFromList  // Randomly picks from preClearAnimationPool
 }
 
+public enum PlacementAnimationSelectionMode
+{
+    Single,
+    RandomFromList
+}
+
 [CreateAssetMenu(fileName = "NewBlockType", menuName = "Block Blast/Block Type")]
 public class BlockTypeSO : ScriptableObject
 {
@@ -40,8 +46,14 @@ public class BlockTypeSO : ScriptableObject
     public PreClearAnimationSO[] preClearAnimationPool;
 
     [Header("Placement Feedback")]
-    [Tooltip("Custom placement impact animation executed on each cell when placed on the board.")]
+    [Tooltip("Selection mode: Single fixed animation or Random from list.")]
+    public PlacementAnimationSelectionMode placementAnimationSelectionMode = PlacementAnimationSelectionMode.Single;
+
+    [Tooltip("Single placement animation used when selection mode is Single (also acts as fallback).")]
     public PlacementAnimationSO placementAnimation;
+
+    [Tooltip("Pool of placement animations randomly chosen when selection mode is RandomFromList.")]
+    public PlacementAnimationSO[] placementAnimationPool;
 
     [Tooltip("Custom particle system effects spawned at cell positions and exposed edges when blocks of this type are placed.")]
     public PlacementVFXSO placementVFX;
@@ -190,6 +202,52 @@ public class BlockTypeSO : ScriptableObject
             }
         }
         return preClearAnimation;
+    }
+
+    /// <summary>
+    /// Resolves the placement animation for one placed piece. Null pool entries are ignored,
+    /// and placementAnimation is used as the fallback when the pool has no valid entries.
+    /// </summary>
+    public PlacementAnimationSO GetPlacementAnimation()
+    {
+        if (placementAnimationSelectionMode != PlacementAnimationSelectionMode.RandomFromList ||
+            placementAnimationPool == null || placementAnimationPool.Length == 0)
+        {
+            return placementAnimation;
+        }
+
+        int validCount = 0;
+        for (int i = 0; i < placementAnimationPool.Length; i++)
+        {
+            if (placementAnimationPool[i] != null)
+            {
+                validCount++;
+            }
+        }
+
+        if (validCount == 0)
+        {
+            return placementAnimation;
+        }
+
+        int selectedValidIndex = UnityEngine.Random.Range(0, validCount);
+        for (int i = 0; i < placementAnimationPool.Length; i++)
+        {
+            PlacementAnimationSO candidate = placementAnimationPool[i];
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (selectedValidIndex == 0)
+            {
+                return candidate;
+            }
+
+            selectedValidIndex--;
+        }
+
+        return placementAnimation;
     }
 
     /// <summary>
