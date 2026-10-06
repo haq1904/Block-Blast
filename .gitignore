@@ -111,3 +111,8 @@ InitTestScene*.unity*
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Local tools and implementation plans
+/[Tt]ools/
+/[Pp]lans/
+
