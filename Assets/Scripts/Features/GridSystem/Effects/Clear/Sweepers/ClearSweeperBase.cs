@@ -258,4 +258,72 @@ public abstract class ClearSweeperBase : ScriptableObject
         GameObject sweeper,
         ClearTimelineContext timeline,
         IPoolService poolService);
+
+    /// <summary>
+    /// Resolves the shared world-space exit target for sweepers and escaping visuals.
+    /// By default, projects along the sweep line past the end cell.
+    /// </summary>
+    public virtual Vector3 ResolveVisualExitPosition(ClearTimelineContext timeline)
+    {
+        if (timeline == null) return Vector3.zero;
+        Vector3 dir = timeline.direction;
+        Vector3 forwardVec = dir * forwardOffset;
+        Vector3 cutEndPos = timeline.endPos + dir * 0.5f + forwardVec + Vector3.up * heightOffset;
+        return cutEndPos + dir * 1.0f;
+    }
+
+    /// <summary>
+    /// Computes the exit destination outside the camera's viewport frustum, or falls back to distance along line.
+    /// Reusable across any linear or projectile sweeper.
+    /// </summary>
+    public static Vector3 ComputeViewportExitPosition(
+        ClearTimelineContext timeline,
+        float forwardOffset,
+        float heightOffset,
+        bool exitOutsideViewport,
+        float exitViewportPadding,
+        float fallbackExitDistance)
+    {
+        if (timeline == null) return Vector3.zero;
+
+        Vector3 dir = timeline.direction;
+        Vector3 forwardVec = dir * forwardOffset;
+        Vector3 cutEndPos = timeline.endPos + dir * 0.5f + forwardVec + Vector3.up * heightOffset;
+
+        Camera cam = timeline.viewCamera;
+        if (exitOutsideViewport && cam != null)
+        {
+            Vector3 p0 = cutEndPos;
+            Vector3 p1 = p0 + dir;
+            Vector3 vp0 = cam.WorldToViewportPoint(p0);
+            Vector3 vp1 = cam.WorldToViewportPoint(p1);
+
+            if (vp0.z > 0.01f && vp1.z > 0.01f)
+            {
+                Vector2 dir2D = new Vector2(vp1.x - vp0.x, vp1.y - vp0.y);
+                if (dir2D.sqrMagnitude > 0.0001f)
+                {
+                    float minBound = -exitViewportPadding;
+                    float maxBound = 1f + exitViewportPadding;
+
+                    float tExit = float.MaxValue;
+                    if (dir2D.x > 0.0001f) tExit = Mathf.Min(tExit, (maxBound - vp0.x) / dir2D.x);
+                    else if (dir2D.x < -0.0001f) tExit = Mathf.Min(tExit, (minBound - vp0.x) / dir2D.x);
+
+                    if (dir2D.y > 0.0001f) tExit = Mathf.Min(tExit, (maxBound - vp0.y) / dir2D.y);
+                    else if (dir2D.y < -0.0001f) tExit = Mathf.Min(tExit, (minBound - vp0.y) / dir2D.y);
+
+                    if (tExit > 0f && tExit < 100f)
+                    {
+                        Vector3 exitVp = new Vector3(vp0.x + dir2D.x * tExit, vp0.y + dir2D.y * tExit, vp0.z);
+                        Vector3 worldExit = cam.ViewportToWorldPoint(exitVp);
+                        worldExit.y = cutEndPos.y;
+                        return worldExit;
+                    }
+                }
+            }
+        }
+
+        return cutEndPos + dir * fallbackExitDistance;
+    }
 }

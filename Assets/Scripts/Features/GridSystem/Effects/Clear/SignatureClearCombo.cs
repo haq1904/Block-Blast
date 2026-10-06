@@ -8,6 +8,9 @@ using UnityEngine;
 [Serializable]
 public class SweeperOption
 {
+    [Tooltip("Optional variant identifier or display name (e.g. 'Boomerang Bone', 'Tennis Ball').")]
+    public string variantId;
+
     [Tooltip("Motion choreography profile (Chop & Drag, Spin & Cut, etc.).")]
     public ClearSweeperBase sweeper;
 

@@ -10,6 +10,16 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewSpinCutSweeper", menuName = "Block Blast/Effects/Clear Sweeper/Spin & Cut Sweeper")]
 public class SpinCutSweeperSO : ClearSweeperBase
 {
+    public enum FlightOrientation
+    {
+        SweepAligned = 0,
+        Horizontal = 1
+    }
+
+    [Header("Flight Orientation")]
+    [Tooltip("Controls how the sweeper root is oriented during flight.")]
+    public FlightOrientation flightOrientation = FlightOrientation.SweepAligned;
+
     [Header("Spin Rotation Settings")]
     [Tooltip("Rotations per minute for the rotating visual component.")]
     public float rpm = 1200f;
@@ -23,6 +33,29 @@ public class SpinCutSweeperSO : ClearSweeperBase
 
     [Tooltip("Shake vibrato frequency for high-speed mechanical jitter.")]
     public int shakeVibrato = 40;
+
+    [Header("Viewport Exit Settings")]
+    [Tooltip("If true, computes exit destination outside the camera's viewport frustum.")]
+    public bool exitOutsideViewport = false;
+
+    [Range(0f, 0.25f)]
+    [Tooltip("Viewport margin padding beyond [0, 1] screen bounds (e.g. 0.1 = 10% outside screen).")]
+    public float exitViewportPadding = 0.1f;
+
+    [Min(0.5f)]
+    [Tooltip("Fallback distance in world units past the line if camera or viewport projection is unavailable.")]
+    public float fallbackExitDistance = 1.5f;
+
+    public override Vector3 ResolveVisualExitPosition(ClearTimelineContext timeline)
+    {
+        return ComputeViewportExitPosition(
+            timeline,
+            forwardOffset,
+            heightOffset,
+            exitOutsideViewport,
+            exitViewportPadding,
+            fallbackExitDistance);
+    }
 
     public override Sequence AnimateSweeperSequence(
         GameObject sweeper,
@@ -41,11 +74,11 @@ public class SpinCutSweeperSO : ClearSweeperBase
         Vector3 cutStartPos = startCellPos - dir * 0.5f + forwardVec + Vector3.up * heightOffset;
         Vector3 spawnPos = cutStartPos - dir * spawnDistance + Vector3.up * dropHeight;
         Vector3 cutEndPos = endCellPos + dir * 0.5f + forwardVec + Vector3.up * heightOffset;
-        Vector3 exitPos = cutEndPos + dir * 1.0f + Vector3.up * heightOffset;
+        Vector3 exitPos = timeline.visualExitPosition != Vector3.zero
+            ? timeline.visualExitPosition
+            : ResolveVisualExitPosition(timeline);
 
-        Quaternion sweeperRot = Mathf.Abs(dir.z) > Mathf.Abs(dir.x)
-            ? Quaternion.Euler(90f, 90f, 0f)
-            : Quaternion.Euler(90f, 0f, 0f);
+        Quaternion sweeperRot = ResolveFlightRotation(dir);
 
         sweeper.transform.position = spawnPos;
         sweeper.transform.rotation = sweeperRot;
@@ -60,8 +93,8 @@ public class SpinCutSweeperSO : ClearSweeperBase
             visual = sweeper.transform;
         }
 
-        visual.localPosition = Vector3.zero;
-        visual.localRotation = Quaternion.identity;
+        Vector3 restLocalPos = visual.localPosition;
+        Quaternion restLocalRot = visual.localRotation;
         PrepareSweeperForEntry(sweeper);
 
         Sequence seq = DOTween.Sequence();
@@ -119,12 +152,25 @@ public class SpinCutSweeperSO : ClearSweeperBase
             ResetSweeperVisualState(sweeper);
             if (visual != null && visual != sweeper.transform)
             {
-                visual.localPosition = Vector3.zero;
-                visual.localRotation = Quaternion.identity;
+                visual.localPosition = restLocalPos;
+                visual.localRotation = restLocalRot;
             }
             poolService?.ReturnObjectToPool(sweeper, PoolType.GameObject);
         });
 
         return seq;
     }
+
+    private Quaternion ResolveFlightRotation(Vector3 dir)
+    {
+        if (flightOrientation == FlightOrientation.Horizontal)
+        {
+            return Quaternion.identity;
+        }
+
+        return Mathf.Abs(dir.z) > Mathf.Abs(dir.x)
+            ? Quaternion.Euler(90f, 90f, 0f)
+            : Quaternion.Euler(90f, 0f, 0f);
+    }
 }
+
