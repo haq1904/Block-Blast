@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b02c3fd33024be24a9e97c66874892c4, type: 3}
+  m_Name: BoomerangBoneFlightSweeper
+  m_EditorClassIdentifier: BlockBlast.Feature::SpinCutSweeperSO
+  spawnDistance: 1
+  forwardOffset: 0.26
+  heightOffset: 1.58
+  dropHeight: 0.35
+  entryDuration: 0.12
+  exitDuration: 0.14
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
+  entrySound: {fileID: 0}
+  sweepSound: {fileID: 8300000, guid: 78cb50ab063a74145ad75b195e395ae0, type: 3}
+  exitSound: {fileID: 0}
+  soundVolume: 0.55
+  flightOrientation: 1
+  rpm: 480
+  rotationAxis: {x: 0, y: 1, z: 0}
+  shakeStrength: 0
+  shakeVibrato: 40
+  exitOutsideViewport: 1
+  exitViewportPadding: 0.1
+  fallbackExitDistance: 1.5

@@ -69,17 +69,72 @@ MonoBehaviour:
   placementVFX: {fileID: 11400000, guid: 7161da399deaece42addc7c48325052d, type: 2}
   placeSound: 2
   signatureCombos:
-  - comboName: 
-    animation: {fileID: 0}
-    staggers: []
-    sweepers: []
+  - comboName: Pet Fetch
+    animation: {fileID: 11400000, guid: dde73d89d1b1f2c4688081bd1e1d3966, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: 0a5f6bcbe4ff42f2887aa9fae60e4a97, type: 2}
+    - {fileID: 11400000, guid: 4d868f14a9ae47f1863b207b9d0b1578, type: 2}
+    sweepers:
+    - variantId: frisbee
+      sweeper: {fileID: 11400000, guid: 9bbbb473b7057a14798976b9e3e91721, type: 2}
+      propPrefabs:
+      - {fileID: 9044548056696304216, guid: 6bb14e32f1128c74cb19694fc2d1caf2, type: 3}
+    - variantId: boomerang_bone
+      sweeper: {fileID: 11400000, guid: 43577fdab9d2f00408b07febf79b50e0, type: 2}
+      propPrefabs:
+      - {fileID: 4124316580554777363, guid: 04c4e29e33f141d42943060732cafbbb, type: 3}
+    - variantId: tennis_ball
+      sweeper: {fileID: 11400000, guid: 542ac85961ca5184ca8d9e9a8f78d961, type: 2}
+      propPrefabs:
+      - {fileID: 6852729750542936294, guid: 19195824f687a67488a7a168c1d5bf0d, type: 3}
+    - variantId: squeaky_bone
+      sweeper: {fileID: 11400000, guid: f0c5f88f915eb064f935e0012d537ef8, type: 2}
+      propPrefabs:
+      - {fileID: 3114826998770070623, guid: 3d1985c43721649419312348a1dedc7c, type: 3}
+    - variantId: magic_pet_treat
+      sweeper: {fileID: 11400000, guid: 13d0bfabc866d2d4191cd363c0589d5a, type: 2}
+      propPrefabs:
+      - {fileID: 2621079736233899209, guid: 5bf0d368b885e4b4b8769bfce4569e88, type: 3}
+    weight: 100
+  - comboName: Bubble Rescue
+    animation: {fileID: 11400000, guid: 097400cc39949104d89d3fa420a48b47, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+    - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
+    sweepers:
+    - variantId: 
+      sweeper: {fileID: 11400000, guid: f0ade313b6babf3429b9cfb1e0660412, type: 2}
+      propPrefabs:
+      - {fileID: 2923645166486569779, guid: 4b77b1d3790bc5a4fbb370339c753699, type: 3}
+    weight: 1
+  - comboName: Pet Carrier Pickup
+    animation: {fileID: 11400000, guid: 6208e92bd6587bf49a50044adcaacd6d, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+    - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
+    sweepers:
+    - variantId: 
+      sweeper: {fileID: 11400000, guid: ea56ca2f3857ed34b883dc4ab1017ed7, type: 2}
+      propPrefabs:
+      - {fileID: 4328694666318274545, guid: b74024e36d32e48468bdbfc2e20739cc, type: 3}
+    weight: 1
+  - comboName: Yarn Ball Mayhem
+    animation: {fileID: 11400000, guid: 0ab339a882acf2842806d87dc02cf03a, type: 2}
+    staggers:
+    - {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
+    - {fileID: 11400000, guid: fce7fb33d7b9cff4f9e6869566515238, type: 2}
+    sweepers:
+    - variantId: 
+      sweeper: {fileID: 11400000, guid: 289cc76d69520fc4ea1ed71819f0ee3a, type: 2}
+      propPrefabs:
+      - {fileID: 4113864679236099243, guid: 4d5f1420bc067ad4d82947ddb80fbce6, type: 3}
     weight: 1
   allowGenericClears: 1
-  signatureChance: 0
+  signatureChance: 1
   globalClearDatabase: {fileID: 11400000, guid: 3f89e24681ab456489de789012345678, type: 2}
   clearStagger: {fileID: 11400000, guid: 7a82647180bc40a4abffce37c76a911e, type: 2}
   fallbackClearAnimation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
   clearVFX: {fileID: 0}
   clearSound: 3
-  explosionSound: {fileID: 0}
-  explosionSoundVolume: 0.8
+  explosionSound: {fileID: 8300000, guid: bce0abe7f6c3d2b46b1fbd5450165d11, type: 3}
+  explosionSoundVolume: 0.36

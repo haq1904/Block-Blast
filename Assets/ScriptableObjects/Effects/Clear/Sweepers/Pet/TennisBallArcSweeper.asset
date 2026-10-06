@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01eb7248d177bee4c92262de791a65d5, type: 3}
+  m_Name: TennisBallArcSweeper
+  m_EditorClassIdentifier: BlockBlast.Feature::ArcBounceSweeperSO
+  spawnDistance: 1
+  forwardOffset: 0.2
+  heightOffset: 1.58
+  dropHeight: 0.35
+  entryDuration: 0.15
+  exitDuration: 0.15
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
+  entrySound: {fileID: 0}
+  sweepSound: {fileID: 8300000, guid: 78cb50ab063a74145ad75b195e395ae0, type: 3}
+  exitSound: {fileID: 0}
+  soundVolume: 0.55
+  arcHeight: 0.55
+  arcDuration: 0.15
+  bounceCount: 2
+  bounceHeight: 0.18
+  bounceDuration: 0.1
+  arcEase: 4
+  spinRpm: 720
+  spinAxis: {x: 1, y: 0, z: 0}
+  exitOutsideViewport: 1
+  exitViewportPadding: 0.1
+  fallbackExitDistance: 1.5
