@@ -41,6 +41,16 @@ public class ClearTimelineContext
     /// </summary>
     public GameObject overridePrefab;
 
+    /// <summary>
+    /// Active scene camera used for viewport calculations during exit sweeps.
+    /// </summary>
+    public Camera viewCamera;
+
+    /// <summary>
+    /// Shared world-space exit target resolved outside the viewport.
+    /// </summary>
+    public Vector3 visualExitPosition;
+
     public CellWaypoint FirstWaypoint => waypoints != null && waypoints.Count > 0 ? waypoints[0] : default;
     public CellWaypoint LastWaypoint => waypoints != null && waypoints.Count > 0 ? waypoints[waypoints.Count - 1] : default;
 }

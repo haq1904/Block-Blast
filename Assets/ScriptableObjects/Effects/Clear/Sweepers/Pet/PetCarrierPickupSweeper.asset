@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 048559d6d195c9745a5a300b8642db5d, type: 3}
+  m_Name: PetCarrierPickupSweeper
+  m_EditorClassIdentifier: BlockBlast.Feature::PetCarrierPickupSweeperSO
+  spawnDistance: 1
+  forwardOffset: 0
+  heightOffset: 0.05
+  dropHeight: 0.25
+  entryDuration: 0.14
+  exitDuration: 0.14
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
+  entrySound: {fileID: 0}
+  sweepSound: {fileID: 8300000, guid: b7340069f32c3534096fdb1010df0a4c, type: 3}
+  exitSound: {fileID: 0}
+  soundVolume: 0.45
+  bobHeight: 0.035
+  bobCycles: 3
+  doorOpenAngle: 55
+  wheelRotationsPerUnit: 0.7

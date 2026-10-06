@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -7,6 +8,30 @@ public enum ClearStaggerSelectionMode
 {
     Single,         // Uses single clearStagger
     RandomFromList  // Randomly picks from clearStaggerPool
+}
+
+/// <summary>
+/// Payload decoupling gameplay release (making the cell placeable immediately)
+/// from visual completion (finishing exit/fade animations before returning the object to pool).
+/// </summary>
+public readonly struct ClearAnimationLifecycle
+{
+    public readonly Action onGameplayRelease;
+    public readonly Action onVisualComplete;
+
+    public ClearAnimationLifecycle(Action onGameplayRelease, Action onVisualComplete)
+    {
+        this.onGameplayRelease = onGameplayRelease;
+        this.onVisualComplete = onVisualComplete;
+    }
+
+    public void ReleaseGameplay() => onGameplayRelease?.Invoke();
+    public void CompleteVisual() => onVisualComplete?.Invoke();
+    public void ReleaseAndComplete()
+    {
+        ReleaseGameplay();
+        CompleteVisual();
+    }
 }
 
 /// <summary>
@@ -21,4 +46,7 @@ public struct ClearCellContext
     public int totalInLine;           // Total cells in this line (typically 8)
     public float delay;               // Calculated stagger delay in seconds
     public Vector3 placementOrigin;   // World position of the trigger block that caused the clear
+    public Vector3 sweepDirection;    // Normalized world-space direction followed by the active line sweeper
+    public Vector3 visualExitPosition; // Shared world-space destination outside the viewport for exiting props/visuals
 }
+

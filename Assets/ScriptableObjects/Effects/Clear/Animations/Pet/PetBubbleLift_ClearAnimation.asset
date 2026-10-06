@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d63712838af891948b7bc0518f650bee, type: 3}
+  m_Name: PetBubbleLift_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::PetBubbleLiftClearAnimationSO
+  useLayer1_Burst: 1
+  useLayer2_Dynamics: 1
+  useLayer3_Debris: 0
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 2976441079628754979, guid: 48da9927e744bc245a3dab1d2d21bef4, type: 3}
+  layer1_RandomizeScale: 1
+  layer1_ScaleRange: {x: 0.9, y: 1.15}
+  layer1_RandomizeCount: 0
+  layer1_CountRange: {x: 5, y: 10}
+  layer2_DynamicsPrefab: {fileID: 6959345134386703794, guid: 249bb634cdbf9d94a985b51a76e9bba2, type: 3}
+  layer2_RandomizeScale: 1
+  layer2_ScaleRange: {x: 0.9, y: 1.15}
+  layer2_RandomizeCount: 0
+  layer2_CountRange: {x: 3, y: 6}
+  layer3_DebrisPrefab: {fileID: 0}
+  layer3_RandomizeScale: 1
+  layer3_ScaleRange: {x: 0.85, y: 1.25}
+  layer3_RandomizeCount: 1
+  layer3_CountRange: {x: 8, y: 14}
+  randomYawRotation: 1
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  syncVfxFlashColor: 1
+  bubbleShellPrefab: {fileID: 6334543568072244152, guid: b8d4627151a256b47a9b8b2219c2a52b, type: 3}
+  captureDuration: 0.07
+  captureScale: {x: 1.04, y: 0.9, z: 1.04}
+  liftDuration: 0.2
+  liftHeight: 0.65
+  swayDistance: 0.05
+  liftedScale: 0.92
+  liftYaw: 20
+  popDuration: 0.05
+  shellPopScale: 1.12
+  flashColor: {r: 1, g: 1, b: 1, a: 1}

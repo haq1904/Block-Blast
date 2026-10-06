@@ -49,6 +49,7 @@ public class GridView : MonoBehaviour
     private IPoolService poolService;
     private IBlockService blockService;
     private ISoundFXService soundService;
+    private Camera mainCamera;
 
     [Header("Line Clear Timing")]
     [Tooltip("Delay in seconds after block placement before full lines explode, ensuring player sees the block placed.")]
@@ -58,6 +59,7 @@ public class GridView : MonoBehaviour
 
     private void Start()
     {
+        mainCamera = Camera.main;
         gridService = ServiceLocator.Get<IGridService>();
         poolService = ServiceLocator.Get<IPoolService>();
         blockService = ServiceLocator.Get<IBlockService>();
@@ -412,7 +414,15 @@ public class GridView : MonoBehaviour
                 {
                     TryQueueCellItem(col, row, col, 8, rowCells);
                 }
-                stagger?.Play(rowCells, clearEffect, sweeper, propPrefab, poolService, ReleaseCellOnGrid);
+                stagger?.Play(
+                    lineCells: rowCells,
+                    clearAnimation: clearEffect,
+                    sweeperOverride: sweeper,
+                    propPrefabOverride: propPrefab,
+                    poolService: poolService,
+                    onCellGameplayReleased: ReleaseCellForPlacement,
+                    onCellVisualCompleted: CompleteCellVisual,
+                    viewCamera: mainCamera);
             }
         }
 
@@ -426,7 +436,15 @@ public class GridView : MonoBehaviour
                 {
                     TryQueueCellItem(col, row, row, 8, colCells);
                 }
-                stagger?.Play(colCells, clearEffect, sweeper, propPrefab, poolService, ReleaseCellOnGrid);
+                stagger?.Play(
+                    lineCells: colCells,
+                    clearAnimation: clearEffect,
+                    sweeperOverride: sweeper,
+                    propPrefabOverride: propPrefab,
+                    poolService: poolService,
+                    onCellGameplayReleased: ReleaseCellForPlacement,
+                    onCellVisualCompleted: CompleteCellVisual,
+                    viewCamera: mainCamera);
             }
         }
 
@@ -478,9 +496,13 @@ public class GridView : MonoBehaviour
         });
     }
 
-    private void ReleaseCellOnGrid(Vector2Int gridPos)
+    private void ReleaseCellForPlacement(Vector2Int gridPos)
     {
         gridService?.ReleaseClearingCell(gridPos);
+    }
+
+    private void CompleteCellVisual(Vector2Int gridPos)
+    {
         for (int i = activeClearingBlocks.Count - 1; i >= 0; i--)
         {
             if (activeClearingBlocks[i].gridPos == gridPos)

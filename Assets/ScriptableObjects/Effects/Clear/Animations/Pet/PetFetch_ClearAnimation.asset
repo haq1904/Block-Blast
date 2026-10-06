@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7d002bb4ab2afa44a76e691df4ac607, type: 3}
+  m_Name: PetFetch_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::PetFetchClearAnimationSO
+  useLayer1_Burst: 1
+  useLayer2_Dynamics: 1
+  useLayer3_Debris: 0
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 4547765504258153688, guid: 8d71a04cfe20f5a46bae34ee69adbfc6, type: 3}
+  layer1_RandomizeScale: 1
+  layer1_ScaleRange: {x: 0.9, y: 1.15}
+  layer1_RandomizeCount: 0
+  layer1_CountRange: {x: 5, y: 10}
+  layer2_DynamicsPrefab: {fileID: 6959345134386703794, guid: 249bb634cdbf9d94a985b51a76e9bba2, type: 3}
+  layer2_RandomizeScale: 1
+  layer2_ScaleRange: {x: 0.9, y: 1.15}
+  layer2_RandomizeCount: 0
+  layer2_CountRange: {x: 3, y: 6}
+  layer3_DebrisPrefab: {fileID: 0}
+  layer3_RandomizeScale: 1
+  layer3_ScaleRange: {x: 0.85, y: 1.25}
+  layer3_RandomizeCount: 1
+  layer3_CountRange: {x: 8, y: 14}
+  randomYawRotation: 1
+  flashColor: {r: 1, g: 0.55, b: 0.25, a: 1}
+  syncVfxFlashColor: 1
+  noticeDuration: 0.04
+  noticeLeanAngle: 5
+  noticeScale: {x: 0.98, y: 1.03, z: 0.98}
+  crouchDuration: 0.2
+  crouchScale: {x: 1.08, y: 0.78, z: 1.08}
+  crouchDrop: 0.03
+  followForwardDistance: 0.3
+  leapTiltAngle: 17.8
+  leapScale: {x: 0.86, y: 1.18, z: 0.86}
+  gameplayReleaseYOffset: 1
+  releaseFlightDuration: 0.17
+  followFlightDuration: 0.34
+  fadeOutDuration: 0.16
+  followBehindDistance: 0.32
+  exitHeightOffset: 0.2
+  exitScale: 0.75
+  opaquePetMaterial: {fileID: 2100000, guid: 0bbea4f4f8b547fbad6c5cb6142d2a51, type: 2}
+  fadePetMaterial: {fileID: 2100000, guid: 80d0724b1b234f088e72a4f81f0811c7, type: 2}

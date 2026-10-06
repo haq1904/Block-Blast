@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b5b0e81b5491d04aa792fafc6513eea, type: 3}
+  m_Name: PetYarnTumble_ClearAnimation
+  m_EditorClassIdentifier: BlockBlast.Feature::PetYarnTumbleClearAnimationSO
+  useLayer1_Burst: 1
+  useLayer2_Dynamics: 1
+  useLayer3_Debris: 1
+  useShaderFeedback: 1
+  layer1_BurstPrefab: {fileID: 4547765504258153688, guid: 8d71a04cfe20f5a46bae34ee69adbfc6, type: 3}
+  layer1_RandomizeScale: 1
+  layer1_ScaleRange: {x: 0.9, y: 1.15}
+  layer1_RandomizeCount: 0
+  layer1_CountRange: {x: 5, y: 10}
+  layer2_DynamicsPrefab: {fileID: 6959345134386703794, guid: 249bb634cdbf9d94a985b51a76e9bba2, type: 3}
+  layer2_RandomizeScale: 1
+  layer2_ScaleRange: {x: 0.9, y: 1.15}
+  layer2_RandomizeCount: 0
+  layer2_CountRange: {x: 3, y: 6}
+  layer3_DebrisPrefab: {fileID: 6753455575919091930, guid: d50d3bed49b7e96499b63c1fa624bafc, type: 3}
+  layer3_RandomizeScale: 1
+  layer3_ScaleRange: {x: 0.85, y: 1.25}
+  layer3_RandomizeCount: 1
+  layer3_CountRange: {x: 8, y: 14}
+  randomYawRotation: 1
+  flashColor: {r: 0.72, g: 0.45, b: 1, a: 1}
+  syncVfxFlashColor: 1
+  tugDuration: 0.06
+  tugDistance: 0.05
+  tugScale: {x: 1.08, y: 0.92, z: 1}
+  tumbleDuration: 0.15
+  tumbleDistance: 0.3
+  tumbleHeight: 0.18
+  tumbleDegrees: 150
+  wrapDuration: 0.08
+  endScale: 0.15
+  wrapYaw: 120

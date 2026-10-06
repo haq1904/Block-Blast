@@ -35,7 +35,8 @@ public abstract class ClearStaggerSO : ScriptableObject
     /// <summary>
     /// Executes the complete clear wave for a line of cells with optional sweeper and prop overrides.
     /// Orchestrates sweepers (via ClearTimelineContext), step delays, cell animations, and particle VFX.
-    /// Universal base implementation: any stagger automatically supports sweepers without custom code.
+    /// Supports decoupled lifecycle: onCellGameplayReleased makes cells placeable immediately, while
+    /// onCellVisualCompleted finishes visual exit/cleanup and returns objects to pool.
     /// </summary>
     public virtual void Play(
         List<ClearCellItem> lineCells,
@@ -43,7 +44,9 @@ public abstract class ClearStaggerSO : ScriptableObject
         ClearSweeperBase sweeperOverride,
         GameObject propPrefabOverride,
         IPoolService poolService,
-        Action<Vector2Int> onCellExploded)
+        Action<Vector2Int> onCellGameplayReleased,
+        Action<Vector2Int> onCellVisualCompleted = null,
+        Camera viewCamera = null)
     {
         if (lineCells == null || lineCells.Count == 0) return;
 
@@ -93,20 +96,21 @@ public abstract class ClearStaggerSO : ScriptableObject
 
         bool hasSweeper = sweeperData != null && activePrefab != null && poolService != null && count >= 2;
 
-        float tweenDuration = overrideBlockTweenDuration > 0f
-            ? overrideBlockTweenDuration
-            : (clearAnimation != null ? clearAnimation.PreExplosionDuration : 0f);
+        float contactOffset = clearAnimation != null
+            ? clearAnimation.SweepContactOffset
+            : 0f;
 
         float leadOffset = 0f;
         float firstBlockDelay = 0f;
+        Vector3 resolvedExit = endPos + dir * 1.5f;
 
         if (hasSweeper)
         {
             float preSweepDuration = sweeperData.TotalPreSweepDuration;
             float timeToFirstCenter = preSweepDuration + 0.5f * stepDelay;
 
-            leadOffset = Mathf.Max(0f, tweenDuration - timeToFirstCenter);
-            firstBlockDelay = (timeToFirstCenter + leadOffset) - tweenDuration;
+            leadOffset = Mathf.Max(0f, contactOffset - timeToFirstCenter);
+            firstBlockDelay = Mathf.Max(0f, timeToFirstCenter - contactOffset);
 
             ClearTimelineContext timeline = new ClearTimelineContext
             {
@@ -117,8 +121,12 @@ public abstract class ClearStaggerSO : ScriptableObject
                 totalSweepDuration = totalSweepDuration,
                 leadOffset = leadOffset,
                 firstBlockDelay = firstBlockDelay,
-                overridePrefab = activePrefab
+                overridePrefab = activePrefab,
+                viewCamera = viewCamera
             };
+
+            timeline.visualExitPosition = sweeperData.ResolveVisualExitPosition(timeline);
+            resolvedExit = timeline.visualExitPosition;
 
             sweeperData.Play(timeline, poolService);
         }
@@ -131,6 +139,45 @@ public abstract class ClearStaggerSO : ScriptableObject
             float calculatedDelay = waypoints[i].hitTime;
             float delay = hasSweeper ? (firstBlockDelay + calculatedDelay) : calculatedDelay;
 
+            bool gameplayReleased = false;
+            bool visualCompleted = false;
+
+            Action releaseGameplayOnce = () =>
+            {
+                if (gameplayReleased) return;
+                gameplayReleased = true;
+
+                Vector3 burstPos = cell.gameObject != null ? cell.transform.position : cell.canonicalPos;
+                Quaternion burstRot = cell.gameObject != null ? cell.transform.rotation : Quaternion.identity;
+
+                Play(burstPos, burstRot, poolService);
+                clearAnimation?.PlayExplosionSound();
+                onCellGameplayReleased?.Invoke(cell.gridPos);
+            };
+
+            Action completeVisualOnce = () =>
+            {
+                if (visualCompleted) return;
+                visualCompleted = true;
+
+                if (!gameplayReleased)
+                {
+                    releaseGameplayOnce();
+                }
+
+                if (cell.gameObject != null)
+                {
+                    cell.transform.DOKill();
+                    cell.transform.position = cell.canonicalPos;
+                    cell.transform.rotation = Quaternion.identity;
+                    cell.transform.localScale = Vector3.one;
+
+                    poolService?.ReturnObjectToPool(cell.gameObject);
+                }
+
+                onCellVisualCompleted?.Invoke(cell.gridPos);
+            };
+
             if (clearAnimation != null)
             {
                 ClearCellContext context = new ClearCellContext
@@ -141,43 +188,37 @@ public abstract class ClearStaggerSO : ScriptableObject
                     indexInLine = cell.indexInLine,
                     totalInLine = cell.totalInLine,
                     delay = delay,
-                    placementOrigin = Vector3.zero
+                    placementOrigin = Vector3.zero,
+                    sweepDirection = dir,
+                    visualExitPosition = resolvedExit
                 };
 
-                clearAnimation.Play(cell.transform, context, onExplode: () =>
-                {
-                    Vector3 burstPos = cell.gameObject != null ? cell.transform.position : cell.canonicalPos;
-                    Quaternion burstRot = cell.gameObject != null ? cell.transform.rotation : Quaternion.identity;
+                ClearAnimationLifecycle lifecycle = new ClearAnimationLifecycle(
+                    releaseGameplayOnce,
+                    completeVisualOnce);
 
-                    Play(burstPos, burstRot, poolService);
-                    clearAnimation.PlayExplosionSound();
-
-                    if (cell.gameObject != null)
-                    {
-                        cell.transform.DOKill();
-                        cell.transform.position = cell.canonicalPos;
-                        cell.transform.rotation = Quaternion.identity;
-                        cell.transform.localScale = Vector3.one;
-
-                        poolService?.ReturnObjectToPool(cell.gameObject);
-                    }
-
-                    onCellExploded?.Invoke(cell.gridPos);
-                });
+                clearAnimation.PlayWithLifecycle(cell.transform, context, lifecycle);
             }
             else
             {
-                if (cell.gameObject != null)
-                {
-                    cell.transform.DOKill();
-                    cell.transform.position = cell.canonicalPos;
-                    cell.transform.rotation = Quaternion.identity;
-                    cell.transform.localScale = Vector3.one;
-                    poolService?.ReturnObjectToPool(cell.gameObject);
-                }
-                onCellExploded?.Invoke(cell.gridPos);
+                releaseGameplayOnce();
+                completeVisualOnce();
             }
         }
+    }
+
+    /// <summary>
+    /// Backwards-compatibility overload without split callbacks and viewCamera.
+    /// </summary>
+    public virtual void Play(
+        List<ClearCellItem> lineCells,
+        ClearAnimationSO clearAnimation,
+        ClearSweeperBase sweeperOverride,
+        GameObject propPrefabOverride,
+        IPoolService poolService,
+        Action<Vector2Int> onCellExploded)
+    {
+        Play(lineCells, clearAnimation, sweeperOverride, propPrefabOverride, poolService, onCellExploded, null, null);
     }
 
     /// <summary>

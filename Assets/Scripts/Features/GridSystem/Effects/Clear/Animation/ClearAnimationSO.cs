@@ -89,6 +89,13 @@ public abstract class ClearAnimationSO : ScriptableObject
     public bool syncVfxFlashColor = true;
 
     /// <summary>
+    /// Duration in seconds from animation start until the sweeper/prop touches this cell.
+    /// By default, synchronizes with the explosion climax (PreExplosionDuration).
+    /// Subclasses with multi-phase motion (e.g. PetFetch) can override this to contact earlier.
+    /// </summary>
+    public virtual float SweepContactOffset => PreExplosionDuration;
+
+    /// <summary>
     /// Executes the clear tween animation on the target block transform.
     /// Subclasses must call onExplode when anticipation reaches its climax so particles can burst.
     /// </summary>
@@ -99,6 +106,18 @@ public abstract class ClearAnimationSO : ScriptableObject
         Transform target,
         ClearCellContext context,
         Action onExplode);
+
+    /// <summary>
+    /// Executes the clear animation with explicit split between gameplay release and visual completion.
+    /// Default implementation delegates to Play() and triggers release + complete sequentially at onExplode.
+    /// </summary>
+    public virtual void PlayWithLifecycle(
+        Transform target,
+        ClearCellContext context,
+        ClearAnimationLifecycle lifecycle)
+    {
+        Play(target, context, lifecycle.ReleaseAndComplete);
+    }
 
     /// <summary>
     /// Safety cancellation resetting the transform back to canonical state if disabled mid-animation.

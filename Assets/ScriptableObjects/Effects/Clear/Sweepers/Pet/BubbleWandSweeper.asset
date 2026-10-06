@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b02c3fd33024be24a9e97c66874892c4, type: 3}
+  m_Name: BubbleWandSweeper
+  m_EditorClassIdentifier: BlockBlast.Feature::SpinCutSweeperSO
+  spawnDistance: 1
+  forwardOffset: 0
+  heightOffset: 1
+  dropHeight: 0.25
+  entryDuration: 0.13
+  exitDuration: 0.12
+  enableAlphaFade: 1
+  enableScaleFade: 1
+  fadeInEase: 1
+  fadeOutEase: 5
+  entrySound: {fileID: 0}
+  sweepSound: {fileID: 8300000, guid: 1b465583664377649ade9e78bb6548f0, type: 3}
+  exitSound: {fileID: 0}
+  soundVolume: 0.42
+  rpm: 0
+  rotationAxis: {x: 0, y: 1, z: 0}
+  shakeStrength: 0
+  shakeVibrato: 40
