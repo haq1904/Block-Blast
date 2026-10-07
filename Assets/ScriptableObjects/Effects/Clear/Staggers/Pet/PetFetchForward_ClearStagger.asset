@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 08ce9f2cff23b8048afbe47285af462d, type: 3}
-  m_Name: FrisbeeFetchForward_ClearStagger
+  m_Name: PetFetchForward_ClearStagger
   m_EditorClassIdentifier: SequentialForwardStaggerSO
-  stepDelay: 0.08
+  stepDelay: 0.1
   overrideBlockTweenDuration: 0
   stepParticlePrefabs: []

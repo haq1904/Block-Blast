@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b02c3fd33024be24a9e97c66874892c4, type: 3}
   m_Name: FrisbeeFlightSweeper
   m_EditorClassIdentifier: BlockBlast.Feature::SpinCutSweeperSO
-  spawnDistance: 1
+  spawnDistance: 3
   forwardOffset: 0.24
   heightOffset: 1.58
-  dropHeight: 0.35
-  entryDuration: 0.12
-  exitDuration: 0.12
-  enableAlphaFade: 1
-  enableScaleFade: 1
+  dropHeight: 0
+  entryDuration: 0.32
+  exitDuration: 0.55
+  enableAlphaFade: 0
+  enableScaleFade: 0
   fadeInEase: 1
   fadeOutEase: 5
   entrySound: {fileID: 0}
@@ -31,6 +31,14 @@ MonoBehaviour:
   rotationAxis: {x: 0, y: 1, z: 0}
   shakeStrength: 0
   shakeVibrato: 40
+  enterFromOutsideViewport: 1
+  entryViewportPadding: 0.12
+  entryWorldOvershoot: 0.5
+  fallbackEntryDistance: 3
   exitOutsideViewport: 1
-  exitViewportPadding: 0.1
-  fallbackExitDistance: 1.5
+  exitViewportPadding: 0.15
+  exitWorldOvershoot: 0.65
+  fallbackExitDistance: 4
+  shrinkAfterViewportExit: 1
+  offscreenShrinkDuration: 0.16
+  offscreenShrinkEase: 5

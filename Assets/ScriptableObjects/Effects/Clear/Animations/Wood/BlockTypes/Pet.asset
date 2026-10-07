@@ -79,27 +79,27 @@ MonoBehaviour:
       sweeper: {fileID: 11400000, guid: 9bbbb473b7057a14798976b9e3e91721, type: 2}
       propPrefabs:
       - {fileID: 9044548056696304216, guid: 6bb14e32f1128c74cb19694fc2d1caf2, type: 3}
-      weightPercent: 20
+      weightPercent: 100
     - variantId: boomerang_bone
       sweeper: {fileID: 11400000, guid: 43577fdab9d2f00408b07febf79b50e0, type: 2}
       propPrefabs:
       - {fileID: 4124316580554777363, guid: 04c4e29e33f141d42943060732cafbbb, type: 3}
-      weightPercent: 20
+      weightPercent: 0
     - variantId: tennis_ball
       sweeper: {fileID: 11400000, guid: 542ac85961ca5184ca8d9e9a8f78d961, type: 2}
       propPrefabs:
       - {fileID: 6852729750542936294, guid: 19195824f687a67488a7a168c1d5bf0d, type: 3}
-      weightPercent: 20
+      weightPercent: 0
     - variantId: squeaky_bone
       sweeper: {fileID: 11400000, guid: f0c5f88f915eb064f935e0012d537ef8, type: 2}
       propPrefabs:
       - {fileID: 3114826998770070623, guid: 3d1985c43721649419312348a1dedc7c, type: 3}
-      weightPercent: 20
+      weightPercent: 0
     - variantId: magic_pet_treat
       sweeper: {fileID: 11400000, guid: 13d0bfabc866d2d4191cd363c0589d5a, type: 2}
       propPrefabs:
       - {fileID: 2621079736233899209, guid: 5bf0d368b885e4b4b8769bfce4569e88, type: 3}
-      weightPercent: 20
+      weightPercent: 0
     weight: 100
   - comboName: Bubble Rescue
     animation: {fileID: 11400000, guid: 097400cc39949104d89d3fa420a48b47, type: 2}

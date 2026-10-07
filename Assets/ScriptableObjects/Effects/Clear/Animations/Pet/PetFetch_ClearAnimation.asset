@@ -34,21 +34,36 @@ MonoBehaviour:
   randomYawRotation: 1
   flashColor: {r: 1, g: 0.55, b: 0.25, a: 1}
   syncVfxFlashColor: 1
-  noticeDuration: 0.04
-  noticeLeanAngle: 5
-  noticeScale: {x: 0.98, y: 1.03, z: 0.98}
-  crouchDuration: 0.2
-  crouchScale: {x: 1.08, y: 0.78, z: 1.08}
-  crouchDrop: 0.03
+  reactionDelayAfterPass: 0.05
+  shakeDuration: 0.1213
+  shakeStrength: {x: 5, y: 0, z: 5}
+  shakeVibrato: 12
+  shakeEase: 6
+  reactionHopUpDuration: 0.08
+  reactionHopDownDuration: 0.1
+  reactionHopHeight: 0.12
+  reactionHopUpEase: 6
+  reactionHopDownEase: 5
+  landingScaleY: 0.94
+  landingSettleDuration: 0.05
+  faceLocalAxis: {x: 0, y: 1, z: 0}
+  feetLocalAxis: {x: 0, y: 0, z: -1}
+  maxFaceAlignmentAngle: 90
+  faceTurnSpeed: 360
+  feetGroundAlignment: 1
+  takeoffDuration: 0.15
+  gameplayReleaseDelay: 0.06
   followForwardDistance: 0.3
-  leapTiltAngle: 17.8
+  gameplayReleaseYOffset: 0.5
   leapScale: {x: 0.86, y: 1.18, z: 0.86}
-  gameplayReleaseYOffset: 1
-  releaseFlightDuration: 0.17
-  followFlightDuration: 0.34
-  fadeOutDuration: 0.16
-  followBehindDistance: 0.32
+  takeoffArcHeight: 0.41
+  followMoveSpeed: 5
+  minFollowDuration: 0.32
+  maxFollowDuration: 0.85
+  petExitOvershoot: 0.35
+  followSideOffset: 0.12
+  followLiftOffset: 0.1
+  followEase: 4
   exitHeightOffset: 0.2
-  exitScale: 0.75
-  opaquePetMaterial: {fileID: 2100000, guid: 0bbea4f4f8b547fbad6c5cb6142d2a51, type: 2}
-  fadePetMaterial: {fileID: 2100000, guid: 80d0724b1b234f088e72a4f81f0811c7, type: 2}
+  shrinkOutDuration: 0.18
+  shrinkOutEase: 5
