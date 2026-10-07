@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "PetYarnTumble_ClearAnimation", menuName = "Block Blast/Effects/Grid/Clear/Pet/Yarn Tumble")]
-public class PetYarnTumbleClearAnimationSO : ClearAnimationSO
+public class PetYarnTumbleClearAnimationSO : PetClearAnimationSOBase
 {
     [Header("Tug")]
     [Range(0.02f, 0.2f)] public float tugDuration = 0.06f;
@@ -27,49 +27,48 @@ public class PetYarnTumbleClearAnimationSO : ClearAnimationSO
     {
         if (target == null) return;
 
-        target.DOKill();
-
+        PetAnimationRig rig = ResolveRig(target);
         Vector3 rootPos = context.canonicalPos;
         Quaternion rootRot = context.canonicalRotation;
-        Vector3 direction = ResolveDirection(context.sweepDirection);
-        Vector3 rollAxis = Vector3.Cross(Vector3.up, direction).normalized;
-        float angleJitter = UnityEngine.Random.Range(-15f, 15f);
-        Quaternion tumbleRot = Quaternion.AngleAxis(tumbleDegrees + angleJitter, rollAxis) * rootRot;
-        Quaternion wrapRot = Quaternion.AngleAxis(wrapYaw, Vector3.up) * tumbleRot;
+        PrepareRig(rig, rootPos, rootRot);
 
-        target.position = rootPos;
-        target.rotation = rootRot;
-        target.localScale = Vector3.one;
+        Vector3 direction = ResolveDirection(context.sweepDirection);
+        Vector3 localDir = rig.root.InverseTransformDirection(direction);
+        Vector3 localRollAxis = Vector3.Cross(Vector3.up, localDir).normalized;
+        if (localRollAxis.sqrMagnitude < 0.001f) localRollAxis = Vector3.right;
+
+        float angleJitter = UnityEngine.Random.Range(-15f, 15f);
+        Quaternion tumblePivotRot = rig.pivotRestRotation * Quaternion.AngleAxis(tumbleDegrees + angleJitter, localRollAxis);
+        Quaternion wrapPivotRot = tumblePivotRot * Quaternion.Euler(0f, wrapYaw, 0f);
 
         Sequence seq = DOTween.Sequence();
         seq.SetTarget(target);
         seq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
         if (context.delay > 0f) seq.AppendInterval(context.delay);
 
+        // Tug: root moves in pull direction, pivot performs directional squash
         Vector3 tugPos = rootPos + direction * tugDistance;
         Vector3 directionalTugScale = Mathf.Abs(direction.x) > Mathf.Abs(direction.z)
             ? tugScale
             : new Vector3(tugScale.z, tugScale.y, tugScale.x);
-        seq.Append(target.DOMove(tugPos, tugDuration).SetEase(Ease.InQuad));
-        seq.Join(target.DOScale(directionalTugScale, tugDuration).SetEase(Ease.InQuad));
+        seq.Append(rig.root.DOMove(tugPos, tugDuration).SetEase(Ease.InQuad));
+        seq.Join(rig.pivot.DOScale(Vector3.Scale(rig.pivotRestScale, directionalTugScale), tugDuration).SetEase(Ease.InQuad));
 
+        // Tumble: root lifts and rolls forward, pivot tumbles around its body center
         Vector3 tumblePos = rootPos + direction * tumbleDistance + Vector3.up * tumbleHeight;
-        seq.Append(target.DOMove(tumblePos, tumbleDuration).SetEase(Ease.OutSine));
-        seq.Join(target.DORotateQuaternion(tumbleRot, tumbleDuration).SetEase(Ease.InOutSine));
-        seq.Join(target.DOScale(Vector3.one, tumbleDuration).SetEase(Ease.OutSine));
+        seq.Append(rig.root.DOMove(tumblePos, tumbleDuration).SetEase(Ease.OutSine));
+        seq.Join(rig.pivot.DOLocalRotateQuaternion(tumblePivotRot, tumbleDuration).SetEase(Ease.InOutSine));
+        seq.Join(rig.pivot.DOScale(rig.pivotRestScale, tumbleDuration).SetEase(Ease.OutSine));
 
-        seq.Append(target.DOScale(Vector3.one * endScale, wrapDuration).SetEase(Ease.InBack));
-        seq.Join(target.DORotateQuaternion(wrapRot, wrapDuration).SetEase(Ease.InQuad));
+        // Wrap: pivot wraps around body center and shrinks
+        seq.Append(rig.pivot.DOScale(rig.pivotRestScale * endScale, wrapDuration).SetEase(Ease.InBack));
+        seq.Join(rig.pivot.DOLocalRotateQuaternion(wrapPivotRot, wrapDuration).SetEase(Ease.InQuad));
+
         seq.AppendCallback(() =>
         {
-            SpawnVFX(target, tumblePos, target.rotation);
+            ResetRig(rig, tumblePos, rootRot);
+            SpawnVFX(target, tumblePos, rootRot);
             onExplode?.Invoke();
         });
-    }
-
-    private static Vector3 ResolveDirection(Vector3 direction)
-    {
-        direction.y = 0f;
-        return direction.sqrMagnitude > 0.001f ? direction.normalized : Vector3.forward;
     }
 }

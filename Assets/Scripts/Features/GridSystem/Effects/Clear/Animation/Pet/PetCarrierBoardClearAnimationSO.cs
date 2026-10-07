@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "PetCarrierBoard_ClearAnimation", menuName = "Block Blast/Effects/Grid/Clear/Pet/Carrier Board")]
-public class PetCarrierBoardClearAnimationSO : ClearAnimationSO
+public class PetCarrierBoardClearAnimationSO : PetClearAnimationSOBase
 {
     [Header("Ready")]
     [Range(0.01f, 0.15f)] public float readyDuration = 0.05f;
@@ -27,44 +27,39 @@ public class PetCarrierBoardClearAnimationSO : ClearAnimationSO
     {
         if (target == null) return;
 
-        target.DOKill();
-
+        PetAnimationRig rig = ResolveRig(target);
         Vector3 rootPos = context.canonicalPos;
         Quaternion rootRot = context.canonicalRotation;
-        Vector3 direction = ResolveDirection(context.sweepDirection);
-        Vector3 leanAxis = Vector3.Cross(Vector3.up, direction).normalized;
-        Quaternion readyRot = Quaternion.AngleAxis(readyLeanAngle, leanAxis) * rootRot;
-        Quaternion boardRot = Quaternion.AngleAxis(boardTiltAngle, leanAxis) * rootRot;
+        PrepareRig(rig, rootPos, rootRot);
 
-        target.position = rootPos;
-        target.rotation = rootRot;
-        target.localScale = Vector3.one;
+        Vector3 direction = ResolveDirection(context.sweepDirection);
+        Quaternion readyPivotRot = CalculatePivotLeanRotation(rig.root, rig.pivotRestRotation, direction, readyLeanAngle);
+        Quaternion boardPivotRot = CalculatePivotLeanRotation(rig.root, rig.pivotRestRotation, direction, boardTiltAngle);
 
         Sequence seq = DOTween.Sequence();
         seq.SetTarget(target);
         seq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
         if (context.delay > 0f) seq.AppendInterval(context.delay);
 
-        seq.Append(target.DORotateQuaternion(readyRot, readyDuration).SetEase(Ease.OutSine));
+        // Ready: pivot leans anticipatorily
+        seq.Append(rig.pivot.DOLocalRotateQuaternion(readyPivotRot, readyDuration).SetEase(Ease.OutSine));
 
+        // Hop: root moves in world arc, pivot stretches
         Vector3 hopPos = rootPos + direction * hopForwardDistance + Vector3.up * hopHeight;
-        seq.Append(target.DOMove(hopPos, hopDuration).SetEase(Ease.OutQuad));
-        seq.Join(target.DOScale(hopScale, hopDuration).SetEase(Ease.OutQuad));
+        seq.Append(rig.root.DOMove(hopPos, hopDuration).SetEase(Ease.OutQuad));
+        seq.Join(rig.pivot.DOScale(Vector3.Scale(rig.pivotRestScale, hopScale), hopDuration).SetEase(Ease.OutQuad));
 
+        // Board: root moves to board level, pivot tilts and shrinks into carrier
         Vector3 boardPos = rootPos + direction * boardForwardDistance + Vector3.up * 0.12f;
-        seq.Append(target.DOMove(boardPos, boardDuration).SetEase(Ease.InQuad));
-        seq.Join(target.DOScale(Vector3.one * endScale, boardDuration).SetEase(Ease.InBack));
-        seq.Join(target.DORotateQuaternion(boardRot, boardDuration).SetEase(Ease.InQuad));
+        seq.Append(rig.root.DOMove(boardPos, boardDuration).SetEase(Ease.InQuad));
+        seq.Join(rig.pivot.DOScale(rig.pivotRestScale * endScale, boardDuration).SetEase(Ease.InBack));
+        seq.Join(rig.pivot.DOLocalRotateQuaternion(boardPivotRot, boardDuration).SetEase(Ease.InQuad));
+
         seq.AppendCallback(() =>
         {
-            SpawnVFX(target, boardPos, target.rotation);
+            ResetRig(rig, boardPos, rootRot);
+            SpawnVFX(target, boardPos, rootRot);
             onExplode?.Invoke();
         });
-    }
-
-    private static Vector3 ResolveDirection(Vector3 direction)
-    {
-        direction.y = 0f;
-        return direction.sqrMagnitude > 0.001f ? direction.normalized : Vector3.forward;
     }
 }

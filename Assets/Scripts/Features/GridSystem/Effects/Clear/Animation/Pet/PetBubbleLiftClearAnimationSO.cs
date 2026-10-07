@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "PetBubbleLift_ClearAnimation", menuName = "Block Blast/Effects/Grid/Clear/Pet/Bubble Lift")]
-public class PetBubbleLiftClearAnimationSO : ClearAnimationSO
+public class PetBubbleLiftClearAnimationSO : PetClearAnimationSOBase
 {
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static MaterialPropertyBlock mpbCache;
@@ -31,19 +31,16 @@ public class PetBubbleLiftClearAnimationSO : ClearAnimationSO
     {
         if (target == null) return;
 
-        target.DOKill();
-
+        PetAnimationRig rig = ResolveRig(target);
         Vector3 rootPos = context.canonicalPos;
         Quaternion rootRot = context.canonicalRotation;
+        PrepareRig(rig, rootPos, rootRot);
+
         Vector3 direction = ResolveDirection(context.sweepDirection);
         Vector3 side = Vector3.Cross(Vector3.up, direction).normalized;
         float swaySign = ((context.indexInLine & 1) == 0) ? 1f : -1f;
         Vector3 peakPos = rootPos + Vector3.up * liftHeight + side * (swayDistance * swaySign);
-        Quaternion peakRot = rootRot * Quaternion.Euler(0f, liftYaw * swaySign, 0f);
-
-        target.position = rootPos;
-        target.rotation = rootRot;
-        target.localScale = Vector3.one;
+        Quaternion peakPivotRot = rig.pivotRestRotation * Quaternion.Euler(0f, liftYaw * swaySign, 0f);
 
         GameObject shell = SpawnBubbleShell(rootPos, rootRot, context.delay, peakPos);
         MeshRenderer renderer = useShaderFeedback ? target.GetComponentInChildren<MeshRenderer>() : null;
@@ -54,16 +51,22 @@ public class PetBubbleLiftClearAnimationSO : ClearAnimationSO
         seq.SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
         if (context.delay > 0f) seq.AppendInterval(context.delay);
 
-        seq.Append(target.DOScale(captureScale, captureDuration).SetEase(Ease.OutQuad));
-        seq.Append(target.DOMove(peakPos, liftDuration).SetEase(Ease.OutSine));
-        seq.Join(target.DOScale(Vector3.one * liftedScale, liftDuration).SetEase(Ease.OutSine));
-        seq.Join(target.DORotateQuaternion(peakRot, liftDuration).SetEase(Ease.InOutSine));
+        // Capture: squash pivot around body center
+        seq.Append(rig.pivot.DOScale(Vector3.Scale(rig.pivotRestScale, captureScale), captureDuration).SetEase(Ease.OutQuad));
+
+        // Lift: root moves to peak position, pivot performs gentle tilt and buoyant scale
+        seq.Append(rig.root.DOMove(peakPos, liftDuration).SetEase(Ease.OutSine));
+        seq.Join(rig.pivot.DOScale(rig.pivotRestScale * liftedScale, liftDuration).SetEase(Ease.OutSine));
+        seq.Join(rig.pivot.DOLocalRotateQuaternion(peakPivotRot, liftDuration).SetEase(Ease.InOutSine));
+
+        // Pop: shader flash feedback on cell surface
         seq.Append(DOTween.To(() => 0f, value => ApplyFlash(renderer, baseColor, value), 1f, popDuration).SetEase(Ease.OutQuad));
         seq.AppendCallback(() =>
         {
             if (renderer != null) renderer.SetPropertyBlock(null);
             ReturnShell(shell);
-            SpawnVFX(target, peakPos, target.rotation);
+            ResetRig(rig, peakPos, rootRot);
+            SpawnVFX(target, peakPos, rootRot);
             onExplode?.Invoke();
         });
     }
@@ -122,11 +125,5 @@ public class PetBubbleLiftClearAnimationSO : ClearAnimationSO
         renderer.GetPropertyBlock(MPB);
         MPB.SetColor(BaseColorId, Color.Lerp(baseColor, flashColor, progress));
         renderer.SetPropertyBlock(MPB);
-    }
-
-    private static Vector3 ResolveDirection(Vector3 direction)
-    {
-        direction.y = 0f;
-        return direction.sqrMagnitude > 0.001f ? direction.normalized : Vector3.forward;
     }
 }
