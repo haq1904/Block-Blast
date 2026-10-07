@@ -82,7 +82,7 @@ Maintain a strict separation between generic/reusable code (`Core`) and game-spe
 
 ### A. The 600-Line Limit & Approval Gate
 *   **Threshold Rule**: Any single C# file MUST NOT exceed **600 lines of code**. If a file exceeds or is anticipated to exceed 600 lines due to feature expansion, it is considered bloated and MUST be decomposed.
-*   **Mandatory User Approval Gate**: You MUST NOT refactor or decompose bloated files into sub-files/sub-classes without first creating an implementation plan (`implementation_plan.md`) and obtaining explicit user approval.
+*   **Mandatory User Approval Gate**: You MUST NOT refactor or decompose bloated files into sub-files/sub-classes without first creating an implementation plan (`plans/<task_name>_plan.md`, following `plans_and_tools.md`) and obtaining explicit user approval.
 
 ### B. Decomposition Strategies by MVC Layer
 When decomposing a bloated component, strictly follow the "Hub and Satellites" pattern without altering external APIs:

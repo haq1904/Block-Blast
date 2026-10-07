@@ -14,7 +14,10 @@ description: Development workflow standards, token efficiency, code style, unit 
 *   **English Only**: All code comments, `[Tooltip]` attributes, debug logs, and variable/method names MUST be written entirely in English.
 
 ## 3. Planning Language
-*   **Vietnamese for Implementation Plans**: Whenever creating or updating an implementation plan (`implementation_plan.md`), ALWAYS write the plan in Vietnamese. Technical terms, file names, code snippets, and identifiers must remain in English.
+*   **Plan and Tool Locations**: Follow [plans_and_tools.md](plans_and_tools.md). New implementation plans use `plans/<task_name>_plan.md`; continue existing task plans in place. External project tools belong under `Tools/` with action/task-specific filenames; Unity-imported runtime/Editor code stays under `Assets/`.
+*   **Embedded Auto Submit**: Every created or updated plan Markdown file MUST include a `## Auto submit` section near the top with a `plaintext` code block containing `/auto-submit-plan <actual_project_relative_plan_path>` for that same file. Keep the path current when renaming/moving the plan; no unresolved placeholders. See `plans_and_tools.md`.
+*   **Plan Delivery**: Every response presenting a newly created plan MUST include a clickable link to the saved file and a `plaintext` code block with `/auto-submit-plan <actual_project_relative_plan_path>`. Replace the path with the real plan location under `plans/`; verify it exists. Reissue the command when presenting an updated or relocated plan. Displaying the command does not execute it. See `plans_and_tools.md`.
+*   **Vietnamese for Implementation Plans**: Whenever creating or updating an implementation plan (`plans/<task_name>_plan.md`), ALWAYS write the plan in Vietnamese. Technical terms, file names, code snippets, and identifiers must remain in English.
 
 ## 4. Unit Testing Policy
 *   **Run Only on Model/Controller Changes**: Automated unit tests (`unityMCP:run_tests` or NUnit EditMode tests) MUST ONLY be executed when changes involve core business logic, mathematical algorithms, data models, or controllers (e.g., `GridModel`, `GridController`, `BlockSpawnGenerator`).
@@ -43,7 +46,7 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
 ## 6. Planning & Execution Workflow (Approval Gate & Autonomous Execution)
 *   **Planning Phase (Mandatory User Approval Gate)**:
     *   Whenever the user requests an implementation plan (or when planning is initiated):
-        *   Create the plan in Vietnamese (`implementation_plan.md`) following Section 3.
+        *   Create the plan in Vietnamese at `plans/<task_name>_plan.md` following Section 3 and `plans_and_tools.md`.
         *   **Mandatory Stop & Wait**: You MUST set `RequestFeedback: true` and STOP execution to wait for explicit user approval/feedback before touching or modifying any code.
         *   **Strict Prohibition**: You MUST NEVER automatically start executing or modifying code right after creating a plan. Always wait for user confirmation.
 *   **Execution Phase (Autonomous Continuous Execution)**:

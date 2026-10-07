@@ -8,7 +8,7 @@ routes agents to those documents; it does not replace or rewrite their contents.
 Resolve all paths below relative to this project root.
 
 At the beginning of a new chat's first project task, explicitly open and read
-all nine rule documents listed below, including `standards.md`. Listing file
+all ten rule documents listed below, including `standards.md`. Listing file
 names or reading only frontmatter is not sufficient. Use filesystem tools to
 read these documents; their contents are not automatically included by this
 index. Keep them in context and apply the relevant rules throughout the task.
@@ -18,12 +18,22 @@ read the applicable document again before continuing that work.
 Read `.agents/rules/standards.md` at the start of each task for workflow,
 planning, approval, testing, language, and commit requirements.
 
+Read `.agents/rules/plans_and_tools.md` before creating or updating plans or
+project tools. New plans use `plans/<task_name>_plan.md`; external development
+tools belong under `Tools/` with filenames describing their action and task.
+Optional task/domain subfolders follow the detailed rule. Whenever presenting
+a newly created plan, provide its clickable file link and a copyable
+`/auto-submit-plan` command with the actual project-relative plan path.
+Every created or updated plan Markdown file must also include that command
+in a `## Auto submit` section near the top, using its own actual path.
+
 Before any task creates, duplicates, generates, or imports an asset, read
 `.agents/rules/asset_optimization.md` and apply its optimization and validation
 requirements alongside the relevant specialized rules.
 
 | Task scope | Required documents |
 | --- | --- |
+| Plan creation/updates, handoff documents, project tools, automation scripts, file organization | `.agents/rules/plans_and_tools.md` |
 | Any asset creation, duplication, generation, or import, including scenes and scripts/tools | `.agents/rules/asset_optimization.md` |
 | Code changes, architecture, MVC, services, models, controllers, views | `.agents/rules/architecture.md` |
 | Events, callbacks, communication between systems, game flow signals | `.agents/rules/events.md` |
