@@ -97,22 +97,28 @@ public abstract class ClearStaggerSO : ScriptableObject
         bool hasSweeper = sweeperData != null && activePrefab != null && poolService != null && count >= 2;
 
         float contactOffset = clearAnimation != null
-            ? clearAnimation.SweepContactOffset
+            ? Mathf.Max(0f, clearAnimation.SweepContactOffset)
+            : 0f;
+
+        float postContactDelay = clearAnimation != null
+            ? Mathf.Max(0f, clearAnimation.SweepPostContactDelay)
             : 0f;
 
         float leadOffset = 0f;
         float firstBlockDelay = 0f;
         Vector3 resolvedExit = endPos + dir * 1.5f;
+        ClearTimelineContext timeline = null;
 
         if (hasSweeper)
         {
             float preSweepDuration = sweeperData.TotalPreSweepDuration;
             float timeToFirstCenter = preSweepDuration + 0.5f * stepDelay;
+            float firstAnimationStart = timeToFirstCenter - contactOffset + postContactDelay;
 
-            leadOffset = Mathf.Max(0f, contactOffset - timeToFirstCenter);
-            firstBlockDelay = Mathf.Max(0f, timeToFirstCenter - contactOffset);
+            leadOffset = Mathf.Max(0f, -firstAnimationStart);
+            firstBlockDelay = Mathf.Max(0f, firstAnimationStart);
 
-            ClearTimelineContext timeline = new ClearTimelineContext
+            timeline = new ClearTimelineContext
             {
                 waypoints = waypoints,
                 startPos = startPos,
@@ -190,7 +196,9 @@ public abstract class ClearStaggerSO : ScriptableObject
                     delay = delay,
                     placementOrigin = Vector3.zero,
                     sweepDirection = dir,
-                    visualExitPosition = resolvedExit
+                    visualExitPosition = resolvedExit,
+                    followTarget = timeline?.activeSweeperTransform,
+                    sweeperCompletionTime = timeline != null ? timeline.visualCompletionTime : 0f
                 };
 
                 ClearAnimationLifecycle lifecycle = new ClearAnimationLifecycle(

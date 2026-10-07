@@ -96,6 +96,11 @@ public abstract class ClearAnimationSO : ScriptableObject
     public virtual float SweepContactOffset => PreExplosionDuration;
 
     /// <summary>
+    /// Additional delay after the sweeper center reaches the cell before this animation starts.
+    /// </summary>
+    public virtual float SweepPostContactDelay => 0f;
+
+    /// <summary>
     /// Executes the clear tween animation on the target block transform.
     /// Subclasses must call onExplode when anticipation reaches its climax so particles can burst.
     /// </summary>

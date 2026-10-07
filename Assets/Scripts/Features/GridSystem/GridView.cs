@@ -31,6 +31,8 @@ public class GridView : MonoBehaviour
         public GameObject gameObject;
         public Vector2Int gridPos;
         public Vector3 canonicalPos;
+        public Quaternion canonicalRotation;
+        public ClearAnimationSO clearAnimation;
     }
 
 
@@ -412,7 +414,7 @@ public class GridView : MonoBehaviour
                 List<ClearCellItem> rowCells = new List<ClearCellItem>(8);
                 for (int col = 0; col < 8; col++)
                 {
-                    TryQueueCellItem(col, row, col, 8, rowCells);
+                    TryQueueCellItem(col, row, col, 8, rowCells, clearEffect);
                 }
                 stagger?.Play(
                     lineCells: rowCells,
@@ -434,7 +436,7 @@ public class GridView : MonoBehaviour
                 List<ClearCellItem> colCells = new List<ClearCellItem>(8);
                 for (int row = 0; row < 8; row++)
                 {
-                    TryQueueCellItem(col, row, row, 8, colCells);
+                    TryQueueCellItem(col, row, row, 8, colCells, clearEffect);
                 }
                 stagger?.Play(
                     lineCells: colCells,
@@ -454,7 +456,7 @@ public class GridView : MonoBehaviour
         }
     }
 
-    private void TryQueueCellItem(int col, int row, int indexInLine, int totalInLine, List<ClearCellItem> list)
+    private void TryQueueCellItem(int col, int row, int indexInLine, int totalInLine, List<ClearCellItem> list, ClearAnimationSO clearAnimation)
     {
         Vector2Int gridPos = new Vector2Int(col, row);
         Vector3 canonicalPos = gridService != null 
@@ -481,7 +483,14 @@ public class GridView : MonoBehaviour
             block.transform.rotation = originalRot;
             block.transform.localScale = Vector3.one;
 
-            activeClearingBlocks.Add(new ClearingBlock { gameObject = block, gridPos = gridPos, canonicalPos = canonicalPos });
+            activeClearingBlocks.Add(new ClearingBlock
+            {
+                gameObject = block,
+                gridPos = gridPos,
+                canonicalPos = canonicalPos,
+                canonicalRotation = originalRot,
+                clearAnimation = clearAnimation
+            });
         }
 
         list.Add(new ClearCellItem
@@ -520,10 +529,17 @@ public class GridView : MonoBehaviour
             var entry = activeClearingBlocks[i];
             if (entry.gameObject != null)
             {
-                entry.gameObject.transform.DOKill();
-                entry.gameObject.transform.position = entry.canonicalPos;
-                entry.gameObject.transform.rotation = Quaternion.identity;
-                entry.gameObject.transform.localScale = Vector3.one;
+                if (entry.clearAnimation != null)
+                {
+                    entry.clearAnimation.Cancel(entry.gameObject.transform, entry.canonicalPos, entry.canonicalRotation);
+                }
+                else
+                {
+                    entry.gameObject.transform.DOKill();
+                    entry.gameObject.transform.position = entry.canonicalPos;
+                    entry.gameObject.transform.rotation = entry.canonicalRotation;
+                    entry.gameObject.transform.localScale = Vector3.one;
+                }
 
                 if (poolService != null && entry.gameObject.activeSelf)
                 {

@@ -51,6 +51,16 @@ public class ClearTimelineContext
     /// </summary>
     public Vector3 visualExitPosition;
 
+    /// <summary>
+    /// Active transform of the spawned sweeper prop for this clear wave (used for dynamic tracking).
+    /// </summary>
+    public Transform activeSweeperTransform;
+
+    /// <summary>
+    /// Absolute timestamp (relative to wave start t=0) when the sweeper finishes its visual exit sequence.
+    /// </summary>
+    public float visualCompletionTime;
+
     public CellWaypoint FirstWaypoint => waypoints != null && waypoints.Count > 0 ? waypoints[0] : default;
     public CellWaypoint LastWaypoint => waypoints != null && waypoints.Count > 0 ? waypoints[waypoints.Count - 1] : default;
 }
