@@ -17,6 +17,10 @@ public class SweeperOption
     [Tooltip("List of theme-specific 3D prop prefabs for this sweeper (e.g. Axe variations, Saw variations). One is picked randomly.")]
     public GameObject[] propPrefabs;
 
+    [Range(0, 100)]
+    [Tooltip("Selection percentage for this sweeper within the combo. Values are normalized against the total positive weight.")]
+    public int weightPercent = 100;
+
     public GameObject GetRandomPrefab()
     {
         if (propPrefabs == null || propPrefabs.Length == 0) return null;
@@ -56,6 +60,49 @@ public class SignatureClearCombo
     public SweeperOption GetRandomSweeperOption()
     {
         if (sweepers == null || sweepers.Length == 0) return null;
-        return sweepers[UnityEngine.Random.Range(0, sweepers.Length)];
+
+        int totalWeight = 0;
+        int nonNullCount = 0;
+        for (int i = 0; i < sweepers.Length; i++)
+        {
+            SweeperOption option = sweepers[i];
+            if (option == null) continue;
+            nonNullCount++;
+            if (option.weightPercent > 0)
+            {
+                totalWeight += option.weightPercent;
+            }
+        }
+
+        if (nonNullCount == 0) return null;
+
+        if (totalWeight > 0)
+        {
+            int roll = UnityEngine.Random.Range(0, totalWeight);
+            int accumulatedWeight = 0;
+            for (int i = 0; i < sweepers.Length; i++)
+            {
+                SweeperOption option = sweepers[i];
+                if (option == null || option.weightPercent <= 0) continue;
+                accumulatedWeight += option.weightPercent;
+                if (roll < accumulatedWeight)
+                {
+                    return option;
+                }
+            }
+        }
+
+        // Fallback: When all weights are 0, pick uniformly among non-null options.
+        int pickIndex = UnityEngine.Random.Range(0, nonNullCount);
+        for (int i = 0; i < sweepers.Length; i++)
+        {
+            if (sweepers[i] != null)
+            {
+                if (pickIndex == 0) return sweepers[i];
+                pickIndex--;
+            }
+        }
+
+        return null;
     }
 }

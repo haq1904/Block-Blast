@@ -44,6 +44,7 @@ MonoBehaviour:
     - sweeper: {fileID: 11400000, guid: 9e7383d17dd5d7b43945fe23cc6b4c81, type: 2}
       propPrefabs:
       - {fileID: 6858495214291223514, guid: b268b59b8307bcb408d3d6f5d17361ef, type: 3}
+      weightPercent: 100
     weight: 70
   - comboName: Wood Spin & Cut Style
     animation: {fileID: 11400000, guid: 16db8793d10a23349b5a09ecb51e304e, type: 2}
@@ -54,6 +55,7 @@ MonoBehaviour:
     - sweeper: {fileID: 11400000, guid: cf88976e8f865444c9b1e7c50e3962a7, type: 2}
       propPrefabs:
       - {fileID: 6718657309981214874, guid: 710736ed394692347afa366a8faa2330, type: 3}
+      weightPercent: 100
     weight: 30
   allowGenericClears: 1
   signatureChance: 1
