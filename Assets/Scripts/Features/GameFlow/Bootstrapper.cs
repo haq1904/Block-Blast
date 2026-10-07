@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,6 +10,9 @@ public class Bootstrapper : MonoBehaviour
 
     [Tooltip("Scene load mode.")]
     [SerializeField] private LoadSceneMode _loadSceneMode = LoadSceneMode.Single;
+
+    [Tooltip("Minimum visible duration in seconds for the initial transition.")]
+    [SerializeField] private float _minimumVisibleDuration = 0f;
 
     [Header("Visual Clear Configuration")]
     [Tooltip("Clear color used by the bootstrap camera to prevent stale GPU framebuffer artifacts from previous play sessions.")]
@@ -25,9 +29,23 @@ public class Bootstrapper : MonoBehaviour
         EnsureBootstrapCamera();
     }
 
-    private void Start()
+    private async void Start()
     {
-        LoadNextScene();
+        try
+        {
+            if (!ServiceLocator.TryGet<ISceneService>(out var sceneService))
+            {
+                Debug.LogError("[Bootstrapper] ISceneService not found in ServiceLocator. Ensure SceneController is configured in the bootstrap scene.", this);
+                return;
+            }
+
+            var request = new SceneLoadRequest(_targetSceneBuildIndex, _loadSceneMode, _minimumVisibleDuration);
+            await sceneService.LoadSceneAsync(request);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex, this);
+        }
     }
 
     private void EnsureBootstrapCamera()
@@ -41,16 +59,5 @@ public class Bootstrapper : MonoBehaviour
             cam.backgroundColor = _clearColor;
             cam.cullingMask = 0; // Clear framebuffer without rendering any geometry
         }
-    }
-
-    private void LoadNextScene()
-    {
-        if (_targetSceneBuildIndex < 0 || _targetSceneBuildIndex >= SceneManager.sceneCountInBuildSettings)
-        {
-            Debug.LogError($"[Bootstrapper] Cannot load scene at index {_targetSceneBuildIndex}. Total scenes in Build Settings: {SceneManager.sceneCountInBuildSettings}. Please verify Build Settings.");
-            return;
-        }
-
-        SceneManager.LoadSceneAsync(_targetSceneBuildIndex, _loadSceneMode);
     }
 }
