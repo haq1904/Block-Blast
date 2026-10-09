@@ -58,25 +58,30 @@ Replace the placeholder with the exact filename and include any task subfolder. 
 - When presenting an updated or renamed/moved plan, provide the invocation again using its current location.
 - This invocation is for the user to copy into the environment supporting the `auto-submit-plan` skill (currently the project Antigravity workflow). Displaying it does not execute the plan or bypass the approval requirements in `standards.md`. Do not invoke it automatically merely because a plan was created.
 
-## 3. Tool Locations and Documentation
+## 2.2. Required Cross-plan File Review
 
-- Inspect existing tools before adding a new one. Reuse or extend suitable tools within the authorized scope.
-- Every retained external development tool MUST be stored inside `Tools/` at project root. Tools may live directly there or in an existing domain/task subfolder such as `Tools/Blender/` or `Tools/Audio/`; a domain folder is not mandatory.
-- New tool filenames MUST describe the action and task/subject using English lowercase snake_case, normally `<action>_<task_or_subject>.<extension>`. Examples: `Tools/Blender/generate_pet_clear_props.py`, `Tools/Audio/generate_pet_clear_sfx.ps1`, and `Tools/validate_lobby_scene_references.py`.
-- Do not create tools named `tool.py`, `script.ps1`, `helper.py`, or `temp.py`. A tool shared across tasks must describe its actual reusable function, for example `validate_scene_references.py`.
-- Standard supporting filenames such as `README.md` and configuration/dependency manifests keep their conventional names. Keep required configuration/templates beside the tool.
-- Existing tools remain valid and may be updated in place; do not rename another task's tool solely to enforce the new naming convention.
-- Provide or update the nearest `README.md` with purpose, prerequisites, invocation from project root, parameters, input/output paths, side effects, and a verification example. Label examples as examples; do not claim a tool exists before it has been created.
-- Resolve paths from the script/project location or explicit arguments. Do not rely on a particular current directory or embed local machine paths. Validate input/output destinations and report failures clearly.
-- Temporary one-off checks belong in an OS temporary directory unless they are useful enough to retain as a documented reusable tool. Do not leave random helper scripts at project root.
-- Generated game assets go into their proper `Assets/` feature/category folder with valid Unity metadata/references, not into `Tools/` or `plans/`.
-- Keep generated logs, captures, caches, and build outputs outside tool source folders in appropriate existing output locations. Do not commit them by default or store credentials in tools/configuration.
-- Scripts that require Unity compilation remain under the appropriate `Assets/` location: runtime code follows [architecture.md](architecture.md), and Editor-only utilities use an appropriate `Editor/` folder or Editor-only assembly. Document their usage near the utility. Do not move them into `Tools/` where Unity will not import them.
-- Creating a tool does not authorize executing destructive operations, controlling another chat's Editor turn, creating commits, or bypassing existing approval requirements. Read the tool documentation and relevant project rules before running it.
-- Apply [asset_optimization.md](asset_optimization.md) to new tools and generated assets, and [blender_tools.md](blender_tools.md) when applicable.
+Before creating a new plan, enumerate Markdown plans recursively under `plans/` and read the complete contents of the other existing plans, including their task status, affected files, implementation steps, and dependencies. Listing filenames, reading only titles/status, or searching for matching names alone is not sufficient.
 
-## 4. Maintenance
+1. Determine the files/assets/settings the proposed task intends to create, modify, move, or delete, including indirect writes such as prefab Apply, scene Save, import settings, and shared configuration.
+2. Compare this scope with the work described in the other plans. Resolve filenames to project-relative paths when possible. Include overlapping file paths, overlapping folder-wide edits, and shared dependencies whose modification affects either task.
+3. Distinguish conflicting writes from read-only dependencies. Reading the same rule or script does not itself mean both tasks will edit it.
+4. Record a Vietnamese `## Đối chiếu với các plan hiện có` section in the new plan: list the reviewed plans and, for overlaps, the other plan path, its recorded status, affected file/path, planned operations, and proposed coordination.
+5. Report the overlap findings to the user when presenting the plan, linking the relevant plans/files. If no overlapping writes are found, say so explicitly. Report unreadable plans, incomplete file lists, ambiguous filenames, or unknown status as limitations; do not claim the review is complete when it is not.
+6. A plan describes intended work, not live chat activity or file ownership. Do not infer that a chat is currently editing a file merely because its plan exists. Identify completed plans as historical overlap, and pending/in-progress/unknown plans as potential overlap requiring coordination before conflicting edits.
+7. Do not automatically edit, cancel, delete, or take ownership of another plan/task. Planning and independent work may continue; resolve overlapping writes before implementation of those portions.
+8. Recheck the relevant plans and report new overlap if the proposed scope changes or new/updated plans become known before implementation. Do not claim automatic cross-chat notifications or a file lock.
 
-Keep existing plans, tools, and dependencies intact unless their migration is part of the authorized task. Before renaming or moving a tool, inspect callers, configuration, and documentation; update them and verify the result.
+## 2.3. Completed Plan Retention and Deletion
 
-For documentation-only organization changes, verify paths, links, and the scoped diff. Do not run Unity or unrelated tests merely to validate Markdown changes.
+After actually completing a task that has an implementation plan, update that task's plan status and validation accurately, then ask the user whether to delete that specific completed plan. Include a clickable link or exact path so the user knows which file is being discussed.
+
+- Ask only after the task and its required validation are complete. Creating a plan, waiting for approval, pausing, or leaving required checks pending does not count as completion.
+- Example question: "Task đã hoàn thành. Ông có muốn xóa plan `plans/<task_name>_plan.md` không?" Replace the placeholder with the actual completed plan path.
+- Retain the plan until the user explicitly authorizes deletion. Silence is not approval. If the user already gave explicit deletion/retention instructions for that exact completed plan, follow them instead of asking again.
+- Do not delete other plans, handoff documents, evidence, or an entire task folder as part of deleting one plan. Check inbound references and explain any required link updates before removal.
+- Before an authorized deletion, reread the plan to confirm it is still the completed task's file and has not gained another chat's active work. Verify the resolved path is within the intended project `plans/` directory.
+- If there is no plan for the completed task, do not invent one merely to offer deletion.
+
+## Companion Rule
+
+This file preserves the original shared-path and plan sections. The original tool and maintenance sections continue in [tools.md](tools.md). Read both documents for tool creation/updates and file organization; together they retain all original requirements.

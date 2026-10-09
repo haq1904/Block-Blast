@@ -14,8 +14,11 @@ description: Development workflow standards, token efficiency, code style, unit 
 *   **English Only**: All code comments, `[Tooltip]` attributes, debug logs, and variable/method names MUST be written entirely in English.
 
 ## 3. Planning Language
-*   **Plan and Tool Locations**: Follow [plans_and_tools.md](plans_and_tools.md). New implementation plans use `plans/<task_name>_plan.md`; continue existing task plans in place. External project tools belong under `Tools/` with action/task-specific filenames; Unity-imported runtime/Editor code stays under `Assets/`.
+*   **Plan and Tool Locations**: Follow [plans_and_tools.md](plans_and_tools.md), [plan_authoring.md](plan_authoring.md), and [tools.md](tools.md). New implementation plans use `plans/<task_name>_plan.md`; continue existing task plans in place. External project tools belong under `Tools/` with action/task-specific filenames; Unity-imported runtime/Editor code stays under `Assets/`.
 *   **Embedded Auto Submit**: Every created or updated plan Markdown file MUST include a `## Auto submit` section near the top with a `plaintext` code block containing `/auto-submit-plan <actual_project_relative_plan_path>` for that same file. Keep the path current when renaming/moving the plan; no unresolved placeholders. See `plans_and_tools.md`.
+*   **Cross-plan File Review**: Before creating a new plan, read all other existing plans under `plans/`, compare intended writes and shared dependencies, record the findings in the plan, and report overlapping files/status to the user. Plan presence is not proof of a live chat or file ownership. See `plans_and_tools.md`.
+*   **Plan Authoring Form**: Use the integrated form in [plan_authoring.md](plan_authoring.md) for every new plan. Replace all placeholders, keep the required sections, and do not run the rule file itself with Auto submit.
+*   **Handoff Plan Default**: When the user asks for a plan without naming a different plan type, create only a handoff plan focused on the requested work. Include concrete code details or a code contract/snippet when code is involved; do not create extra plan types unless explicitly requested.
 *   **Plan Delivery**: Every response presenting a newly created plan MUST include a clickable link to the saved file and a `plaintext` code block with `/auto-submit-plan <actual_project_relative_plan_path>`. Replace the path with the real plan location under `plans/`; verify it exists. Reissue the command when presenting an updated or relocated plan. Displaying the command does not execute it. See `plans_and_tools.md`.
 *   **Vietnamese for Implementation Plans**: Whenever creating or updating an implementation plan (`plans/<task_name>_plan.md`), ALWAYS write the plan in Vietnamese. Technical terms, file names, code snippets, and identifiers must remain in English.
 
@@ -46,7 +49,7 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
 ## 6. Planning & Execution Workflow (Approval Gate & Autonomous Execution)
 *   **Planning Phase (Mandatory User Approval Gate)**:
     *   Whenever the user requests an implementation plan (or when planning is initiated):
-        *   Create the plan in Vietnamese at `plans/<task_name>_plan.md` following Section 3 and `plans_and_tools.md`.
+        *   Create the plan in Vietnamese at `plans/<task_name>_plan.md` using the form in `plan_authoring.md`, following Section 3 and `plans_and_tools.md`.
         *   **Mandatory Stop & Wait**: You MUST set `RequestFeedback: true` and STOP execution to wait for explicit user approval/feedback before touching or modifying any code.
         *   **Strict Prohibition**: You MUST NEVER automatically start executing or modifying code right after creating a plan. Always wait for user confirmation.
 *   **Execution Phase (Autonomous Continuous Execution)**:
@@ -54,6 +57,7 @@ All Git commit messages MUST strictly adhere to the **Conventional Commits** spe
         *   **Execute End-to-End**: Autonomously implement all steps outlined in the plan continuously from start to finish without pausing between steps.
         *   **No Step-by-Step Interruptions**: Do NOT stop to ask for confirmation or request sub-approvals for individual intermediate tasks (e.g., do NOT ask "Step 1 done, should I do Step 2?").
         *   Perform required validation and compiler checks automatically until the entire plan is completed, then present the final summary.
+*   **Completed Plan Cleanup Question**: After actually completing a planned task and required validation, update its plan and ask whether the user wants to delete that specific completed plan, with its link/path. Keep it until explicit deletion approval; follow prior explicit instructions for that plan without asking again. Do not ask for deletion while work/validation is pending. See `plans_and_tools.md`.
 *   **Direct Tasks (No Plan Requested)**:
     *   When the user gives a direct command to fix, modify, or implement something without asking for a plan, proceed directly with code execution.
 
