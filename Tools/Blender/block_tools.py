@@ -1,22 +1,105 @@
 bl_info = {
     "name": "Block Tools",
     "author": "Antigravity Senior Tech Artist",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Block Tools",
-    "description": "Standardization, 4-Tier Interactive Classification & Geometry Tweaker for Unity Blocks",
+    "description": "Standardization, 5-Tier Classification, Palette UV Mapping & Geometry Tweaker for Unity Blocks",
     "category": "3D View",
 }
 
-import bpy, bmesh, math, os, subprocess
+import os
+import math
+import subprocess
+from pathlib import Path
+
+import bpy
+import bmesh
 from mathutils import Vector, Matrix
 
 # ==============================================================================
 # CONSTANTS & CONFIGURATION
 # ==============================================================================
-DEFAULT_EXPORT_DIR = r"d:\Dev game\Project\Block Blast\Assets\Art\Blocks\Crate"
-DEFAULT_LEAPLAND_PALETTE = r"d:\Dev game\Project\Block Blast\Assets\Art\LeapLand\tex\palette.png"
-DEFAULT_CRATE_PALETTE = r"d:\Dev game\Project\Block Blast\Assets\Art\Blocks\Crate\crate_palette.png"
+def find_project_root():
+    # 1. Environment variable if set
+    env_root = os.environ.get("BLOCKBLAST_PROJECT_ROOT")
+    if env_root:
+        try:
+            candidate = Path(env_root).resolve()
+            if (candidate / "Assets" / "Art").is_dir():
+                return candidate
+        except Exception:
+            pass
+
+    # 2. Check persistent project_root.txt in addon directory
+    try:
+        cfg = Path(__file__).parent / "project_root.txt"
+        if cfg.exists():
+            candidate = Path(cfg.read_text(encoding="utf-8").strip()).resolve()
+            if (candidate / "Assets" / "Art").is_dir():
+                return candidate
+    except Exception:
+        pass
+
+    # 3. Check relative to script file (when run in-place from Tools/Blender/)
+    try:
+        candidate = Path(__file__).resolve().parents[2]
+        if (candidate / "Assets" / "Art").is_dir():
+            return candidate
+    except Exception:
+        pass
+
+    # 4. Check current working directory and its parents (CLI / IDE workspace)
+    try:
+        candidate = Path.cwd().resolve()
+        for p in [candidate, *candidate.parents]:
+            if (p / "Assets" / "Art").is_dir():
+                return p
+    except Exception:
+        pass
+
+    # 5. Check active blend file directory and its parents
+    try:
+        if bpy.data.filepath:
+            candidate = Path(bpy.data.filepath).resolve()
+            for p in [candidate, *candidate.parents]:
+                if (p / "Assets" / "Art").is_dir():
+                    return p
+    except Exception:
+        pass
+
+    # 6. Check running Unity Editor process command line
+    try:
+        import subprocess
+        cmd = 'Get-CimInstance Win32_Process -Filter "Name = \'Unity.exe\'" | Select-Object -ExpandProperty CommandLine'
+        out = subprocess.check_output(["powershell", "-NoProfile", "-Command", cmd], text=True, timeout=3)
+        for line in out.splitlines():
+            if "-projectpath" in line.lower():
+                parts = line.split()
+                for i, part in enumerate(parts):
+                    if part.lower() == "-projectpath" and i + 1 < len(parts):
+                        p = Path(parts[i + 1].strip('"\'')).resolve()
+                        if (p / "Assets" / "Art").is_dir():
+                            return p
+    except Exception:
+        pass
+
+    return Path(__file__).resolve().parents[2]
+
+
+PROJECT_ROOT = find_project_root()
+DEFAULT_EXPORT_DIR = PROJECT_ROOT / "Assets" / "Art" / "Blocks" / "Crate"
+DEFAULT_LEAPLAND_PALETTE = (
+    PROJECT_ROOT / "Assets" / "Art" / "LeapLand" / "tex" / "palette.png"
+)
+DEFAULT_CRATE_PALETTE = (
+    PROJECT_ROOT / "Assets" / "Art" / "Blocks" / "Crate" / "crate_palette.png"
+)
+UNITY_DEFAULT_MATERIAL = PROJECT_ROOT / "Assets" / "Art" / "DefaultMat.mat"
+
+PALETTE_COLOR_LIMIT = 256
+PALETTE_PAGE_SIZE = 64
+PALETTE_PAGE_COUNT = PALETTE_COLOR_LIMIT // PALETTE_PAGE_SIZE
 
 CURATED_SWATCHES = [
     {"name": "Nau Go Van", "color": (0.675, 0.361, 0.259, 1.0), "uv": (0.125, 0.625)},
@@ -49,30 +132,86 @@ SIDE_AXES = {
 # CORE HELPERS
 # ==============================================================================
 def get_or_load_image(filepath):
-    if not filepath or not os.path.exists(filepath): return None
+    if not filepath or not os.path.exists(filepath):
+        return None
     p = os.path.normpath(filepath)
     for img in bpy.data.images:
-        if img.filepath and os.path.normpath(bpy.path.abspath(img.filepath)) == p: return img
-    try: return bpy.data.images.load(filepath)
-    except Exception: return None
+        if img.filepath and os.path.normpath(bpy.path.abspath(img.filepath)) == p:
+            return img
+    try:
+        return bpy.data.images.load(filepath)
+    except Exception:
+        return None
 
 
-def get_or_create_non_metallic_mat(img=None, mat_name="Non Metallic"):
-    mat = bpy.data.materials.get(mat_name) or bpy.data.materials.new(name=mat_name)
-    mat.use_nodes = True
-    nodes, links = mat.node_tree.nodes, mat.node_tree.links
-    bsdf = next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None) or nodes.new('ShaderNodeBsdfPrincipled')
-    output = next((n for n in nodes if n.type == 'OUTPUT_MATERIAL'), None) or nodes.new('ShaderNodeOutputMaterial')
-    if "Roughness" in bsdf.inputs: bsdf.inputs["Roughness"].default_value = 0.8
-    if "Metallic" in bsdf.inputs: bsdf.inputs["Metallic"].default_value = 0.0
-    if not any(l.to_node == output for l in bsdf.outputs["BSDF"].links):
-        links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
-    if img:
-        tex = next((n for n in nodes if n.type == 'TEX_IMAGE'), None) or nodes.new('ShaderNodeTexImage')
-        tex.image, tex.interpolation = img, 'Closest'
-        if not any(l.to_node == bsdf for l in tex.outputs["Color"].links):
-            links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    return mat
+def resolve_palette_path(settings):
+    root = PROJECT_ROOT if (PROJECT_ROOT / "Assets" / "Art").is_dir() else find_project_root()
+    if settings.palette_source == "LEAPLAND":
+        return root / "Assets" / "Art" / "LeapLand" / "tex" / "palette.png"
+    if settings.palette_source == "CRATE":
+        return root / "Assets" / "Art" / "Blocks" / "Crate" / "crate_palette.png"
+    custom_path = Path(bpy.path.abspath(settings.custom_image_path))
+    return custom_path if settings.custom_image_path else None
+
+
+def require_palette_image(settings):
+    palette_path = resolve_palette_path(settings)
+    if palette_path is None or not palette_path.is_file():
+        raise FileNotFoundError(f"Palette image not found: {palette_path}")
+    image = get_or_load_image(str(palette_path))
+    if image is None:
+        raise RuntimeError(f"Blender could not load palette image: {palette_path}")
+    return image
+
+
+def configure_palette_material(material, image):
+    material.use_nodes = True
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    principled = nodes.new("ShaderNodeBsdfPrincipled")
+    texture = nodes.new("ShaderNodeTexImage")
+
+    texture.image = image
+    texture.interpolation = "Closest"
+    if "Metallic" in principled.inputs:
+        principled.inputs["Metallic"].default_value = 0.0
+    if "Roughness" in principled.inputs:
+        principled.inputs["Roughness"].default_value = 0.8
+
+    links.new(texture.outputs["Color"], principled.inputs["Base Color"])
+    links.new(principled.outputs["BSDF"], output.inputs["Surface"])
+    return material
+
+
+def get_or_create_palette_material(image, material_name="DefaultMat"):
+    material = bpy.data.materials.get(material_name)
+    if material is None:
+        material = bpy.data.materials.new(name=material_name)
+        configure_palette_material(material, image)
+    return material
+
+
+def create_fresh_palette_material(image, requested_name):
+    material_name = requested_name.strip() or "DefaultMat"
+    material = bpy.data.materials.new(name=material_name)
+    return configure_palette_material(material, image)
+
+
+def assign_face_uv(face, uv_layer, uv_coord):
+    face.material_index = 0
+    for loop in face.loops:
+        loop[uv_layer].uv = uv_coord
+
+
+def ensure_single_material_slot(obj, material):
+    slots = obj.data.materials
+    if len(slots) == 1 and slots[0] == material:
+        return
+    slots.clear()
+    slots.append(material)
 
 
 def set_viewport_shading(context, mode='MATERIAL', color_type='MATERIAL'):
@@ -84,20 +223,68 @@ def set_viewport_shading(context, mode='MATERIAL', color_type='MATERIAL'):
                     space.shading.color_type = color_type
 
 
-def sample_image_swatches(img, gx=16, gy=16, max_colors=64):
-    if not img or img.size[0] == 0: return []
-    w, h, pix, ch = img.size[0], img.size[1], list(img.pixels), img.channels
+def sample_image_swatches(image, gx=16, gy=16, max_colors=PALETTE_COLOR_LIMIT):
+    if image is None or image.size[0] <= 0 or image.size[1] <= 0:
+        return []
+
+    width, height = image.size
+    channels = image.channels
+    pixels = image.pixels
+    grid_x = max(1, int(gx))
+    grid_y = max(1, int(gy))
+    color_limit = max(1, min(int(max_colors), PALETTE_COLOR_LIMIT))
     swatches = []
-    for iy in range(gy):
-        for ix in range(gx):
-            u, v = (ix + 0.5) / gx, (iy + 0.5) / gy
-            idx = (min(int(v * h), h - 1) * w + min(int(u * w), w - 1)) * ch
-            r, g, b = pix[idx], pix[idx + 1], pix[idx + 2]
-            if (pix[idx + 3] if ch >= 4 else 1.0) < 0.1: continue
-            if not any(((r - s['color'][0])**2 + (g - s['color'][1])**2 + (b - s['color'][2])**2)**0.5 < 0.035 for s in swatches):
-                swatches.append({'name': f"Color {len(swatches)+1}", 'color': (r, g, b, 1.0), 'uv': (u, v)})
-                if len(swatches) >= max_colors: return swatches
+
+    for iy in range(grid_y):
+        for ix in range(grid_x):
+            u = (ix + 0.5) / grid_x
+            v = (iy + 0.5) / grid_y
+            x = min(int(u * width), width - 1)
+            y = min(int(v * height), height - 1)
+            pixel_index = (y * width + x) * channels
+
+            red = pixels[pixel_index]
+            green = pixels[pixel_index + 1]
+            blue = pixels[pixel_index + 2]
+            alpha = pixels[pixel_index + 3] if channels >= 4 else 1.0
+            if alpha < 0.1:
+                continue
+
+            is_duplicate = any(
+                (
+                    (red - item["color"][0]) ** 2
+                    + (green - item["color"][1]) ** 2
+                    + (blue - item["color"][2]) ** 2
+                ) ** 0.5 < 0.035
+                for item in swatches
+            )
+            if is_duplicate:
+                continue
+
+            swatches.append({
+                "name": f"Color {len(swatches) + 1}",
+                "color": (red, green, blue, 1.0),
+                "uv": (u, v),
+            })
+            if len(swatches) >= color_limit:
+                return swatches
+
     return swatches
+
+
+def resolve_palette_grid(settings, image):
+    if settings.grid_preset == "8x8":
+        return 8, 8
+    if settings.grid_preset == "16x16":
+        return 16, 16
+
+    width, height = image.size
+    strip_count = max(1, round(width / max(height, 1)))
+    if settings.grid_preset == "STRIP":
+        return min(strip_count, PALETTE_COLOR_LIMIT), 1
+    if height <= 64 and width > height * 2:
+        return min(strip_count, PALETTE_COLOR_LIMIT), 1
+    return 16, 16
 
 
 def get_mesh_bounds(bm):
@@ -288,17 +475,33 @@ def store_original_coordinates(obj, overwrite=False):
 
 
 def store_original_color(obj, overwrite=False):
-    if not obj or obj.type != 'MESH': return
-    mesh = obj.data
-    uv_act = mesh.uv_layers.active or (mesh.uv_layers[0] if mesh.uv_layers else None)
-    if not uv_act: return
+    if not obj or obj.type != 'MESH':
+        return
+    if bpy.context.mode == 'EDIT_MESH':
+        bm = bmesh.from_edit_mesh(obj.data)
+        uv_act = bm.loops.layers.uv.active or (bm.loops.layers.uv[0] if bm.loops.layers.uv else None)
+        if not uv_act:
+            return
+        orig_lay = bm.loops.layers.uv.get("BT_ORIGINAL_UV")
+        if not orig_lay or overwrite:
+            if not orig_lay:
+                orig_lay = bm.loops.layers.uv.new("BT_ORIGINAL_UV")
+            for f in bm.faces:
+                for l in f.loops:
+                    l[orig_lay].uv = l[uv_act].uv.copy()
+            bmesh.update_edit_mesh(obj.data)
+    else:
+        mesh = obj.data
+        uv_act = mesh.uv_layers.active or (mesh.uv_layers[0] if mesh.uv_layers else None)
+        if not uv_act:
+            return
 
-    orig_lay = mesh.uv_layers.get("BT_ORIGINAL_UV")
-    if not orig_lay or overwrite:
-        if not orig_lay:
-            orig_lay = mesh.uv_layers.new(name="BT_ORIGINAL_UV")
-        for i, d in enumerate(uv_act.data):
-            orig_lay.data[i].uv = d.uv.copy()
+        orig_lay = mesh.uv_layers.get("BT_ORIGINAL_UV")
+        if not orig_lay or overwrite:
+            if not orig_lay:
+                orig_lay = mesh.uv_layers.new(name="BT_ORIGINAL_UV")
+            for i, d in enumerate(uv_act.data):
+                orig_lay.data[i].uv = d.uv.copy()
 
     if obj.data.materials and obj.data.materials[0]:
         mat = obj.data.materials[0]
@@ -344,7 +547,7 @@ class BlockToolsPaletteItem(bpy.types.PropertyGroup):
 
 
 class BlockToolsSettings(bpy.types.PropertyGroup):
-    # Accordion Folds (Phần Rút Gọn Giao Diện)
+    # Accordion folds (collapsible UI sections)
     fold_standardize: bpy.props.BoolProperty(name="1. Chuẩn Hóa", default=False)
     fold_classification: bpy.props.BoolProperty(name="2. Bảng Phân Loại (4 Tầng)", default=True)
     fold_palette: bpy.props.BoolProperty(name="3. Bảng Màu & UV Palette", default=False)
@@ -359,8 +562,21 @@ class BlockToolsSettings(bpy.types.PropertyGroup):
 
     # Palette
     palette_source: bpy.props.EnumProperty(name="Nguồn", items=[('LEAPLAND', "LeapLand", ""), ('CRATE', "Crate Theme", ""), ('CUSTOM', "Tùy Chọn", "")], default='CRATE')
-    custom_image_path: bpy.props.StringProperty(name="Ảnh", subtype='FILE_PATH', default=DEFAULT_CRATE_PALETTE)
+    custom_image_path: bpy.props.StringProperty(name="Ảnh", subtype='FILE_PATH', default=str(DEFAULT_CRATE_PALETTE))
     grid_preset: bpy.props.EnumProperty(name="Chia Lưới", items=[('AUTO', "Tự Động", ""), ('16x16', "16x16", ""), ('8x8', "8x8", ""), ('STRIP', "Dải Ngang", "")], default='AUTO')
+    palette_max_colors: bpy.props.IntProperty(
+        name="Số Màu Tối Đa",
+        description="Maximum number of unique colors extracted from the palette image",
+        default=PALETTE_COLOR_LIMIT,
+        min=1,
+        max=PALETTE_COLOR_LIMIT,
+    )
+    palette_page_expanded: bpy.props.BoolVectorProperty(
+        name="Nhóm Màu Đang Mở",
+        description="Expanded state for each 64-color palette page",
+        size=PALETTE_PAGE_COUNT,
+        default=(True, False, False, False),
+    )
     swatches: bpy.props.CollectionProperty(type=BlockToolsPaletteItem)
     paint_target: bpy.props.EnumProperty(
         name="Mục Tiêu Tô",
@@ -376,6 +592,17 @@ class BlockToolsSettings(bpy.types.PropertyGroup):
         default='TIER_1'
     )
 
+    # Material Reset
+    reset_material_name: bpy.props.StringProperty(
+        name="Tên Material Mới",
+        default="DefaultMat",
+    )
+    reset_make_single_user: bpy.props.BoolProperty(
+        name="Tách Mesh Dùng Chung",
+        description="Create a single-user mesh before replacing material slots",
+        default=True,
+    )
+
     # Classification Counts & Debug
     debug_colors_active: bpy.props.BoolProperty(name="Màu Kiểm Tra", default=False)
     count_frame: bpy.props.IntProperty(default=0)
@@ -385,7 +612,7 @@ class BlockToolsSettings(bpy.types.PropertyGroup):
     count_other: bpy.props.IntProperty(default=0)
 
     # Export
-    export_dir: bpy.props.StringProperty(name="Thư Mục", subtype='DIR_PATH', default=DEFAULT_EXPORT_DIR)
+    export_dir: bpy.props.StringProperty(name="Thư Mục", subtype='DIR_PATH', default=str(DEFAULT_EXPORT_DIR))
     export_filename: bpy.props.StringProperty(name="Tên File", default="")
 
 
@@ -582,7 +809,7 @@ def auto_segment_mesh(obj, force_heuristic=False):
     dim_x, dim_y, dim_z = max(max_x - min_x, 0.001), max(max_y - min_y, 0.001), max(max_z - min_z, 0.001)
     dim_max = max(dim_x, dim_y, dim_z)
 
-    # 1. Connected components analysis: Chỉ lọc phụ kiện siêu nhỏ (< 18% kích thước khối)
+    # 1. Connected components analysis: filter small accessories (< 18% of block size)
     visited, islands = set(), []
     for f in bm.faces:
         if f in visited: continue
@@ -605,7 +832,7 @@ def auto_segment_mesh(obj, force_heuristic=False):
         if max(dx, dy, dz) < dim_max * 0.18:
             accessory_faces.update(isl)
 
-    # 2. Phân loại Khung Viền dựa trên 12 cạnh khung của hộp 3D (Spatial Bounding-Frame)
+    # 2. Frame classification based on 12 bounding box edges (Spatial Bounding-Frame)
     frame_margin_x = dim_x * 0.20
     frame_margin_y = dim_y * 0.20
     frame_margin_z = dim_z * 0.20
@@ -637,7 +864,7 @@ def auto_segment_mesh(obj, force_heuristic=False):
         else:
             center_faces.append(f)
 
-    # 3. Phân tầng độ sâu cho phần trung tâm: Nan Lồi (Raised) vs Ván Nền (Recessed)
+    # 3. Depth tiering for center area: Raised Planks vs Recessed Backing
     side_center = {}
     for f in center_faces:
         side_center.setdefault(get_side_name(f.calc_center_median(), min_x, max_x, min_y, max_y, min_z, max_z), []).append(f)
@@ -899,7 +1126,7 @@ class BLOCKTOOLS_OT_group_assign(bpy.types.Operator):
         for f in sel_faces:
             f[tier_layer] = self.target_tier
 
-        # Cập nhật màu hiển thị loop tức thời trên Viewport trong Edit Mode
+        # Update loop display colors immediately in Viewport Edit Mode
         target_color = VG_TIERS[self.target_tier][2]
         color_layer, _ = get_or_create_bmesh_color_layer(bm, "BT_TIER_COLORS")
         for f in sel_faces:
@@ -944,27 +1171,48 @@ class BLOCKTOOLS_OT_load_curated_swatches(bpy.types.Operator):
         for item in CURATED_SWATCHES:
             sw = settings.swatches.add()
             sw.name, sw.color, sw.uv_coord = item["name"], item["color"], item["uv"]
+        settings.palette_page_expanded = (True, False, False, False)
         self.report({'INFO'}, f"Nạp {len(settings.swatches)} màu chuẩn game.")
         return {'FINISHED'}
 
 
 class BLOCKTOOLS_OT_scan_palette_image(bpy.types.Operator):
-    bl_idname, bl_label = "blocktools.scan_palette_image", "Đọc Từ Ảnh"
+    bl_idname = "blocktools.scan_palette_image"
+    bl_label = "Đọc Từ Ảnh"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         settings = context.scene.block_tools_settings
-        path = DEFAULT_CRATE_PALETTE if settings.palette_source == 'CRATE' else (DEFAULT_LEAPLAND_PALETTE if settings.palette_source == 'LEAPLAND' else settings.custom_image_path)
-        img = get_or_load_image(path)
-        if not img:
-            self.report({'ERROR'}, f"Không tìm thấy ảnh: {path}")
-            return {'CANCELLED'}
-        gx, gy = (max(img.size[0] // max(img.size[1], 1), 1), 1) if (settings.grid_preset == 'STRIP' or (settings.grid_preset == 'AUTO' and img.size[1] <= 64)) else (16, 16)
+        try:
+            image = require_palette_image(settings)
+            palette_path = resolve_palette_path(settings)
+            grid_x, grid_y = resolve_palette_grid(settings, image)
+            scanned = sample_image_swatches(
+                image,
+                grid_x,
+                grid_y,
+                settings.palette_max_colors,
+            )
+            if not scanned:
+                raise RuntimeError("No visible palette colors were found")
+        except Exception as exc:
+            self.report({"ERROR"}, f"Palette scan failed: {exc}")
+            return {"CANCELLED"}
+
         settings.swatches.clear()
-        for s in sample_image_swatches(img, gx, gy):
-            sw = settings.swatches.add()
-            sw.name, sw.color, sw.uv_coord = s['name'], s['color'], s['uv']
-        self.report({'INFO'}, f"Trích xuất {len(settings.swatches)} swatches từ '{os.path.basename(path)}'")
-        return {'FINISHED'}
+        for sample in scanned:
+            swatch = settings.swatches.add()
+            swatch.name = sample["name"]
+            swatch.color = sample["color"]
+            swatch.uv_coord = sample["uv"]
+
+        settings.palette_page_expanded = (True, False, False, False)
+        palette_name = palette_path.name if palette_path else "Palette"
+        self.report(
+            {"INFO"},
+            f"Extracted {len(scanned)} colors from '{palette_name}'",
+        )
+        return {"FINISHED"}
 
 
 class BLOCKTOOLS_OT_apply_swatch(bpy.types.Operator):
@@ -974,8 +1222,10 @@ class BLOCKTOOLS_OT_apply_swatch(bpy.types.Operator):
 
     def execute(self, context):
         obj, settings = context.edit_object or context.active_object, context.scene.block_tools_settings
-        if not obj or obj.type != 'MESH': return {'CANCELLED'}
-        if self.swatch_index >= len(settings.swatches): return {'CANCELLED'}
+        if not obj or obj.type != 'MESH':
+            return {'CANCELLED'}
+        if self.swatch_index >= len(settings.swatches):
+            return {'CANCELLED'}
 
         target = self.target_tier.strip() if self.target_tier.strip() else settings.paint_target
         store_original_color(obj, overwrite=False)
@@ -983,10 +1233,15 @@ class BLOCKTOOLS_OT_apply_swatch(bpy.types.Operator):
             auto_segment_mesh(obj)
             update_counts_from_attr(obj, settings)
 
+        try:
+            image = require_palette_image(settings)
+        except Exception as exc:
+            self.report({'ERROR'}, f"Không tìm thấy palette: {exc}")
+            return {'CANCELLED'}
+
         uv = Vector(settings.swatches[self.swatch_index].uv_coord)
-        mat = get_or_create_non_metallic_mat(img=get_or_load_image(DEFAULT_CRATE_PALETTE if settings.palette_source == 'CRATE' else DEFAULT_LEAPLAND_PALETTE))
-        if not obj.data.materials or obj.data.materials[0] != mat:
-            obj.data.materials.clear(); obj.data.materials.append(mat)
+        mat = get_or_create_palette_material(image)
+        ensure_single_material_slot(obj, mat)
 
         target_name_map = {
             'SELECTION': "mặt đang chọn",
@@ -1012,11 +1267,11 @@ class BLOCKTOOLS_OT_apply_swatch(bpy.types.Operator):
                 t_idx = int(target.split('_')[1])
                 target_faces = [f for f in bm.faces if f[tier_layer] == t_idx]
 
-            if not target_faces: return 0
+            if not target_faces:
+                return 0
 
             for f in target_faces:
-                f.material_index = 0
-                for loop in f.loops: loop[uv_layer].uv = uv
+                assign_face_uv(f, uv_layer, uv)
             return len(target_faces)
 
         count = apply_bmesh_op(obj, context, apply_uv)
@@ -1038,13 +1293,23 @@ class BLOCKTOOLS_OT_smart_autocolor(bpy.types.Operator):
 
     def execute(self, context):
         obj, settings = context.edit_object or context.active_object, context.scene.block_tools_settings
+        if not obj or obj.type != 'MESH':
+            return {'CANCELLED'}
         if not settings.swatches:
             self.report({'ERROR'}, "Chưa có palette! Bấm 'Màu Chuẩn Game' trước.")
             return {'CANCELLED'}
-        if not obj.data.attributes.get("BT_TIER"): auto_segment_mesh(obj)
+        if not obj.data.attributes.get("BT_TIER"):
+            auto_segment_mesh(obj)
         store_original_color(obj, overwrite=False)
-        mat = get_or_create_non_metallic_mat(img=get_or_load_image(DEFAULT_CRATE_PALETTE if settings.palette_source == 'CRATE' else DEFAULT_LEAPLAND_PALETTE))
-        obj.data.materials.clear(); obj.data.materials.append(mat)
+
+        try:
+            image = require_palette_image(settings)
+        except Exception as exc:
+            self.report({'ERROR'}, f"Không tìm thấy palette: {exc}")
+            return {'CANCELLED'}
+
+        mat = get_or_create_palette_material(image)
+        ensure_single_material_slot(obj, mat)
 
         n = len(settings.swatches)
         group_uvs = [
@@ -1059,9 +1324,8 @@ class BLOCKTOOLS_OT_smart_autocolor(bpy.types.Operator):
             tier_layer = bm.faces.layers.int.get("BT_TIER")
             uv_layer = bm.loops.layers.uv.verify()
             for f in bm.faces:
-                f.material_index = 0
                 t_idx = min(max(f[tier_layer], 0), 4) if tier_layer else 0
-                for loop in f.loops: loop[uv_layer].uv = group_uvs[t_idx]
+                assign_face_uv(f, uv_layer, group_uvs[t_idx])
             return len(bm.faces)
 
         apply_bmesh_op(obj, context, apply_smart)
@@ -1073,12 +1337,82 @@ class BLOCKTOOLS_OT_smart_autocolor(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BLOCKTOOLS_OT_reset_materials(bpy.types.Operator):
+    bl_idname = "blocktools.reset_materials"
+    bl_label = "Xóa Material & Tạo Mới"
+    bl_description = "Replace all material slots with one fresh palette material"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.edit_object or context.active_object
+        return obj is not None and obj.type == "MESH"
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        obj = context.edit_object or context.active_object
+        if not obj or obj.type != 'MESH':
+            return {'CANCELLED'}
+        settings = context.scene.block_tools_settings
+        previous_mode = obj.mode
+
+        try:
+            image = require_palette_image(settings)
+
+            if previous_mode == "EDIT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+
+            if obj.data.users > 1:
+                if not settings.reset_make_single_user:
+                    self.report(
+                        {"ERROR"},
+                        "Mesh data is shared. Enable single-user protection first.",
+                    )
+                    return {"CANCELLED"}
+                obj.data = obj.data.copy()
+
+            store_original_color(obj, overwrite=False)
+
+            fresh_material = create_fresh_palette_material(
+                image,
+                settings.reset_material_name,
+            )
+            mesh = obj.data
+            removed_slot_count = len(mesh.materials)
+            mesh.materials.clear()
+            mesh.materials.append(fresh_material)
+
+            if mesh.polygons:
+                mesh.polygons.foreach_set(
+                    "material_index",
+                    [0] * len(mesh.polygons),
+                )
+            mesh.update()
+
+        except Exception as exc:
+            self.report({"ERROR"}, f"Material reset failed: {exc}")
+            return {"CANCELLED"}
+        finally:
+            if previous_mode == "EDIT" and obj.mode == "OBJECT":
+                bpy.ops.object.mode_set(mode="EDIT")
+
+        set_viewport_shading(context, mode='MATERIAL')
+        self.report(
+            {"INFO"},
+            f"Đã xóa {removed_slot_count} slot và tạo material '{fresh_material.name}'",
+        )
+        return {"FINISHED"}
+
+
 class BLOCKTOOLS_OT_reset_original_color(bpy.types.Operator):
     bl_idname, bl_label, bl_options = "blocktools.reset_original_color", "Reset Màu Gốc", {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         obj, settings = context.edit_object or context.active_object, context.scene.block_tools_settings
-        if not obj or obj.type != 'MESH': return {'CANCELLED'}
+        if not obj or obj.type != 'MESH':
+            return {'CANCELLED'}
 
         mesh = obj.data
         orig_uv = mesh.uv_layers.get("BT_ORIGINAL_UV")
@@ -1104,15 +1438,16 @@ class BLOCKTOOLS_OT_reset_original_color(bpy.types.Operator):
         img_path = obj.get("BT_ORIGINAL_IMG")
         if img_path and os.path.exists(img_path):
             img = get_or_load_image(img_path)
-            mat = get_or_create_non_metallic_mat(img=img, mat_name=obj.get("BT_ORIGINAL_MAT", "Original Mat"))
-            if not obj.data.materials or obj.data.materials[0] != mat:
-                obj.data.materials.clear(); obj.data.materials.append(mat)
+            mat = get_or_create_palette_material(image=img, material_name=obj.get("BT_ORIGINAL_MAT", "Original Mat"))
+            ensure_single_material_slot(obj, mat)
         else:
-            img = get_or_load_image(DEFAULT_LEAPLAND_PALETTE)
+            try:
+                img = require_palette_image(settings)
+            except Exception:
+                img = get_or_load_image(str(DEFAULT_LEAPLAND_PALETTE))
             if img:
-                mat = get_or_create_non_metallic_mat(img=img)
-                if not obj.data.materials or obj.data.materials[0] != mat:
-                    obj.data.materials.clear(); obj.data.materials.append(mat)
+                mat = get_or_create_palette_material(image=img)
+                ensure_single_material_slot(obj, mat)
 
         if settings.debug_colors_active:
             settings.debug_colors_active = False
@@ -1673,7 +2008,7 @@ class BLOCKTOOLS_OT_export_fbx(bpy.types.Operator):
         fname = (settings.export_filename.strip() or obj.name) + (".fbx" if not (settings.export_filename.strip() or obj.name).lower().endswith(".fbx") else "")
         path = os.path.join(export_dir, fname)
 
-        # Lưu dữ liệu phân loại 5 tầng vào Color Attribute (BT_TIER_COLORS) để bảo toàn 100% khi đọc lại
+        # Store 5-tier classification in Color Attribute (BT_TIER_COLORS) for 100% round-trip fidelity
         bake_tier_colors_to_mesh(obj)
         if obj.data.color_attributes.get("BT_TIER_COLORS"):
             obj.data.color_attributes.active_color_index = obj.data.color_attributes.find("BT_TIER_COLORS")
@@ -1707,8 +2042,51 @@ class BLOCKTOOLS_OT_open_export_dir(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def draw_swatch_pages(panel, layout, settings):
+    swatch_count = min(len(settings.swatches), PALETTE_COLOR_LIMIT)
+    if swatch_count == 0:
+        layout.label(text="Chưa có màu. Hãy đọc palette trước.", icon="INFO")
+        return
+
+    layout.label(text="Bảng Màu (Bấm ô để tô ngay vào mục tiêu trên):", icon='COLORSET_01_VEC')
+    page_count = (swatch_count + PALETTE_PAGE_SIZE - 1) // PALETTE_PAGE_SIZE
+    for page_index in range(page_count):
+        start = page_index * PALETTE_PAGE_SIZE
+        end = min(start + PALETTE_PAGE_SIZE, swatch_count)
+        page_box = layout.box()
+        expanded = settings.palette_page_expanded[page_index]
+
+        header = page_box.row(align=True)
+        header.prop(
+            settings,
+            "palette_page_expanded",
+            index=page_index,
+            text=f"Màu {start + 1}–{end} ({end - start})",
+            icon="TRIA_DOWN" if expanded else "TRIA_RIGHT",
+            emboss=False,
+        )
+        if not expanded:
+            continue
+
+        grid = page_box.grid_flow(
+            row_major=True,
+            columns=2,
+            even_columns=True,
+            even_rows=True,
+        )
+        for swatch_index in range(start, end):
+            swatch = settings.swatches[swatch_index]
+            row = grid.row(align=True)
+            row.prop(swatch, "color", text="")
+            operator = row.operator(
+                "blocktools.apply_swatch",
+                text=swatch.name,
+            )
+            operator.swatch_index = swatch_index
+
+
 # ==============================================================================
-# UI PANEL WITH COLLAPSIBLE ACCORDION SECTIONS (PHẦN RÚT GỌN GIAO DIỆN)
+# UI PANEL WITH COLLAPSIBLE ACCORDION SECTIONS
 # ==============================================================================
 class VIEW3D_PT_block_tools(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -1721,7 +2099,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
         settings = context.scene.block_tools_settings
         obj = context.active_object
 
-        # 1. CHUẨN HÓA & CĂN TRỤC (COLLAPSIBLE)
+        # 1. STANDARDIZE & ALIGNMENT (COLLAPSIBLE)
         r = layout.row(align=True)
         r.prop(settings, "fold_standardize", text="1. Chuẩn Hóa & Căn Trục (1.0m)", icon='TRIA_DOWN' if settings.fold_standardize else 'TRIA_RIGHT', toggle=True)
         if settings.fold_standardize:
@@ -1742,13 +2120,13 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 r_rot.operator("blocktools.rotate_z", text="180°").angle_degrees = 180.0
             else: box.label(text="Hãy chọn một Mesh!", icon='ERROR')
 
-        # 2. BẢNG PHÂN LOẠI 4 TẦNG (COLLAPSIBLE)
+        # 2. 5-TIER FACE CLASSIFICATION (COLLAPSIBLE)
         r = layout.row(align=True)
         r.prop(settings, "fold_classification", text="2. Bảng Phân Loại Mặt Khối (4 Tầng)", icon='TRIA_DOWN' if settings.fold_classification else 'TRIA_RIGHT', toggle=True)
         if settings.fold_classification:
             box = layout.box()
             if obj and obj.type == 'MESH':
-                # Nút hành động chính
+                # Main action buttons
                 r_act = box.row(align=True)
                 r_act.scale_y = 1.15
                 r_act.operator("blocktools.analyze_mesh", text="🔍 Phân Tích / Đọc Lại", icon='VIEWZOOM')
@@ -1758,7 +2136,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 op_re = r_sub.operator("blocktools.analyze_mesh", text="⚡ Quét Lại Từ Đầu (Bỏ Qua Màu FBX)", icon='FILE_REFRESH')
                 op_re.force_heuristic = True
 
-                # Chú thích 5 màu kiểm tra trực quan
+                # 5-tier inspection color legend
                 leg_box = box.box()
                 leg_box.label(text="Quy Ước 5 Màu Kiểm Tra (Viewport):", icon='COLOR')
                 col_leg = leg_box.column(align=True)
@@ -1768,7 +2146,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 col_leg.label(text="• Màu Vàng: Phụ Kiện (đinh tán, hoa văn)")
                 col_leg.label(text="• Màu Tím: Khác (mặt lẻ, mặt lỗi, tinh chỉnh riêng)")
 
-                # Bảng số lượng và công cụ gán
+                # Tier counts and assignment tools
                 tbl = box.box().column(align=True)
                 tiers = [
                     (0, "1. Viền [Đỏ]", settings.count_frame),
@@ -1790,11 +2168,12 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 col_hints.label(text="Sửa nhầm: Chọn mặt trong Edit Mode -> Bấm ➕ Gán", icon='EDITMODE_HLT')
             else: box.label(text="Hãy chọn một Mesh!", icon='ERROR')
 
-        # 3. BẢNG MÀU & UV PALETTE (COLLAPSIBLE)
+        # 3. COLOR PALETTE & UV MAPPING (COLLAPSIBLE)
         r = layout.row(align=True)
         r.prop(settings, "fold_palette", text="3. Bảng Màu & UV Palette", icon='TRIA_DOWN' if settings.fold_palette else 'TRIA_RIGHT', toggle=True)
         if settings.fold_palette:
             box = layout.box()
+            box.label(text="Màu được áp bằng UV Atlas (1 Material Slot)", icon='INFO')
             box.prop(settings, "palette_source")
             if settings.palette_source == 'CUSTOM':
                 box.prop(settings, "custom_image_path")
@@ -1808,7 +2187,18 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
             r_act.operator("blocktools.smart_autocolor", text="⚡ Tự Động (5 Tầng)", icon='COLOR')
             r_act.operator("blocktools.reset_original_color", text="↺ Reset Màu Gốc", icon='LOOP_BACK')
 
-            # TÔ MÀU THEO TẦNG
+            # Material reset box
+            reset_box = box.box()
+            reset_box.label(text="Reset Material Object (1 Slot Duy Nhất)", icon='MATERIAL_DATA')
+            reset_box.prop(settings, "reset_material_name")
+            reset_box.prop(settings, "reset_make_single_user")
+            reset_box.operator(
+                "blocktools.reset_materials",
+                text="Xóa Toàn Bộ Material & Tạo Mới",
+                icon='TRASH',
+            )
+
+            # Tier paint targets
             tbox = box.box()
             tbox.label(text="🎯 Mục Tiêu Khi Chọn Màu (Tô Theo Tầng):", icon='BRUSH_DATA')
 
@@ -1837,27 +2227,22 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
             lbl_row = tbox.row(align=True)
             lbl_row.label(text=f"👉 Đang chọn tô: {target_labels.get(settings.paint_target, '')}", icon='RESTRICT_COLOR_OFF')
 
-            if settings.swatches:
-                box.label(text="Bảng Màu (Bấm ô để tô ngay vào mục tiêu trên):", icon='COLORSET_01_VEC')
-                grid = box.box().grid_flow(row_major=True, columns=2, even_columns=True, even_rows=True)
-                for i, sw in enumerate(settings.swatches):
-                    row = grid.row(align=True)
-                    row.prop(sw, "color", text="")
-                    row.operator("blocktools.apply_swatch", text=sw.name).swatch_index = i
+            box.prop(settings, "palette_max_colors")
+            draw_swatch_pages(self, box, settings)
 
-        # 4. TÙY BIẾN HÌNH HỌC (COLLAPSIBLE)
+        # 4. GEOMETRY TWEAKER (COLLAPSIBLE)
         r = layout.row(align=True)
         r.prop(settings, "fold_tweaker", text="4. Tùy Biến Hình Học (5 Tầng)", icon='TRIA_DOWN' if settings.fold_tweaker else 'TRIA_RIGHT', toggle=True)
         if settings.fold_tweaker:
             box = layout.box()
             if obj and obj.type == 'MESH':
-                # 1. Khung Viền [Đỏ]
+                # 1. Frame [Red]
                 box.label(text="1. Khung Viền [Đỏ]:", icon='SNAP_EDGE')
                 rf = box.row(align=True)
                 rf.operator("blocktools.adjust_frame_thickness", text="◄ Giảm Dày (-1.5%)").delta = -0.015
                 rf.operator("blocktools.adjust_frame_thickness", text="► Tăng Dày (+1.5%)").delta = 0.015
 
-                # 2. Thanh Lồi [Xanh Lá]
+                # 2. Center Raised Planks [Green]
                 box.label(text="2. Thanh Lồi Trung Tâm [Xanh Lá]:", icon='SNAP_VOLUME')
                 rt = box.row(align=True)
                 rt.operator("blocktools.adjust_plank_thickness", text="◄ Giảm Dày (-1.5%)").delta = -0.015
@@ -1895,19 +2280,19 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
 
                 box.operator("blocktools.snap_planks_to_backing", text="🧲 Bám Sát Ván Nền (Snap)", icon='SNAP_FACE')
 
-                # 3. Ván Nền [X.Dương]
+                # 3. Center Recessed Backing [Blue]
                 box.label(text="3. Ván Nền Phía Sau [X.Dương]:", icon='AXIS_SIDE')
                 rd = box.row(align=True)
                 rd.operator("blocktools.adjust_recess_depth", text="◄ Nông (-1.5%)").delta = -0.015
                 rd.operator("blocktools.adjust_recess_depth", text="► Sâu (+1.5%)").delta = 0.015
 
-                # 4. Phụ Kiện [Vàng]
+                # 4. Accessories [Yellow]
                 box.label(text="4. Phụ Kiện / Vật Nổi [Vàng]:", icon='ORIENTATION_LOCAL')
                 ra = box.row(align=True)
                 ra.operator("blocktools.adjust_accessory_scale", text="◄ Thu Nhỏ (-5%)").factor = 0.95
                 ra.operator("blocktools.adjust_accessory_scale", text="► Phóng To (+5%)").factor = 1.05
 
-                # 5. Khác / Tinh Chỉnh Lẻ [Tím]
+                # 5. Other / Fine Adjustments [Purple]
                 box.label(text="5. Khác / Tinh Chỉnh Lẻ [Tím]:", icon='COLORSET_07_VEC')
                 ro_d = box.row(align=True)
                 ro_d.operator("blocktools.adjust_other_depth", text="◄ Thụt Vào (-1.5%)").delta = -0.015
@@ -1931,7 +2316,7 @@ class VIEW3D_PT_block_tools(bpy.types.Panel):
                 r_rst.operator("blocktools.standardize", text="⚡ Chuẩn Hóa Lại Bounds (1.0m)", icon='MOD_REMESH')
             else: box.label(text="Hãy chọn một Mesh!", icon='ERROR')
 
-        # 5. XUẤT FBX SANG UNITY (COLLAPSIBLE)
+        # 5. EXPORT TO UNITY FBX (COLLAPSIBLE)
         r = layout.row(align=True)
         r.prop(settings, "fold_export", text="5. Xuất File Sang Unity (FBX)", icon='TRIA_DOWN' if settings.fold_export else 'TRIA_RIGHT', toggle=True)
         if settings.fold_export:
@@ -1953,6 +2338,7 @@ classes = (
     BLOCKTOOLS_OT_group_select, BLOCKTOOLS_OT_group_assign,
     BLOCKTOOLS_OT_load_curated_swatches, BLOCKTOOLS_OT_scan_palette_image,
     BLOCKTOOLS_OT_apply_swatch, BLOCKTOOLS_OT_smart_autocolor,
+    BLOCKTOOLS_OT_reset_materials,
     BLOCKTOOLS_OT_reset_original_color,
     BLOCKTOOLS_OT_adjust_frame_thickness,
     BLOCKTOOLS_OT_adjust_recess_depth, BLOCKTOOLS_OT_adjust_plank_thickness,
@@ -1966,7 +2352,8 @@ classes = (
 )
 
 def register():
-    for cls in classes: bpy.utils.register_class(cls)
+    for cls in classes:
+        bpy.utils.register_class(cls)
     bpy.types.Scene.block_tools_settings = bpy.props.PointerProperty(type=BlockToolsSettings)
     try:
         s = bpy.context.scene.block_tools_settings
@@ -1974,11 +2361,14 @@ def register():
             for item in CURATED_SWATCHES:
                 sw = s.swatches.add()
                 sw.name, sw.color, sw.uv_coord = item["name"], item["color"], item["uv"]
-    except Exception: pass
+    except Exception:
+        pass
 
 def unregister():
-    for cls in reversed(classes): bpy.utils.unregister_class(cls)
-    del bpy.types.Scene.block_tools_settings
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+    if hasattr(bpy.types.Scene, "block_tools_settings"):
+        del bpy.types.Scene.block_tools_settings
 
 if __name__ == "__main__":
     register()
