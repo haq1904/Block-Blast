@@ -14,6 +14,9 @@ public interface ISceneService
     /// <summary>
     /// Loads the requested scene asynchronously through the transition pipeline.
     /// Throws InvalidOperationException if a transition is already in progress.
+    /// In Single mode, the target scene becomes the active scene upon activation.
+    /// In Additive mode, the target scene is loaded alongside existing scenes without automatically changing the active scene.
+    /// Caller cancellation is honored until the engine operation begins; once started, the transition completes activation safely.
     /// </summary>
     Task LoadSceneAsync(SceneLoadRequest request, CancellationToken cancellationToken = default);
 }

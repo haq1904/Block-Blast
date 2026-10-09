@@ -29,6 +29,9 @@ public sealed class SceneTransitionRunner
 
     /// <summary>
     /// Executes the full transition sequence.
+    /// Caller cancellation is honored up until the engine load operation begins.
+    /// Once the engine operation is underway, the pipeline will complete scene activation
+    /// and reveal without cancellation to prevent abandoned background operations.
     /// </summary>
     public async Task RunAsync(SceneLoadRequest request, CancellationToken cancellationToken = default)
     {
@@ -46,6 +49,7 @@ public sealed class SceneTransitionRunner
         }
 
         IsTransitioning = true;
+        ISceneLoadOperation operation = null;
 
         try
         {
@@ -56,15 +60,13 @@ public sealed class SceneTransitionRunner
             string sourceName = _backend.ActiveSceneName;
             int targetIndex = request.SceneBuildIndex;
             string targetName = _backend.GetSceneNameByBuildIndex(targetIndex);
-            bool isReload = sourceIndex == targetIndex;
 
             var context = new SceneTransitionContext(
                 sourceIndex,
                 sourceName,
                 targetIndex,
                 targetName,
-                request.LoadMode,
-                isReload);
+                request.LoadMode);
 
             // 3. Prepare loading screen
             _loadingScreen.Prepare(context);
@@ -76,7 +78,7 @@ public sealed class SceneTransitionRunner
 
             // 5. Begin asynchronous scene loading only after cover is complete
             float startTime = _timeProvider.RealtimeSinceStartup;
-            ISceneLoadOperation operation = _backend.LoadSceneAsync(request.SceneBuildIndex, request.LoadMode);
+            operation = _backend.LoadSceneAsync(request.SceneBuildIndex, request.LoadMode);
             if (operation == null)
             {
                 throw new InvalidOperationException(
@@ -115,16 +117,33 @@ public sealed class SceneTransitionRunner
             }
 
             // 11. Reveal newly activated target scene
-            await _loadingScreen.HideAsync(context, cancellationToken);
+            await _loadingScreen.HideAsync(context, CancellationToken.None);
         }
         catch
         {
+            TryReleaseActivation(operation);
             _loadingScreen.ResetImmediate();
             throw;
         }
         finally
         {
             IsTransitioning = false;
+        }
+    }
+
+    private static void TryReleaseActivation(ISceneLoadOperation operation)
+    {
+        if (operation == null) return;
+        try
+        {
+            if (!operation.IsDone)
+            {
+                operation.AllowSceneActivation = true;
+            }
+        }
+        catch
+        {
+            // Best-effort release to prevent underlying scene operation from staying locked
         }
     }
 

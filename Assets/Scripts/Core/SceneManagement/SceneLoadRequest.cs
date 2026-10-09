@@ -13,6 +13,8 @@ public readonly struct SceneLoadRequest : IEquatable<SceneLoadRequest>
 
     /// <summary>
     /// Loading mode (Single or Additive).
+    /// In Single mode, Unity automatically makes the newly loaded scene the active scene upon activation.
+    /// In Additive mode, the target scene is loaded alongside existing scenes, but the active scene is not automatically changed.
     /// </summary>
     public LoadSceneMode LoadMode { get; }
 
@@ -28,9 +30,9 @@ public readonly struct SceneLoadRequest : IEquatable<SceneLoadRequest>
             throw new ArgumentOutOfRangeException(nameof(sceneBuildIndex), "Scene build index must be non-negative.");
         }
 
-        if (minimumVisibleDuration < 0f)
+        if (float.IsNaN(minimumVisibleDuration) || float.IsInfinity(minimumVisibleDuration) || minimumVisibleDuration < 0f)
         {
-            throw new ArgumentOutOfRangeException(nameof(minimumVisibleDuration), "Minimum visible duration must be non-negative.");
+            throw new ArgumentOutOfRangeException(nameof(minimumVisibleDuration), "Minimum visible duration must be a non-negative finite number.");
         }
 
         SceneBuildIndex = sceneBuildIndex;
@@ -41,7 +43,7 @@ public readonly struct SceneLoadRequest : IEquatable<SceneLoadRequest>
     public bool Equals(SceneLoadRequest other) =>
         SceneBuildIndex == other.SceneBuildIndex &&
         LoadMode == other.LoadMode &&
-        Math.Abs(MinimumVisibleDuration - other.MinimumVisibleDuration) < 0.0001f;
+        MinimumVisibleDuration == other.MinimumVisibleDuration;
 
     public override bool Equals(object obj) => obj is SceneLoadRequest other && Equals(other);
 

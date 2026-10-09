@@ -214,6 +214,145 @@ public class SceneTransitionRunnerTest
         Assert.IsFalse(_runner.IsTransitioning);
     }
 
+    [Test]
+    public void RunAsync_WhenSetProgressThrowsAfterOperationStarted_ReleasesActivationAndResetsImmediate()
+    {
+        _loadingScreen.ThrowOnSetProgress = new InvalidOperationException("Progress UI exploded");
+        var request = new SceneLoadRequest(1);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await _runner.RunAsync(request);
+        });
+
+        Assert.IsTrue(_backend.LoadCalled);
+        Assert.IsTrue(_backend.OperationToReturn.AllowSceneActivation, "Operation activation must be released in failure path.");
+        Assert.AreEqual(1, _loadingScreen.ResetImmediateCount);
+        Assert.IsFalse(_runner.IsTransitioning);
+    }
+
+    [Test]
+    public void RunAsync_WhenTimeProviderDelayThrows_ReleasesActivationAndPreservesOriginalException()
+    {
+        _timeProvider.ThrowOnDelay = new TimeoutException("Delay clock failure");
+        var request = new SceneLoadRequest(1, LoadSceneMode.Single, 2.0f);
+
+        Assert.ThrowsAsync<TimeoutException>(async () =>
+        {
+            await _runner.RunAsync(request);
+        });
+
+        Assert.IsTrue(_backend.LoadCalled);
+        Assert.IsTrue(_backend.OperationToReturn.AllowSceneActivation, "Operation activation must be released when delay fails.");
+        Assert.AreEqual(1, _loadingScreen.ResetImmediateCount);
+        Assert.IsFalse(_runner.IsTransitioning);
+    }
+
+    [Test]
+    public void RunAsync_CancelledDuringShowAsync_DoesNotStartBackend()
+    {
+        using var cts = new CancellationTokenSource();
+        _loadingScreen.OnShowAsync = () => cts.Cancel();
+        var request = new SceneLoadRequest(1);
+
+        Assert.CatchAsync<OperationCanceledException>(async () =>
+        {
+            await _runner.RunAsync(request, cts.Token);
+        });
+
+        Assert.IsFalse(_backend.LoadCalled, "Backend must not start if cancelled during ShowAsync.");
+        Assert.AreEqual(1, _loadingScreen.ResetImmediateCount);
+        Assert.IsFalse(_runner.IsTransitioning);
+    }
+
+    [Test]
+    public async Task RunAsync_CallerCancelledAfterOperationStarted_StillCompletesActivationAndReveal()
+    {
+        using var cts = new CancellationTokenSource();
+        var request = new SceneLoadRequest(1);
+
+        _backend.OperationToReturn = new FakeSceneLoadOperation
+        {
+            OnAllowSceneActivationSet = allow =>
+            {
+                cts.Cancel();
+            }
+        };
+
+        await _runner.RunAsync(request, cts.Token);
+
+        Assert.IsTrue(_backend.OperationToReturn.AllowSceneActivation);
+        Assert.IsTrue(_backend.OperationToReturn.IsDone);
+        Assert.IsTrue(_loadingScreen.RecordedEvents.Contains("HideAsync"));
+        Assert.IsFalse(_runner.IsTransitioning);
+    }
+
+    [Test]
+    public async Task RunAsync_SceneLoadSlowerThanMinimumDuration_DoesNotDelayExtra()
+    {
+        var request = new SceneLoadRequest(1, LoadSceneMode.Single, minimumVisibleDuration: 1.0f);
+
+        _timeProvider.RealtimeSinceStartup = 0f;
+        _backend.OperationToReturn = new FakeSceneLoadOperation
+        {
+            CustomProgressSequence = new[] { 0.45f, 0.9f },
+            OnProgressPolled = () =>
+            {
+                // Advance simulated clock during loading operation past minimum duration
+                _timeProvider.RealtimeSinceStartup += 2.5f;
+            }
+        };
+
+        await _runner.RunAsync(request);
+
+        Assert.AreEqual(0, _timeProvider.DelayedDurations.Count, "No additional delay should occur if load duration exceeded minimum.");
+    }
+
+    [Test]
+    public async Task RunAsync_OperationRequiresMultipleYieldsAfterActivation_AwaitsUntilIsDone()
+    {
+        var request = new SceneLoadRequest(1);
+        _backend.OperationToReturn = new FakeSceneLoadOperation
+        {
+            ActivationYieldCount = 3
+        };
+
+        await _runner.RunAsync(request);
+
+        Assert.IsTrue(_backend.OperationToReturn.IsDone);
+        Assert.IsTrue(_loadingScreen.RecordedEvents.Contains("HideAsync"));
+    }
+
+    [Test]
+    public async Task RunAsync_ProgressValues_AreAlwaysClampedBetweenZeroAndOne()
+    {
+        var request = new SceneLoadRequest(1);
+        _backend.OperationToReturn = new FakeSceneLoadOperation
+        {
+            CustomProgressSequence = new[] { -0.5f, 0.45f, 0.89f, 0.95f, 1.2f }
+        };
+
+        await _runner.RunAsync(request);
+
+        foreach (float p in _loadingScreen.ProgressValues)
+        {
+            Assert.GreaterOrEqual(p, 0f);
+            Assert.LessOrEqual(p, 1f);
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_ContextDerivesIsReloadCorrectly()
+    {
+        var reloadRequest = new SceneLoadRequest(0);
+        await _runner.RunAsync(reloadRequest);
+        Assert.IsTrue(_loadingScreen.LastPreparedContext.IsReload);
+
+        var newSceneRequest = new SceneLoadRequest(1);
+        await _runner.RunAsync(newSceneRequest);
+        Assert.IsFalse(_loadingScreen.LastPreparedContext.IsReload);
+    }
+
     // --- Fakes ---
 
     private sealed class FakeLoadingScreen : ILoadingScreen
@@ -222,14 +361,17 @@ public class SceneTransitionRunnerTest
         public readonly List<float> ProgressValues = new List<float>();
         public float LastProgress { get; private set; } = -1f;
         public int ResetImmediateCount { get; private set; }
+        public SceneTransitionContext LastPreparedContext { get; private set; }
 
         public Action OnShowAsync;
         public Exception ThrowOnShow;
         public Exception ThrowOnHide;
+        public Exception ThrowOnSetProgress;
         public Task ShowTaskOverride;
 
         public void Prepare(SceneTransitionContext context)
         {
+            LastPreparedContext = context;
             RecordedEvents.Add("Prepare");
         }
 
@@ -247,6 +389,7 @@ public class SceneTransitionRunnerTest
             LastProgress = normalizedProgress;
             ProgressValues.Add(normalizedProgress);
             RecordedEvents.Add($"SetProgress:{normalizedProgress:F2}");
+            if (ThrowOnSetProgress != null) throw ThrowOnSetProgress;
         }
 
         public Task HideAsync(SceneTransitionContext context, CancellationToken cancellationToken)
@@ -285,14 +428,18 @@ public class SceneTransitionRunnerTest
     {
         private int _progressIndex;
         private bool _allowActivation;
+        private int _yieldsRemainingAfterActivation;
 
         public float[] CustomProgressSequence { get; set; } = new[] { 0.45f, 0.9f };
         public Action<bool> OnAllowSceneActivationSet { get; set; }
+        public Action OnProgressPolled { get; set; }
+        public int ActivationYieldCount { get; set; } = 0;
 
         public float Progress
         {
             get
             {
+                OnProgressPolled?.Invoke();
                 if (CustomProgressSequence != null && _progressIndex < CustomProgressSequence.Length)
                 {
                     return CustomProgressSequence[_progressIndex++];
@@ -301,7 +448,19 @@ public class SceneTransitionRunnerTest
             }
         }
 
-        public bool IsDone => _allowActivation;
+        public bool IsDone
+        {
+            get
+            {
+                if (!_allowActivation) return false;
+                if (_yieldsRemainingAfterActivation > 0)
+                {
+                    _yieldsRemainingAfterActivation--;
+                    return false;
+                }
+                return true;
+            }
+        }
 
         public bool AllowSceneActivation
         {
@@ -309,6 +468,10 @@ public class SceneTransitionRunnerTest
             set
             {
                 _allowActivation = value;
+                if (value)
+                {
+                    _yieldsRemainingAfterActivation = ActivationYieldCount;
+                }
                 OnAllowSceneActivationSet?.Invoke(value);
             }
         }
@@ -318,16 +481,20 @@ public class SceneTransitionRunnerTest
     {
         public readonly List<float> DelayedDurations = new List<float>();
         public float RealtimeSinceStartup { get; set; } = 0f;
+        public Exception ThrowOnDelay;
+        public Exception ThrowOnYield;
 
         public Task DelayAsync(float seconds, CancellationToken cancellationToken)
         {
             DelayedDurations.Add(seconds);
             RealtimeSinceStartup += seconds;
+            if (ThrowOnDelay != null) throw ThrowOnDelay;
             return Task.CompletedTask;
         }
 
         public Task YieldAsync(CancellationToken cancellationToken)
         {
+            if (ThrowOnYield != null) throw ThrowOnYield;
             return Task.CompletedTask;
         }
     }

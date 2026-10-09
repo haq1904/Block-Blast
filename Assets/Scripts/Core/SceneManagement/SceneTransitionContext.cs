@@ -17,15 +17,14 @@ public readonly struct SceneTransitionContext
         string sourceSceneName,
         int targetSceneBuildIndex,
         string targetSceneName,
-        LoadSceneMode loadMode,
-        bool isReload)
+        LoadSceneMode loadMode)
     {
         SourceSceneBuildIndex = sourceSceneBuildIndex;
         SourceSceneName = sourceSceneName ?? string.Empty;
         TargetSceneBuildIndex = targetSceneBuildIndex;
         TargetSceneName = targetSceneName ?? string.Empty;
         LoadMode = loadMode;
-        IsReload = isReload;
+        IsReload = sourceSceneBuildIndex == targetSceneBuildIndex;
     }
 
     public override string ToString() =>

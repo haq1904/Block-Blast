@@ -52,12 +52,63 @@ public class SceneLoadRequestTest
     }
 
     [Test]
+    public void Constructor_WithNaNMinimumDuration_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            _ = new SceneLoadRequest(1, LoadSceneMode.Single, float.NaN);
+        });
+    }
+
+    [Test]
+    public void Constructor_WithPositiveInfinityMinimumDuration_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            _ = new SceneLoadRequest(1, LoadSceneMode.Single, float.PositiveInfinity);
+        });
+    }
+
+    [Test]
+    public void Constructor_WithNegativeInfinityMinimumDuration_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            _ = new SceneLoadRequest(1, LoadSceneMode.Single, float.NegativeInfinity);
+        });
+    }
+
+    [Test]
     public void Equals_WithIdenticalValues_ReturnsTrue()
     {
         var req1 = new SceneLoadRequest(1, LoadSceneMode.Single, 0.5f);
         var req2 = new SceneLoadRequest(1, LoadSceneMode.Single, 0.5f);
 
         Assert.IsTrue(req1.Equals(req2));
+        Assert.IsTrue(req1.Equals((object)req2));
         Assert.AreEqual(req1.GetHashCode(), req2.GetHashCode());
+    }
+
+    [Test]
+    public void Equals_WithDifferentMinimumDuration_ReturnsFalse()
+    {
+        var req1 = new SceneLoadRequest(1, LoadSceneMode.Single, 0.5f);
+        var req2 = new SceneLoadRequest(1, LoadSceneMode.Single, 0.50005f);
+
+        Assert.IsFalse(req1.Equals(req2));
+        Assert.IsFalse(req1.Equals((object)req2));
+    }
+
+    [Test]
+    public void Equals_WithDifferentIndexOrMode_ReturnsFalse()
+    {
+        var req1 = new SceneLoadRequest(1, LoadSceneMode.Single, 0.5f);
+        var req2 = new SceneLoadRequest(2, LoadSceneMode.Single, 0.5f);
+        var req3 = new SceneLoadRequest(1, LoadSceneMode.Additive, 0.5f);
+
+        Assert.IsFalse(req1.Equals(req2));
+        Assert.IsFalse(req1.Equals(req3));
+        Assert.IsFalse(req1.Equals(null));
+        Assert.IsFalse(req1.Equals("some string"));
     }
 }

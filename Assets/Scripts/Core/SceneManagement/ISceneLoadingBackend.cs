@@ -50,6 +50,8 @@ public interface ISceneLoadingBackend
 
     /// <summary>
     /// Initiates an asynchronous scene load operation.
+    /// In Single mode, Unity activates the target scene as active.
+    /// In Additive mode, the target scene is loaded alongside current scenes without automatically changing the active scene.
     /// </summary>
     ISceneLoadOperation LoadSceneAsync(int buildIndex, LoadSceneMode mode);
 }
