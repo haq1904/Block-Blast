@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 /// <summary>
-/// Natural pet fetch clear animation synchronized with flying projectiles (Frisbee, bones, balls).
+/// Natural pet fetch clear animation synchronized with flying fetch props.
 /// Features: Post-pass trigger -> In-place alert shake -> Reaction hop & landing -> Curved takeoff flight with early gameplay release ->
 /// Real-time live prop facing with ground-aligned feet during follow -> Natural offscreen shrink to zero (no alpha fade or material swap).
 /// Adheres strictly to dotween.md, visual_effects.md, and architecture.md.
@@ -14,7 +14,7 @@ public class PetFetchClearAnimationSO : PetClearAnimationSOBase
 {
     [Header("Post-pass Reaction")]
     [Min(0f)]
-    [Tooltip("Delay after the Frisbee center passes the cell before the pet reacts.")]
+    [Tooltip("Delay after the active fetch prop center passes the cell before the pet reacts.")]
     public float reactionDelayAfterPass = 0.12f;
 
     [Header("Alert Shake")]

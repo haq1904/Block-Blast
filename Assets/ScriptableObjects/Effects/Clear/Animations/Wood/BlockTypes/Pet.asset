@@ -75,10 +75,10 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 0a5f6bcbe4ff42f2887aa9fae60e4a97, type: 2}
     - {fileID: 11400000, guid: 4d868f14a9ae47f1863b207b9d0b1578, type: 2}
     sweepers:
-    - variantId: frisbee
-      sweeper: {fileID: 11400000, guid: 9bbbb473b7057a14798976b9e3e91721, type: 2}
+    - variantId: smoked_chicken_leg
+      sweeper: {fileID: 11400000, guid: ca036d5f9160d364698b2345cbf5001d, type: 2}
       propPrefabs:
-      - {fileID: 9044548056696304216, guid: 6bb14e32f1128c74cb19694fc2d1caf2, type: 3}
+      - {fileID: 1986812144838431231, guid: ff897dae09271c14d8c820877d8d2951, type: 3}
       weightPercent: 100
     - variantId: boomerang_bone
       sweeper: {fileID: 11400000, guid: 43577fdab9d2f00408b07febf79b50e0, type: 2}

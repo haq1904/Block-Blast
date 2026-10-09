@@ -172,6 +172,27 @@ public abstract class ClearSweeperBase : ScriptableObject
     }
 
     /// <summary>
+    /// Instantly stops and clears all child ParticleSystems on the sweeper to prevent stale particles across pool reuse.
+    /// </summary>
+    protected static void ClearSweeperParticles(GameObject sweeper)
+    {
+        if (sweeper == null) return;
+
+        ParticleSystem[] systems = sweeper
+            .GetComponentsInChildren<ParticleSystem>(true);
+
+        for (int i = 0; i < systems.Length; i++)
+        {
+            ParticleSystem ps = systems[i];
+            if (ps == null) continue;
+
+            ps.Stop(
+                true,
+                ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+    }
+
+    /// <summary>
     /// Initializes sweeper visuals for entry. Hides via alpha = 0 and/or scale = 0 based on configuration.
     /// </summary>
     public virtual void PrepareSweeperForEntry(GameObject sweeper)
