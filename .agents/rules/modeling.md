@@ -1,131 +1,70 @@
 # Block Blast - 3D Modeling & Blender Optimization Guidelines
 
-Performance, visual consistency, and memory efficiency are paramount for mobile game development (60/120 FPS). All 3D assets created in Blender or sourced externally for the "Block Blast" project MUST strictly adhere to the following modeling, texturing, and export rules.
+Quy chuẩn tối ưu hóa mô hình 3D, vật liệu, UV và xuất file FBX từ Blender cho dự án Block Blast (chuẩn 60/120 FPS mobile).
 
 ---
 
-## 1. Strict Scope Rule: Model ONLY What Is Requested (Strict Prohibition)
-* **Strict Rule**: Whenever receiving a 3D modeling request in Blender from the user, ONLY model the exact object/asset that the user explicitly requested.
-* **Strict Prohibition**: Absolutely do NOT model, generate, or add any extra objects, props, background accessories, environment elements, or unrequested variations. Keep the Blender scene clean, focused, and 100% limited strictly to the requested subject.
+## 1. Giới hạn Phạm vi: Chỉ Model Đúng Vật phẩm Yêu cầu
+* **Quy tắc nghiêm ngặt**: CHỈ model chính xác đối tượng mà người dùng yêu cầu.
+* **CẤM TUYỆT ĐỐI**: Không tự ý tạo thêm đạo cụ phụ, nền cảnh, chi tiết trang trí hoặc biến thể ngoài yêu cầu.
 
 ---
 
-## 2. Polygon & Triangle Budget (Mesh Optimization)
+## 2. Ngân sách Đa giác & Tối ưu Lưới (Mesh Budget)
 
-Keep geometry strictly stylized, clean, and low-poly. Eliminate unnecessary edge loops and subdivisions that provide zero visual value from a top-down camera perspective.
-
-### A. Triangle Budget per Asset Category
-
-| Asset Category | Target Tris Budget | Hard Upper Limit | Examples |
+### A. Ngân sách Tam giác theo Loại Asset
+| Phân loại Asset | Ngân sách Mục tiêu | Giới hạn Cứng | Ví dụ |
 | :--- | :---: | :---: | :--- |
 | **Gameplay Cell Blocks** | 100 – 300 tris | 500 tris | `WoodCrate`, `JellyBlock`, `StoneBlock` |
 | **Micro-Debris / Particles** | 12 – 40 tris | 60 tris | `Mesh_MicroDebris_Wood`, `JellyDrop` |
 | **Spinning Tools & Props** | 200 – 500 tris | 800 tris | `SawBlade`, `DrillBit`, `RotatingGear` |
 | **Machinery & Complex Props** | 600 – 1,000 tris | 1,500 tris | `CircularSawMachine`, `Chainsaw`, `Bomb` |
 
-### B. Geometry & Topology Rules
-1. **Zero N-Gons (Strict Ban)**:
-   * Meshes MUST contain only **Quads and Triangles** before export.
-   * Planar or complex faces must be triangulated (`Ctrl + T`) to avoid runtime rendering tears, shading artifacts, or non-planar warping.
-2. **Hidden Face Culling (Delete Invisible Polygons)**:
-   * Always delete faces that will never be visible to the player (e.g., the bottom face of blocks resting on the grid, interior cavity walls of sealed casings, underside surfaces of mounted machinery).
-3. **Cylinder & Wheel Subdivisions**:
-   * Cylinders, wheels, saw discs, and circular handles must use **12 to 16 vertices** (maximum 16).
-   * **Strict Prohibition**: Never use the default 32 or 64 vertices for cylinders on mobile assets.
-4. **Beveling Constraints**:
-   * For stylized rounded edges, use a **single segment bevel** (1 segment with `Profile: 0.5`).
-   * Never use 3–4 segment high-poly bevels on mobile gameplay assets.
+### B. Quy tắc Hình học & Topology
+1. **CẤM N-Gons**: Lưới CHỈ được chứa **Quads và Triangles**. Triangulate (`Ctrl + T`) các mặt phức tạp trước khi xuất.
+2. **Xóa mặt khuất (Hidden Face Culling)**: Luôn xóa các mặt không bao giờ thấy (mặt đáy block tiếp xúc bàn cờ, mặt trong vỏ máy).
+3. **Phân đoạn Cylinder & Wheel**: Giới hạn **12 đến 16 đỉnh** (tối đa 16). **CẤM dùng mặc định 32 hoặc 64 đỉnh**.
+4. **Giới hạn Bevel**: Chỉ dùng **bevel 1 segment** (`Profile: 0.5`). Cấm dùng bevel 3-4 segments trên asset mobile.
 
 ---
 
-## 3. UV Mapping & Color Palette Workflow (1 Draw Call Standard)
-
-To achieve maximum draw call batching via the **URP SRP Batcher**, all models must share the global color palette atlas.
-
-1. **Point-Collapsed UV Mapping**:
-   * In Blender's UV Editor, collapse face UV islands down to a single zero-size point (`S` $\rightarrow$ `0` $\rightarrow$ `Enter`).
-   * Place (`G`) the collapsed point into the appropriate solid color swatch on the project's color palette texture:
-     `Assets/Art/LeapLand/tex/palette.png`
-2. **Strict Single-Material Standard**:
-   * Every model MUST use **exactly 1 Material slot** bound to `DefaultMat` (`Assets/Art/Blocks/DefaultMat.mat`).
-   * Do NOT assign multiple materials to different sub-faces of a single prop (e.g., metal blade vs wooden handle). Both colors MUST be sampled from the same `palette.png` using UV coordinates.
-3. **No Dedicated 1K/2K Textures**:
-   * Do NOT create separate diffuse, normal, or specular map textures for individual props unless explicitly approved for specialized hero VFX.
+## 3. UV Mapping & Bảng Màu Tập trung (1 Draw Call Standard)
+* **Point-Collapsed UV Mapping**: Thu nhỏ toàn bộ UV island của mặt về 1 điểm kích thước 0 (`S` $\rightarrow$ `0` $\rightarrow$ `Enter`), đặt vào ô màu tương ứng trên bảng màu chung:
+  `Assets/Art/LeapLand/tex/palette.png`
+* **Chuẩn 1 Material duy nhất**: Mọi model CHỈ dùng **đúng 1 slot Material** gán tới `DefaultMat` (`Assets/Art/Blocks/DefaultMat.mat`). Không gán nhiều material cho các phần khác nhau của prop.
+* **Cấm Texture 1K/2K riêng lẻ**: Không tạo texture diffuse/normal riêng cho từng prop trừ khi được duyệt cho hero VFX.
 
 ---
 
-## 4. Pivot Point (Origin) & Part Separation
-
-Correct pivot placement is vital for procedural animations, DOTween rotations, and physical juice.
-
-### A. Rotating / Spinning Components (Saw Blades, Wheels, Gears)
-1. **Geometric Center Alignment**:
-   * The Pivot (Origin) of any rotating part MUST be placed **exactly at the geometric center of its axle/cylinder**:
-     * In Edit Mode: Select the center vertex or circular boundary loop $\rightarrow$ `Shift + S` $\rightarrow$ `Cursor to Selected`.
-     * In Object Mode: Right-click $\rightarrow$ `Set Origin` $\rightarrow$ `Origin to 3D Cursor`.
-   * **Rule**: When DOTween invokes `DORotate(new Vector3(0, 0, 360f), ...)`, the component must spin perfectly on-axis without wobbling.
-2. **Hierarchical Part Separation**:
-   * Props with moving parts (e.g., a Circular Saw) MUST be separated into distinct child objects under a root GameObject:
-     ```
-     CircularSaw_Machine (Root Empty: Position = 0, 0, 0)
-        ├── Body (Stationary casing, handle, motor)
-        └── Blade (Spinning blade with Origin at disc center)
-     ```
-   * Never combine stationary and moving elements into a single flattened mesh.
-
-### B. Gameplay Blocks & Ground Props
-* The Pivot MUST be located at the **bottom center**:
-  * `X = 0`, `Z = 0`, `Y = 0` (Base plane contacting the board).
-  * Mesh height extends upward from `Y = 0` to `Y = 1.0` (Unit bounding box: $1.0 \times 1.0 \times 1.0$).
+## 4. Điểm Đặt Pivot & Phân tách Thành phần
+* **Chi tiết Xoay (Lưỡi cưa, bánh xe, bánh răng)**:
+  * Pivot BẮT BUỘC đặt **chính xác tại tâm hình học của trục xoay** để DOTween quay không bị đảo trục (`Origin to 3D Cursor`).
+  * Tách phân cấp đối tượng: Root Empty (Pos 0,0,0) $\rightarrow$ Body (thân máy tĩnh) + Blade (lưỡi xoay có pivot tại tâm đĩa). Cấm gộp chung thành 1 mesh phẳng.
+* **Gameplay Blocks & Vật phẩm Đặt sàn**:
+  * Pivot tại **đáy trung tâm**: $X = 0, Z = 0, Y = 0$. Chiều cao mở rộng từ $Y = 0$ lên $Y = 1.0$ (Unit bounding box: $1 \times 1 \times 1$).
 
 ---
 
-## 5. Shading & Normals (Eliminating Dirty Shading Artifacts)
-
-1. **Auto Smooth Standard**:
-   * Never apply unconditional `Shade Smooth` over 90-degree planar angles without angle gating.
-   * Always enable **`Shade Auto Smooth`** with an angle threshold between **$30^\circ$ and $45^\circ$** (or use the `Smooth by Angle` modifier in Blender 4.x).
-2. **Marking Sharp Edges**:
-   * For sharp mechanical cuts, teeth on saw blades, or fractured edges, mark them explicitly as **Sharp** in Edit Mode (`Ctrl + E` $\rightarrow$ `Mark Sharp`).
-3. **Recalculate Normals**:
-   * Prior to export, ensure all face normals point outward: Select all (`A`) in Edit Mode $\rightarrow$ `Shift + N` (`Recalculate Outside`).
+## 5. Shading & Pháp tuyến (Normals)
+* **Auto Smooth**: Luôn bật `Shade Auto Smooth` góc **$30^\circ - 45^\circ$** (hoặc modifier `Smooth by Angle` trong Blender 4.x).
+* **Đánh dấu Sharp**: Các cạnh cắt cơ khí hoặc răng cưa phải đánh dấu rõ `Mark Sharp` (`Ctrl + E`).
+* **Tính lại Normals**: Luôn quay pháp tuyến ra ngoài trước khi xuất (`Shift + N` - Recalculate Outside).
 
 ---
 
-## 6. Freeze Transforms & FBX Export Settings
-
-Dirty transformations (unapplied rotations or inverted scaling) cause severe runtime coordinate glitches and desynchronized tweens in Unity.
-
-### A. Mandatory Freeze Before Export
-* In Blender Object Mode, select all components:
-  * Press **`Ctrl + A`** $\rightarrow$ select **`All Transforms`** (or `Rotation & Scale`).
-  * Ensure in the Transform panel: `Position = (0, 0, 0)`, `Rotation = (0, 0, 0)`, `Scale = (1.0, 1.0, 1.0)`.
-
-### B. Unity-Standard FBX Export Preset
-When exporting via `File` $\rightarrow$ `Export` $\rightarrow$ `FBX (.fbx)`:
-1. **Include**:
-   * ☑ **`Limit to: Selected Objects`**
-   * `Object Types`: Enable only `Armature` and `Mesh` (disable Camera and Lamp).
-2. **Transform**:
-   * `Scale`: `1.0`
-   * `Apply Scalings`: **`FBX Units Scale`** (or `FBX All`)
-   * `Forward`: **`-Z Forward`**
-   * `Up`: **`Y Up`**
-   * ☑ **`Apply Transform`**
-3. **Geometry**:
-   * `Smoothing`: `Face` or `Normals Only`
-   * ☑ **`Apply Modifiers`**
-4. **Animation**:
-   * Uncheck / Disable animation baking if exporting static meshes or props animated via DOTween.
+## 6. Freeze Transforms & Cấu hình Xuất FBX
+* **Freeze Transforms**: Trước khi xuất, trong Object Mode: nhấn **`Ctrl + A` $\rightarrow$ `All Transforms`** (đảm bảo Position `0,0,0`, Rotation `0,0,0`, Scale `1,1,1`).
+* **Cấu hình Xuất FBX (`File` $\rightarrow$ `Export` $\rightarrow$ `FBX`)**:
+  * **Include**: Bật `Limit to: Selected Objects`; Object Types chỉ chọn `Armature` và `Mesh`.
+  * **Transform**: Scale `1.0`, Apply Scalings: `FBX Units Scale`, Forward: `-Z Forward`, Up: `Y Up`, Bật `Apply Transform`.
+  * **Geometry**: Smoothing: `Face` hoặc `Normals Only`, Bật `Apply Modifiers`.
+  * **Animation**: Tắt export animation baking cho static/DOTween meshes.
 
 ---
 
-## 7. Pre-Export Quality Checklist (5-Point Verification)
-
-Before dragging any newly created or modified FBX into the Unity project, verify every item on this checklist:
-
-- [ ] **Triangle Budget Check**: Is the total triangle count within the category limit ($< 500$ for blocks, $< 1,000$ for props)?
-- [ ] **No N-Gons**: Are all faces strictly 3-sided (tris) or 4-sided (quads)?
-- [ ] **UV Mapping Verified**: Are all UVs collapsed and mapped to valid color regions on `palette.png`?
-- [ ] **Pivot Alignment Verified**: Is the Origin centered on the rotation axle for spinning parts, or at the bottom-center for blocks?
-- [ ] **Transforms Baked**: Are Scale `(1, 1, 1)` and Rotation `(0, 0, 0)` applied cleanly?
+## 7. Checklist Kiểm tra 5 Điểm Trước khi Xuất (5-Point Verification)
+- [ ] **Triangle Budget**: Số tris nằm trong ngân sách (< 500 cho block, < 1,000 cho prop).
+- [ ] **Zero N-Gons**: Toàn bộ mặt là tris hoặc quads.
+- [ ] **UV Mapping**: Đã collapse điểm và map đúng vào `palette.png`.
+- [ ] **Pivot Alignment**: Pivot tại tâm trục xoay (với chi tiết quay) hoặc tại đáy trung tâm (với block).
+- [ ] **Transforms Baked**: Scale `(1, 1, 1)` và Rotation `(0, 0, 0)` đã freeze hoàn toàn.

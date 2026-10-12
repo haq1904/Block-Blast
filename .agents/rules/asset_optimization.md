@@ -1,53 +1,43 @@
----
-trigger: always_on
-description: Mandatory optimization and validation for every asset created, duplicated, generated, or imported by agents.
----
-
 # Block Blast - Asset Optimization Requirements
 
-## 1. Mandatory Scope
+Quy chuẩn bắt buộc về rà soát và tối ưu hóa mọi tài nguyên tạo mới, nhân bản, hoặc import vào dự án (Mesh, Texture, Material, Prefab, VFX, Audio, UI/Font, Scene, ScriptableObject, Scripts).
 
-Every asset an agent creates, duplicates, generates, or imports into this project MUST be reviewed and optimized for its intended use before the task is reported as complete. This includes meshes/models, textures/sprites, materials/shaders, prefabs, VFX, audio, animations, UI/fonts, scenes, ScriptableObjects/data, and accompanying scripts/tools.
+---
 
-Read this document before creating assets. Apply relevant specialized rules alongside it: [modeling](modeling.md), [shaders](shaders.md), [DOTween](dotween.md), [visual effects](visual_effects.md), [architecture](architecture.md), [Blender tools](blender_tools.md), and [workflow standards](standards.md).
+## 1. Phạm vi & Quy trình 5 Bước Bắt buộc
+Mọi asset BẮT BUỘC phải được tối ưu cho mục đích sử dụng trước khi bàn giao task:
+1. **Trước khi tạo**: Kiểm tra khả năng tái sử dụng asset hiện có; xác định loại asset, nền tảng, góc nhìn camera và số lượng instance đồng thời.
+2. **Thiết lập ngân sách**: Áp dụng ngân sách tam giác trong [modeling.md](modeling.md) hoặc đề xuất ngân sách có lý do rõ ràng.
+3. **Tối ưu nguồn & Import Settings**: Loại bỏ dữ liệu thừa trong file nguồn; cấu hình import settings phù hợp nền tảng di động.
+4. **Xác minh kết quả import**: Kiểm tra tham chiếu, cài đặt import và chạy thử với số lượng instance dự kiến.
+5. **Báo cáo bằng chứng**: Báo cáo rõ công việc tối ưu đã làm, kết quả đo đạc thực tế và các giới hạn kiểm thử (nếu có).
 
-Optimization MUST preserve the requested behavior, appearance, and audio quality. Do not simplify assets blindly, invent universal limits, or claim performance improvements without evidence. Do not optimize unrelated existing assets or shared project settings as a side effect of the task.
+---
 
-## 2. Required Workflow
+## 2. Yêu cầu Cụ thể theo Loại Asset
 
-1. **Before creation:** inspect existing assets for suitable reuse. Identify the asset type, intended platform, visible size/camera use, and expected number of simultaneous instances. If platform or usage is unknown, state the working assumption.
-2. **Set appropriate budgets:** use existing project limits, including category-specific triangle budgets in `modeling.md`. If no applicable budget exists, document a proposed budget and its reasoning. Do not apply one triangle count, texture size, compression format, or particle count to every asset.
-3. **Optimize source and import settings:** remove unnecessary data/components from the new asset while preserving required behavior, references, animation, shading, and visibility. Configure platform-specific import settings only within the authorized task scope.
-4. **Validate the imported result:** inspect references and relevant import settings, then verify representative use. For frequently spawned objects or expensive effects, include expected concurrent instances. Scale verification effort to asset cost and risk; do not require a full benchmark for a trivial data asset.
-5. **Report evidence:** briefly state the optimization performed, checks completed, measured results when available, and remaining verification limits. Mark relevant criteria as addressed or not applicable with a reason when useful. Missing tools, Editor access, or a target device must be reported; do not present unavailable validation as passed.
+| Loại Asset | Yêu cầu Rà soát & Tối ưu hóa |
+| :--- | :--- |
+| **Mesh / Model** | Tuân thủ ngân sách tam giác ([modeling.md](modeling.md)); xóa hình học khuất và slot material thừa; kiểm tra UVs, pivot, normals, colliders; tắt animation import không dùng. |
+| **Texture / Sprite** | Khớp resolution với kích thước hiển thị; định dạng nén phù hợp; chỉ bật Alpha, Mipmaps, Read/Write khi thực sự cần; gom Sprite Atlas cho UI. |
+| **Material / Shader** | Tái sử dụng material/shader; xóa pass thừa; **CẤM clone material runtime** ([shaders.md](shaders.md)); tương thích URP SRP Batcher. |
+| **Prefab / VFX** | Xóa components/renderers/colliders thừa; giới hạn số lượng hạt (max particles) và thời gian sống (lifetime); kiểm soát transparent overdraw; sử dụng Object Pooling với cơ chế reset sạch sẽ. |
+| **Audio** | Chọn Mono/Stereo, định dạng nén, sample rate và load mode phù hợp; giới hạn số lượng nguồn phát đồng thời. |
+| **Animation / UI / Font** | Xóa keyframes/tracks thừa; tuân thủ lifecycle DOTween ([dotween.md](dotween.md)); tắt `Raycast Target` trên đồ họa tĩnh ([portrait_ui.md](portrait_ui.md)); tái sử dụng font atlas TMP. |
+| **Scene** | Tối ưu ánh sáng, bóng đổ, post-processing và Canvas layout theo camera view thực tế. |
+| **ScriptableObject / Data** | Tái sử dụng data; tách biệt cấu hình tĩnh với runtime state (Stateless SOs). |
+| **Script / Tool** | Tránh lặp tính toán và cấp phát bộ nhớ (GC alloc) trong update loops; cache và giải phóng tài nguyên đúng chuẩn. |
 
-## 3. Requirements by Asset Type
+---
 
-| Asset type | Required review and optimization where applicable |
-| --- | --- |
-| Mesh/model | Follow existing category triangle limits; remove unnecessary geometry and material slots; verify UVs, pivots, normals, colliders, and unused imported animation/data. Preserve faces needed for animation, shadows, or other supported camera angles. |
-| Texture/sprite | Match resolution to visible size and quality requirements; select suitable compression and platform overrides; enable alpha, mipmaps, and Read/Write only when needed; consider atlases for sprites commonly used together. |
-| Material/shader | Reuse suitable materials/shaders; remove unnecessary passes and computation; avoid runtime material clones; follow `shaders.md`. Sharing a shader/material does not prove reduced draw calls or a target FPS. Measure relevant rendering behavior when needed. |
-| Prefab/VFX | Remove unnecessary components/renderers/colliders; bound particle count and lifetime; review transparent overdraw, shadows, and lights; use reuse/pooling for frequently spawned objects when beneficial, with correct cleanup and state reset. |
-| Audio | Choose mono/stereo, compression, sample rate, and load mode according to use. Consider latency, memory, and CPU tradeoffs; bound simultaneous playback where needed. |
-| Animation/UI/font | Remove unnecessary tracks/keyframes without changing intended motion; follow tween lifecycle rules; avoid unnecessary layout rebuilds, raycast targets, and font glyph/atlas data. Choose Canvas/font configuration for actual usage. |
-| Scene | Keep necessary objects/components and review lights, shadows, post-processing, Canvas layout, and dependencies against supported camera views and representative load. |
-| ScriptableObject/data | Reuse suitable data; avoid unnecessary copies and dependencies; preserve valid references and separate configuration from runtime state according to existing rules. |
-| Script/tool | Avoid unnecessary repeated work and allocations in frequent execution paths; cache/reuse where beneficial and release resources correctly. Follow architecture and Blender tool rules as applicable. |
+## 3. An toàn Tham chiếu & Dự án Dùng chung
+* **Bảo vệ GUID & Meta Files**: **CẤM TUYỆT ĐỐI xóa file `.meta`** để tạo lại GUID như một bước tối ưu.
+* **Tài nguyên dùng chung**: Phối hợp trước khi sửa đổi Atlas, Material, Prefab hoặc Project Settings dùng chung.
+* **Quyền can thiệp Editor**: Chỉ điều khiển Unity qua MCP trong phiên (turn) được phân công.
+* **Chính sách kiểm thử**: Asset visual xác minh bằng inspection và visual check; unit tests chỉ áp dụng cho Model/Controller ([standards.md](standards.md)).
 
-Use only techniques that benefit the specific asset. Do not apply pooling, atlasing, mesh reduction, compression, or other techniques mechanically when they increase cost or compromise requested quality.
+---
 
-## 4. Shared Project and Reference Safety
-
-- Work only on assets and dependencies assigned to the current task/chat.
-- Coordinate before changing shared atlases, materials, prefabs, project settings, or import presets owned or used by another chat.
-- Preserve existing GUIDs and references. Never delete `.meta` files to regenerate GUIDs as an optimization step.
-- Control Unity through MCP only during the current chat's assigned Editor turn. Do not interrupt another chat's scene, compilation, or PlayMode work.
-- Follow `standards.md` for validation: visual-only changes use appropriate inspection, compiler/Console checks when applicable, and visual verification; automated unit tests are reserved for Model/Controller or core logic changes.
-- Verify nonvisual assets with the appropriate data/import/tool checks. Do not force PlayMode or a benchmark for assets that do not require them.
-
-## 5. Completion and Performance Claims
-
-Before reporting completion, review the applicable criteria and report any unmet budget, quality issue, or verification gap. If an applicable hard limit cannot be met without changing the requested result, explain the tradeoff and obtain a decision before exceeding it.
-
-Distinguish configured settings, static inspection, Editor observations, and measurements on a target device. Report the measurement context for performance results, including representative load and device/platform when available. Never promise a specific FPS, draw-call count, or memory reduction solely because an optimization technique was applied.
+## 4. Báo cáo & Bằng chứng Hiệu năng
+* Phân biệt rõ ràng giữa: Cấu hình tĩnh, quan sát trên Editor, và đo đạc thực tế trên thiết bị mục tiêu.
+* **Cấm cam kết suông**: Không khẳng định giảm draw call hay đạt mốc FPS cụ thể nếu chưa có dữ liệu đo đạc từ Unity Profiler / Frame Debugger.

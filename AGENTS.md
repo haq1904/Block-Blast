@@ -8,7 +8,7 @@ routes agents to those documents; it does not replace or rewrite their contents.
 Resolve all paths below relative to this project root.
 
 At the beginning of a new chat's first project task, explicitly open and read
-all twelve rule documents listed below, including `standards.md`. Listing file
+all thirteen rule documents listed below, including `standards.md`. Listing file
 names or reading only frontmatter is not sufficient. Use filesystem tools to
 read these documents; their contents are not automatically included by this
 index. Keep them in context and apply the relevant rules throughout the task.
@@ -52,6 +52,7 @@ requirements alongside the relevant specialized rules.
 | Shaders, materials, renderer properties, visual rendering optimization | `.agents/rules/shaders.md` |
 | 3D modeling, mesh optimization, texturing, asset import/export | `.agents/rules/modeling.md` |
 | Blender Python scripts, add-ons, automation tools | `.agents/rules/blender_tools.md` |
+| Portrait mobile UI, layout, safe area, responsive scaling, UI hierarchy | `.agents/rules/portrait_ui.md` |
 
 A task may require several documents. For example, a clear animation normally
 requires architecture, visual effects, DOTween, and any material rules that
