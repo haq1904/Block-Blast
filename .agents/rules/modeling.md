@@ -28,7 +28,7 @@ Quy chuẩn tối ưu hóa mô hình 3D, vật liệu, UV và xuất file FBX t�
 
 ---
 
-## 3. UV Mapping & Bảng Màu Tập trung (1 Draw Call Standard)
+## 3. UV Mapping & Bảng Màu Tập trung
 * **Point-Collapsed UV Mapping**: Thu nhỏ toàn bộ UV island của mặt về 1 điểm kích thước 0 (`S` $\rightarrow$ `0` $\rightarrow$ `Enter`), đặt vào ô màu tương ứng trên bảng màu chung:
   `Assets/Art/LeapLand/tex/palette.png`
 * **Chuẩn 1 Material duy nhất**: Mọi model CHỈ dùng **đúng 1 slot Material** gán tới `DefaultMat` (`Assets/Art/Blocks/DefaultMat.mat`). Không gán nhiều material cho các phần khác nhau của prop.
@@ -63,7 +63,7 @@ Quy chuẩn tối ưu hóa mô hình 3D, vật liệu, UV và xuất file FBX t�
 ---
 
 ## 7. Checklist Kiểm tra 5 Điểm Trước khi Xuất (5-Point Verification)
-- [ ] **Triangle Budget**: Số tris nằm trong ngân sách (< 500 cho block, < 1,000 cho prop).
+- [ ] **Triangle Budget**: Đạt target của đúng category; tuyệt đối không vượt hard limit tương ứng trong bảng Mục 2A.
 - [ ] **Zero N-Gons**: Toàn bộ mặt là tris hoặc quads.
 - [ ] **UV Mapping**: Đã collapse điểm và map đúng vào `palette.png`.
 - [ ] **Pivot Alignment**: Pivot tại tâm trục xoay (với chi tiết quay) hoặc tại đáy trung tâm (với block).

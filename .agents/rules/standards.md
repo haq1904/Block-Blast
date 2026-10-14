@@ -16,12 +16,8 @@ Quy chuẩn quy trình phát triển, viết mã, lập kế hoạch, kiểm th�
 
 ---
 
-## 3. Quy chuẩn Lập Kế hoạch (Planning)
-* **Vị trí & Định danh**: Lưu tại `plans/<task_name>_plan.md` theo [plans_and_tools.md](plans_and_tools.md) và [plan_authoring.md](plan_authoring.md).
-* **Ngôn ngữ**: Plan viết bằng **tiếng Việt**. Thuật ngữ kỹ thuật, tên file, code snippet và định danh giữ nguyên tiếng Anh.
-* **Handoff Plan Mặc định**: Khi được yêu cầu lên plan mà không chỉ định loại, mặc định tạo handoff plan có chi tiết code cụ thể.
-* **Auto Submit & Bàn giao**: File plan phải chứa mục `## Auto submit` với `/auto-submit-plan plans/<task_name>_plan.md`. Phản hồi trong chat phải có link click tới file và khối mã `plaintext` copyable lệnh này.
-* **Cross-plan Review**: Luôn đọc toàn bộ plan hiện có dưới `plans/` để đối chiếu chồng lấn trước khi tạo plan mới.
+## 3. Lập Kế hoạch
+Toàn bộ tiêu chí tạo plan, cấu trúc, cross-plan review, auto-submit, approval và retention tuân thủ **duy nhất** [plan_authoring.md](plan_authoring.md); không sao chép hoặc biến thể quy trình tại file khác.
 
 ---
 
@@ -52,14 +48,11 @@ Quy chuẩn quy trình phát triển, viết mã, lập kế hoạch, kiểm th�
 
 ---
 
-## 6. Quy trình Lập kế hoạch & Thực thi Tự chủ (Workflow)
-* **Giai đoạn Lập kế hoạch (Planning Approval Gate)**:
-  * Tạo plan tại `plans/<task_name>_plan.md` với `RequestFeedback: true`.
-  * **Dừng chờ duyệt**: BẮT BUỘC DỪNG LẠI chờ người dùng xác nhận. **CẤM TUYỆT ĐỐI** tự ý sửa code ngay sau khi tạo plan.
-* **Giai đoạn Thực thi (Autonomous Continuous Execution)**:
-  * Khi người dùng đã duyệt ("Proceed", "ok", "tiến hành", "làm đi",...): **Thực thi liền mạch từ đầu đến cuối toàn bộ các bước trong plan**, tự động kiểm tra compiler/diagnostics; KHÔNG dừng lại hỏi xác nhận từng bước trung gian.
-* **Hỏi xóa plan đã hoàn thành**: Khi task và kiểm thử xong thực tế, cập nhật plan rồi hỏi người dùng có muốn xóa file plan đó không; giữ nguyên cho đến khi được duyệt xóa.
-* **Nhiệm vụ trực tiếp (Direct Tasks)**: Khi người dùng ra lệnh sửa/làm trực tiếp mà không yêu cầu plan, tiến hành thực thi code ngay.
+## 6. Workflow
+* **Task cần plan**: Áp dụng tiêu chí và approval gate trong [plan_authoring.md](plan_authoring.md). Sau khi tạo plan phải dừng; cấm sửa code trước khi người dùng duyệt tường minh.
+* **Sau khi duyệt**: Thực thi plan liền mạch đến hết và tự kiểm tra compiler/diagnostics; không xin duyệt từng bước trung gian.
+* **Direct task**: Chỉ làm ngay khi task không thuộc tiêu chí bắt buộc tạo plan trong `plan_authoring.md`.
+* **Retention**: Sau khi task và validation hoàn tất, cập nhật plan rồi hỏi quyền xóa; giữ file đến khi được duyệt.
 
 ---
 

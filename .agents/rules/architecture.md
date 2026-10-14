@@ -1,30 +1,17 @@
----
-trigger: always_on
-description: Core architectural guidelines, directory structure, MVC, and service locator patterns.
----
-
 # Block Blast - Core Architecture Guidelines
-
-AI assistants working on "Block Blast" MUST strictly adhere to the following architectural rules.
 
 ---
 
 ## 1. Directory Structure (Core vs Features)
 
-Strictly separate generic reusable code (`Core`) from game-specific code (`Features`):
-* **`Core/`**: Reusable modules dropped into any project without modification.
-  * Design Patterns: `ServiceLocator`, `StateMachine<T>`, `ObjectPool`.
-  * Generic Services: `AudioSystem`, `IPoolService`.
-  * **Prohibited**: Absolutely NO Block Blast game-specific logic or rules here.
-* **`Features/`**: Game mechanics and features in independent folders (e.g., `Features/GridSystem`, `Features/TraySystem`).
-  * Custom interfaces (e.g., `IGridService`) MUST reside inside their feature folder, NOT in `Core`, ensuring clean removal with zero dangling dependencies.
+* **`Core/`**: Chỉ reusable patterns/services dùng được ở project khác không cần sửa (`ServiceLocator`, `StateMachine<T>`, `ObjectPool`, `AudioSystem`, `IPoolService`); CẤM logic Block Blast.
+* **`Features/`**: Mỗi game feature nằm trong folder độc lập. Interface riêng như `IGridService` phải ở feature tương ứng, không đưa vào `Core`.
 
 ---
 
 ## 2. Synchronous Communication (Service Locator)
 
-Use the **Service Locator** pattern for synchronous, immediate request-response communication between decoupled systems (e.g., Block asks Grid if placement is valid, Tray requests blocks from Pool).
-* **Rule**: Always communicate via Interfaces:
+Giao tiếp đồng bộ request-response giữa system tách rời dùng Service Locator qua interface:
   ```csharp
   bool isValid = ServiceLocator.Get<IGridService>().CanPlaceBlock(shape, pos);
   ```
@@ -33,60 +20,27 @@ Use the **Service Locator** pattern for synchronous, immediate request-response 
 
 ## 3. MVC Pattern Guidelines
 
-### Division of Responsibilities
-
 #### A. Model (Pure Data & Internal State)
-* **Definition**: Self-contained domain state; isolated from outside systems.
-* **Permitted Calculations**: Any math requiring only the Model's internal fields MUST be computed by the Model itself:
-  * Derived properties: `BlockModel.CenterOffset` and bounding boxes from `shapeOffsets`.
-  * Domain matrix queries: `GridModel.IsRowFull(row)`, `IsOccupied(col, row)`, `GetPotentialLineClears(...)`, `GetExposedEdges(...)`.
-  * State manipulation: `ScoreModel` combo counts; `SpawnModel` tray slot tracking.
-  * Allowed Types: Pure data/math types (`Vector2Int`, `Vector3`, `Color`, primitive structs).
-* **Strict Prohibitions**:
-  * MUST NOT store or reference Scene components (`GameObject`, `Transform`, `MonoBehaviour`, `Renderer`).
-  * MUST NOT broadcast any events (strictly adheres to `events.md`).
-  * MUST NOT call `ServiceLocator` or access other Models/Services.
+* Sở hữu domain state và mọi phép tính chỉ dùng state nội bộ: derived properties/bounds, matrix queries, line-clear/exposed-edge queries, combo và tray state.
+* Chỉ dùng data/math types (`Vector2Int`, `Vector3`, `Color`, primitives).
+* CẤM giữ Scene component (`GameObject`, `Transform`, `MonoBehaviour`, `Renderer`), phát event, gọi `ServiceLocator` hoặc truy cập Model/Service khác.
 
 #### B. Controller (Orchestrator & Bridge)
-* **Definition**: Manages macro gameplay state and coordinate flow outside a single Model.
-* **Core Responsibilities**:
-  1. **Coordinate Transformation**: Converts discrete grid space `(col, row)` to 3D world space `Vector3(x, -1, z)` and `Quaternion`.
-  2. **Inter-System Bridging**: Resolves multi-system consequences (e.g., Grid line clear $\rightarrow$ awards points in `ScoreController`, plays audio via `AudioSystem`, checks moves in `SpawnService`).
-  3. **Game Rules & State**: Evaluates game-over conditions; drives State Machine transitions (`GameplayState` $\rightarrow$ `GameOverState`).
-  4. **Presentation Data Prep**: Pre-packages geometric layout data (intersections, centers, exposed edges) and dispatches pure C# events to Views.
+Điều phối state/flow ngoài một Model: đổi grid↔world coordinates; nối hậu quả liên-system; xử lý game rules/game-over/state transitions; chuẩn bị positions, intersections, centers, edges, points và phát Pure C# events cho View.
 
 #### C. View (Passive Presentation Specialist)
-* **Definition**: Passive consumer responsible strictly for visual rendering, input forwarding, animations, and DOTween.
-* **Permitted Presentation Math (Lightweight)**:
-  * Tween dynamics: Duration clamping (`Mathf.Clamp(points * 0.04f, 0.2f, 0.65f)`), drag-to-tilt angles (`Quaternion.Euler(pitch, 0, roll)`), Slerp/Lerp, shake amplitude.
-  * UI formatting: Score formatting (`score.ToString("#,##0")`) and combo text.
-  * Visual state caching: Display list comparison (`AreListsEqual`) to prevent redundant tween restarts, material backup for hover.
-* **Strict Prohibitions (Humble View)**:
-  * MUST NOT execute algorithmic search or iterate matrices (e.g., searching line intersections across 8x8 grid, calculating outer perimeter edges).
-  * MUST NOT alter game rules, compute points, or mutate Model state.
-  * All coordinates, world positions, combo points, and structured edge data MUST be delivered by the Controller.
+View chỉ render, forward input và animate/DOTween. Được phép presentation math nhẹ (clamp duration, tilt, Slerp/Lerp, shake), format UI và cache visual state. CẤM search/iterate domain matrix, tính perimeter/intersections/points, đổi game rule hoặc Model. Controller phải cung cấp coordinates, world positions, points và structured edge data.
 
 ---
 
 ## 4. File Size Limits & Decomposition (> 600 Lines)
 
-### A. The 600-Line Limit & Approval Gate
-* **Threshold Rule**: Any single C# file MUST NOT exceed **600 lines of code**. Bloated files MUST be decomposed.
-* **Mandatory Approval Gate**: You MUST NOT refactor or decompose files without an approved implementation plan (`plans/<task_name>_plan.md`).
+Mọi C# file phải `≤600` lines; file vượt ngưỡng phải tách nhưng CẤM refactor/decompose khi chưa có approved plan.
 
 ### B. Decomposition Strategies ("Hub and Satellites")
-1. **Decomposing a Bloated Model (`partial class`)**:
-   * Split across multiple physical files using `partial`:
-     * `FeatureModel.Core.cs`: State fields, constructor, basic accessors.
-     * `FeatureModel.Queries.cs`: Search algorithms, matrix lookups, validation.
-     * `FeatureModel.Operations.cs`: State mutations, domain calculations.
-   * Remains a single unified `model.` instance to external consumers.
-2. **Decomposing a Bloated Controller (Thin Controller + Pure C# Handlers)**:
-   * Extract business workflows into **Pure C# Handlers** (e.g., `GridPlacementHandler`, `GridClearHandler`).
-   * Handlers MUST NOT inherit `MonoBehaviour`; Controller instantiates them via `new` in `Awake()`. Zero lifecycle overhead, instant EditMode unit testability.
-3. **Decomposing a Bloated View (View Hub + MonoBehaviour Sub-Views)**:
-   * Extract visual domains into dedicated `MonoBehaviour` **Sub-Views** attached to GameObjects (e.g., `GridShadowView`, `GridPreClearAnimator`).
-   * The main View acts as a dispatcher receiving Controller events and delegating to Sub-Views.
+1. **Model**: `partial` files `Core` (state/constructor/accessors), `Queries` (search/lookup/validation), `Operations` (mutation/calculation); vẫn là một model instance.
+2. **Controller**: thin controller + pure C# handlers (`GridPlacementHandler`, `GridClearHandler`); handler không kế thừa `MonoBehaviour`, được tạo bằng `new` trong `Awake()` và test được bằng EditMode.
+3. **View**: View hub dispatch sang `MonoBehaviour` sub-views theo visual domain (`GridShadowView`, `GridPreClearAnimator`).
 
 ---
 

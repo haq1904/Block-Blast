@@ -21,6 +21,9 @@ Mỗi plan Markdown BẮT BUỘC chứa các trường metadata trên cùng và 
   ```plaintext
   /auto-submit-plan plans/<task_name>_plan.md
   ```
+* **Bàn giao trong Chat**: Mọi phản hồi trình bày plan mới/cập nhật BẮT BUỘC cung cấp đủ:
+  1. Link Markdown có thể click tới absolute local path thực tế theo client; không ghi `file:///` vào tài liệu dự án.
+  2. Khối mã `plaintext` copyable chứa lệnh auto-submit với đường dẫn tương đối thực tế.
 
 ---
 

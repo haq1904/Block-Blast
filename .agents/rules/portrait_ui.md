@@ -4,18 +4,9 @@ Quy chuẩn nguồn cho thiết kế, xây dựng và tối ưu UI màn hình d�
 
 ---
 
-## 1. Phạm vi, Thuật ngữ & Thứ bậc Ưu tiên
+## 1. Phạm vi & Thuật ngữ
 
-### A. Thứ bậc Ưu tiên (Precedence)
-Tuân thủ các rule kiến trúc liên quan:
-* [architecture.md](architecture.md): Phân tách MVC; Controller quản lý intent/state, View thụ động hiển thị.
-* [events.md](events.md): View $\leftrightarrow$ Controller dùng Pure C# Events; cấm SO Game Events khi chưa duyệt.
-* [dotween.md](dotween.md): Quản lý lifecycle tween UI; cấm Coroutine cho animation.
-* [asset_optimization.md](asset_optimization.md): Tối ưu Canvas, Font, Sprite Atlas, Raycast Targets, Draw calls.
-* [shaders.md](shaders.md): Cấm `image.material` runtime; tái sử dụng Material và Sprite Batching.
-Chỉ đạo trực tiếp của người dùng và [standards.md](standards.md) giữ quyền ưu tiên cao nhất theo [AGENTS.md](../../AGENTS.md).
-
-### B. Thuật ngữ Chuẩn hóa
+Thứ tự ưu tiên theo [plans_and_tools.md](plans_and_tools.md). Phần code/UI phải đồng thời tuân thủ [architecture.md](architecture.md), [events.md](events.md), [dotween.md](dotween.md), [asset_optimization.md](asset_optimization.md) và [shaders.md](shaders.md).
 * **Portrait Orientation**: Tỉ lệ màn hình dọc ($W/H < 1.0$), bao gồm $9:16$ (chuẩn), $19.5:9, 20:9$ (smartphone dài) và $3:4, 2:3$ (tablet).
 * **SafeArea**: Vùng hiển thị/tương tác an toàn sau khi trừ notch, Dynamic Island, góc bo và thanh Home Indicator.
 * **Reference Resolution**: Chuẩn Canvas **`1080 × 1920`** ($9:16$).
@@ -37,18 +28,10 @@ Chỉ đạo trực tiếp của người dùng và [standards.md](standards.md)
 5. **Reference Pixels Per Unit**: `100`.
 
 ### B. Kiến trúc 2 Lớp SafeArea
-Mọi Canvas UI portrait phức tạp phải áp dụng cấu trúc 2 lớp phân tách:
-```
-[ Canvas (Screen Space) ] (CanvasScaler: 1080x1920)
-   ├── [ Background Layer ] (Stretch Full Bleed: Anchors (0,0) to (1,1)) -> Art, Gradient, Ambient VFX
-   └── [ SafeArea Container ] (RectTransform điều khiển bởi SafeArea script đọc Screen.safeArea)
-         ├── [ Top Header Area ] (Anchors Top)
-         ├── [ Main Content Area ] (Anchors Center/Stretch)
-         └── [ Bottom Action / Nav Area ] (Anchors Bottom)
-```
-* **Background Full Bleed**: Stretch toàn màn hình tránh viền đen (letterboxing) trên $19.5:9$ và $20:9$.
-* **SafeArea Container**: Chuyển đổi `Screen.safeArea` pixel sang `anchorMin`/`anchorMax` của RectTransform; xử lý thay đổi độ phân giải không rách layout.
-* **Insets**: Chừa đệm Top Inset tránh notch/dynamic island; chừa đệm Bottom Inset tránh thanh Home Indicator.
+Canvas portrait phức tạp phải tách:
+
+- `Background Layer`: stretch full screen `(0,0)→(1,1)` cho art/gradient/VFX, không letterbox trên `19.5:9`/`20:9`.
+- `SafeArea Container`: script đổi `Screen.safeArea` pixel thành `anchorMin/anchorMax`; chứa Top Header, Main Content và Bottom Action/Nav, phản ứng khi resolution đổi và chừa top/bottom insets.
 
 ### C. Kiểm soát Layout Group & Hiệu năng
 1. **Giới hạn lồng ghép**: Tối đa 2 tầng `VerticalLayoutGroup`/`HorizontalLayoutGroup` đi kèm `ContentSizeFitter` (tránh tính toán đệ quy $O(N^2)$).
@@ -72,21 +55,14 @@ Mỗi màn hình/popup chỉ có **tối đa một nút hành động chính (Pr
 
 ### C. Ngăn Chặn Bấm Xuyên (Input Bleed) & Canvas Sorting
 1. **Lớp Chắn Popup/Modal**: Mọi popup/modal BẮT BUỘC có lớp dimmer phủ toàn màn hình chứa `GraphicRaycaster` và `Image` (`alpha 0.5 - 0.7`) với `Raycast Target = true` để chặn tương tác xuyên xuống dưới.
-2. **Phân tầng Canvas Sorting Order**:
-   * Background Canvas: `0 - 5`
-   * Gameplay / Main HUD: `10 - 20`
-   * Overlay Panels / Side Drawers: `30 - 40`
-   * Popup / Modal Dialogs: `50 - 60`
-   * Toast / Floating Notifications: `80 - 90`
-   * Loading Screen / Curtain: `100+`
+2. **Canvas Sorting Order**: Background `0–5`; Gameplay/HUD `10–20`; Overlay/Drawer `30–40`; Popup/Modal `50–60`; Toast `80–90`; Loading/Curtain `100+`.
 
 ---
 
 ## 4. Tương tác & Khả năng Tiếp cận
 
 ### A. Kích thước Touch Target Tối thiểu
-* Hit area tối thiểu cho nút tương tác: **`88 × 88` px** trên Reference Resolution `1080 × 1920` ($\approx 44 \times 44$ pt iOS / $48 \times 48$ dp Android).
-* Icon nhỏ ($< 88$ px, ví dụ nút X close $48 \times 48$ px): Mở rộng RectTransform hoặc thêm padding/transparent image để đạt tối thiểu $88 \times 88$ px.
+Hit area tối thiểu: **`88 × 88` px** tại reference `1080 × 1920` ($\approx 44 × 44$ pt iOS / $48 × 48$ dp Android). Icon nhỏ phải mở rộng RectTransform hoặc dùng transparent hit area đủ chuẩn.
 
 ### B. Trạng thái Nút & Phản hồi Trực quan
 * Các trạng thái bắt buộc: `Normal` (tĩnh), `Pressed` (thu nhỏ $0.95 \times$ hoặc tối màu), `Disabled` (alpha $0.4 - 0.5$ hoặc xám, `interactable = false`).
@@ -102,32 +78,12 @@ Mỗi màn hình/popup chỉ có **tối đa một nút hành động chính (Pr
 ## 5. Kiến trúc Code & Animation UI
 
 ### A. Tuân thủ MVC & Giao tiếp Sự kiện
-* **UI View (`MonoBehaviour`)**: Lớp trình diễn; tham chiếu serialize UI components; phát **Pure C# Event** lên Controller:
-  ```csharp
-  public sealed class LobbyMainMenuView : MonoBehaviour
-  {
-      [SerializeField] private Button playButton;
-      [SerializeField] private TextMeshProUGUI scoreText;
-      public event Action PlayClicked;
-      private void Awake() => playButton.onClick.AddListener(() => PlayClicked?.Invoke());
-      public void UpdateScore(int score) => scoreText.text = score.ToString("#,##0");
-  }
-  ```
-  *Cấm View tự ý sửa Model, tính toán điểm số hay can thiệp luật chơi.*
-* **UI Controller (`Pure C#` hoặc `Coordinator MonoBehaviour`)**: Nhận event từ View/ServiceLocator, quản lý state, chuẩn bị dữ liệu đã format rồi truyền cho View.
-* **Quy chuẩn Event**: View $\leftrightarrow$ Controller dùng **Pure C# Event (`event Action`)**. **Cấm tuyệt đối** dùng SO Game Events nếu chưa có sự phê duyệt tường minh.
+* **UI View (`MonoBehaviour`)**: Chỉ giữ serialized UI references, hiển thị và phát Pure C# Event lên Controller; cấm sửa Model, tính điểm hoặc can thiệp luật chơi.
+* **UI Controller (`Pure C#` hoặc coordinator `MonoBehaviour`)**: Nhận event từ View/ServiceLocator, quản lý state, format dữ liệu rồi truyền cho View.
+* View $\leftrightarrow$ Controller dùng `event Action` theo [events.md](events.md); GameEvent SO cần người dùng duyệt.
 
 ### B. Quy chuẩn DOTween cho UI
-* **Cấm Coroutine**: Mọi chuyển động UI **BẮT BUỘC** dùng DOTween.
-* **Kill trước khi Tween**: Luôn gọi `target.DOKill()` trước khi tạo tween mới.
-* **Target & Link bắt buộc**:
-  ```csharp
-  Sequence seq = DOTween.Sequence();
-  seq.SetTarget(panelRect);
-  seq.SetLink(gameObject, LinkBehaviour.KillOnDisable);
-  seq.Append(panelRect.DOScale(1f, 0.25f).From(0.8f).SetEase(Ease.OutBack));
-  seq.Join(canvasGroup.DOFade(1f, 0.2f).From(0f));
-  ```
+* **Vòng đời & An toàn Tween**: Tuân thủ nghiêm ngặt [dotween.md](dotween.md) (bắt buộc DOTween, cấm Coroutine, `target.DOKill()` trước khi tween, `.SetTarget()` và `.SetLink(gameObject, LinkBehaviour.KillOnDisable)`).
 * **Khóa tương tác khi chuyển cảnh**: Tắt `canvasGroup.blocksRaycasts = false` trong lúc tween, mở lại ở `OnComplete`.
 * **Phục hồi OnDisable**: Reset visual về trạng thái chuẩn (`scale = Vector3.one`, `alpha = 1f`).
 
@@ -138,8 +94,8 @@ Mỗi màn hình/popup chỉ có **tối đa một nút hành động chính (Pr
 * **Canvas Slicing**: Tách riêng **Static Canvas** (nền, logo, khung cố định) và **Dynamic Canvas / Sub-Canvas** (điểm số, progress bar, timer) để cô lập vùng re-batch.
 * **Tắt Raycast Target**: Bỏ tích `Raycast Target` trên toàn bộ `Image`, `RawImage`, `TextMeshProUGUI` không nhận click trực tiếp (background, icon trang trí, nhãn chữ).
 * **Giảm Transparent Overdraw**: Hạn chế xếp chồng lớp sprite trong suốt full-screen; ưu tiên nền opaque.
-* **Gom Sprite Atlas & Font**: Toàn bộ icon, nút của một màn hình phải nằm trong **1 Sprite Atlas duy nhất** (1 Draw Call); tái sử dụng chung 1 font TMP asset.
-* **Shader/Material**: **Cấm truy cập `image.material` ở runtime** (gây rò rỉ RAM và hỏng SRP Batching); dùng `MaterialPropertyBlock` hoặc `Graphic.color`.
+* **Sprite Atlas & Font**: Gom icon/nút cùng màn hình vào atlas phù hợp và tái sử dụng font TMP. Đây là mục tiêu giảm state change/draw call, không bảo đảm `1 Draw Call`; xác minh bằng Frame Debugger.
+* **Shader/Material**: Cấm tạo material instance runtime. Với uGUI ưu tiên `Graphic.color` hoặc shared UI material; xem [shaders.md](shaders.md).
 
 ---
 
@@ -158,8 +114,6 @@ Mỗi màn hình/popup chỉ có **tối đa một nút hành động chính (Pr
 
 ---
 
-## 8. Bàn giao & Ghi nhớ khi Thực hiện Task UI
+## 8. Bàn giao
 
-1. Đọc tài liệu này trước khi dựng scene hoặc code UI portrait (`LobbyScene`, `IntroScene`, `LoadingScreen`).
-2. Mọi nhận định về draw calls, FPS hoặc RAM phải dựa trên đo đạc thực tế từ Unity Profiler / Frame Debugger.
-3. Không chỉnh sửa file rule này nếu chưa có yêu cầu cụ thể từ người dùng.
+Đọc rule trước khi dựng/code UI portrait. Claim về draw calls, FPS hoặc RAM phải có số liệu Unity Profiler/Frame Debugger. Không sửa rule khi chưa được người dùng yêu cầu.
