@@ -23,7 +23,16 @@ public readonly struct SceneLoadRequest : IEquatable<SceneLoadRequest>
     /// </summary>
     public float MinimumVisibleDuration { get; }
 
-    public SceneLoadRequest(int sceneBuildIndex, LoadSceneMode loadMode = LoadSceneMode.Single, float minimumVisibleDuration = 0f)
+    /// <summary>
+    /// Visual presentation mode to use during the transition.
+    /// </summary>
+    public SceneTransitionPresentation Presentation { get; }
+
+    public SceneLoadRequest(
+        int sceneBuildIndex,
+        LoadSceneMode loadMode = LoadSceneMode.Single,
+        float minimumVisibleDuration = 0f,
+        SceneTransitionPresentation presentation = SceneTransitionPresentation.LoadingScreen)
     {
         if (sceneBuildIndex < 0)
         {
@@ -38,17 +47,19 @@ public readonly struct SceneLoadRequest : IEquatable<SceneLoadRequest>
         SceneBuildIndex = sceneBuildIndex;
         LoadMode = loadMode;
         MinimumVisibleDuration = minimumVisibleDuration;
+        Presentation = presentation;
     }
 
     public bool Equals(SceneLoadRequest other) =>
         SceneBuildIndex == other.SceneBuildIndex &&
         LoadMode == other.LoadMode &&
-        MinimumVisibleDuration == other.MinimumVisibleDuration;
+        MinimumVisibleDuration == other.MinimumVisibleDuration &&
+        Presentation == other.Presentation;
 
     public override bool Equals(object obj) => obj is SceneLoadRequest other && Equals(other);
 
-    public override int GetHashCode() => HashCode.Combine(SceneBuildIndex, LoadMode, MinimumVisibleDuration);
+    public override int GetHashCode() => HashCode.Combine(SceneBuildIndex, LoadMode, MinimumVisibleDuration, Presentation);
 
     public override string ToString() =>
-        $"SceneLoadRequest(Index: {SceneBuildIndex}, Mode: {LoadMode}, MinDuration: {MinimumVisibleDuration}s)";
+        $"SceneLoadRequest(Index: {SceneBuildIndex}, Mode: {LoadMode}, MinDuration: {MinimumVisibleDuration}s, Presentation: {Presentation})";
 }

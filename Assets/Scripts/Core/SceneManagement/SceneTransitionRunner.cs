@@ -50,6 +50,9 @@ public sealed class SceneTransitionRunner
 
         IsTransitioning = true;
         ISceneLoadOperation operation = null;
+        ILoadingScreen activePresenter = request.Presentation == SceneTransitionPresentation.None
+            ? NullLoadingScreen.Instance
+            : _loadingScreen;
 
         try
         {
@@ -69,10 +72,10 @@ public sealed class SceneTransitionRunner
                 request.LoadMode);
 
             // 3. Prepare loading screen
-            _loadingScreen.Prepare(context);
+            activePresenter.Prepare(context);
 
             // 4. Show loading screen to fully cover the view
-            await _loadingScreen.ShowAsync(context, cancellationToken);
+            await activePresenter.ShowAsync(context, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -93,7 +96,7 @@ public sealed class SceneTransitionRunner
             while (rawProgress < 0.9f)
             {
                 float normalized = Mathf.Clamp01(rawProgress / 0.9f);
-                _loadingScreen.SetProgress(normalized);
+                activePresenter.SetProgress(normalized);
                 await _timeProvider.YieldAsync(CancellationToken.None);
                 rawProgress = operation.Progress;
             }
@@ -107,7 +110,7 @@ public sealed class SceneTransitionRunner
             }
 
             // 9. Send completion progress before activation
-            _loadingScreen.SetProgress(1f);
+            activePresenter.SetProgress(1f);
 
             // 10. Enable activation and wait for operation to finish
             operation.AllowSceneActivation = true;
@@ -117,12 +120,12 @@ public sealed class SceneTransitionRunner
             }
 
             // 11. Reveal newly activated target scene
-            await _loadingScreen.HideAsync(context, CancellationToken.None);
+            await activePresenter.HideAsync(context, CancellationToken.None);
         }
         catch
         {
             TryReleaseActivation(operation);
-            _loadingScreen.ResetImmediate();
+            activePresenter.ResetImmediate();
             throw;
         }
         finally

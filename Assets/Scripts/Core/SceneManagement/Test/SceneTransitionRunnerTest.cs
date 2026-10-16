@@ -353,6 +353,20 @@ public class SceneTransitionRunnerTest
         Assert.IsFalse(_loadingScreen.LastPreparedContext.IsReload);
     }
 
+    [Test]
+    public async Task RunAsync_WithPresentationNone_BypassesLoadingScreenAndCompletesLoad()
+    {
+        var request = new SceneLoadRequest(1, LoadSceneMode.Single, 0f, SceneTransitionPresentation.None);
+
+        await _runner.RunAsync(request);
+
+        Assert.AreEqual(0, _loadingScreen.RecordedEvents.Count, "In None presentation mode, custom loading screen must not receive events.");
+        Assert.IsTrue(_backend.LoadCalled, "Backend.LoadSceneAsync must still be called.");
+        Assert.IsTrue(_backend.OperationToReturn.AllowSceneActivation, "AllowSceneActivation must be true after completion.");
+        Assert.IsFalse(_runner.IsTransitioning);
+        Assert.AreEqual(0, _loadingScreen.ResetImmediateCount);
+    }
+
     // --- Fakes ---
 
     private sealed class FakeLoadingScreen : ILoadingScreen
