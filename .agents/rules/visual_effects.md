@@ -50,8 +50,8 @@ Quy chuẩn kiến trúc ScriptableObject Strategy Pattern cho hiệu ứng hìn
   1. **Pure Prefab Mandate**: Prop prefabs (`Axe.prefab`, `SawBlade.prefab`) là visual thuần túy, CHỈ chứa Unity standard components (`Transform`, `MeshFilter`, `MeshRenderer`, `ParticleSystem`) và `AutoReturnToPool`. **CẤM TUYỆT ĐỐI** gắn MonoBehaviour tùy biến chuyên biệt lên prop (KHÔNG tạo `AxePropFeedback`, `SawBladeSpinner`).
   2. **Stateless SO Choreographer**: Mọi hành vi (tịnh tiến, góc nghiêng, xoay, rung lắc, kích hoạt hạt, fade alpha) do subclass `ClearPropBase` điều khiển qua DOTween trong `AnimatePropSequence()`. SO không lưu runtime state.
   3. **Vòng đời hữu hạn (Cấm Loop vô hạn)**: Xoay liên tục (SawBlade) phải tính góc quay hữu hạn theo tổng thời gian (`totalDuration = entry + sweep + exit`), **CẤM dùng `.SetLoops(-1)`**.
-  4. **MaterialPropertyBlock**: Fade alpha dùng static cached `MaterialPropertyBlock` (không clone material). Reset `renderer.SetPropertyBlock(null)` khi trả pool hoặc khi `alpha >= 0.999f` để giữ SRP Batching.
-  5. **Helper dùng chung trong Base**: `SetPropAlpha(GameObject prop, float alpha)` và `SetPropParticles(GameObject prop, bool play, Vector3? sprayDir)`.
+   4. **MaterialPropertyBlock**: Fade alpha tuân thủ [shaders.md](shaders.md) (dùng static cached `MaterialPropertyBlock`, không clone material; reset `renderer.SetPropertyBlock(null)` khi trả pool hoặc khi `alpha >= 0.999f`).
+   5. **Helper dùng chung trong Base**: `SetPropAlpha(GameObject prop, float alpha)` và `SetPropParticles(GameObject prop, bool play, Vector3? sprayDir)`.
 
 ---
 
@@ -77,4 +77,4 @@ Quy chuẩn kiến trúc ScriptableObject Strategy Pattern cho hiệu ứng hìn
 1. **Waypoints vs Real GameObjects**: Khi 2 đường cắt nhau, cung cấp đủ 8 waypoints cho cả 2 đường để prop quét hết từ biên sang biên. Nhưng GameObject khối gạch tại tọa độ giao điểm `(col, row)` **CHỈ ĐƯỢC PHÉP NỔ ĐÚNG 1 LẦN** (tránh lỗi double-return trong `IPoolService`).
 2. **Object Pool & DOTween Safety**:
    * Mọi prop spawn ra BẮT BUỘC có component `AutoReturnToPool` làm timeout an toàn.
-   * Mọi tween trên cell hoặc prop BẮT BUỘC gán `.SetTarget(obj)` và `.SetLink(obj, LinkBehaviour.KillOnDisable)`.
+   * Mọi tween trên cell hoặc prop BẮT BUỘC tuân thủ [dotween.md](dotween.md) (gán `.SetTarget(obj)` và `.SetLink(obj, LinkBehaviour.KillOnDisable)`).

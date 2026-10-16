@@ -7,43 +7,22 @@ Read and follow the applicable documents before working on a task. This file
 routes agents to those documents; it does not replace or rewrite their contents.
 Resolve all paths below relative to this project root.
 
-At the beginning of a new chat's first project task, explicitly open and read
-all thirteen rule documents listed below, including `standards.md`. Listing file
-names or reading only frontmatter is not sufficient. Use filesystem tools to
-read these documents; their contents are not automatically included by this
-index. Keep them in context and apply the relevant rules throughout the task.
-If a document changes, or its contents are no longer available in context,
-read the applicable document again before continuing that work.
-
-Read `.agents/rules/standards.md` at the start of each task for workflow,
+At the start of each task, read `.agents/rules/standards.md` for workflow,
 planning, approval, testing, language, and commit requirements.
 
-Read `.agents/rules/plan_authoring.md` before creating or substantially
-updating an implementation plan. Copy its integrated form into the new plan,
-replace every placeholder, and complete the required cross-plan review.
-
-Read `.agents/rules/plans_and_tools.md` and `.agents/rules/tools.md` before creating or updating plans or
-project tools. New plans use `plans/<task_name>_plan.md`; external development
-tools belong under `Tools/` with filenames describing their action and task.
-Optional task/domain subfolders follow the detailed rule. Whenever presenting
-a newly created plan, provide its clickable file link and a copyable
-`/auto-submit-plan` command with the actual project-relative plan path.
-Every created or updated plan Markdown file must also include that command
-in a `## Auto submit` section near the top, using its own actual path.
-Before creating a new plan, read the other existing plans under `plans/`,
-compare intended file edits, and report overlaps and known/unknown status to
-the user as detailed in `plans_and_tools.md`. After completing a planned task,
-ask whether to delete its completed plan; retain it until explicitly authorized.
-
-Before any task creates, duplicates, generates, or imports an asset, read
-`.agents/rules/asset_optimization.md` and apply its optimization and validation
-requirements alongside the relevant specialized rules.
+Then look up the task scope in the table below and read the required specialized
+rule documents before working on that task. Avoid loading irrelevant rules to save
+context tokens. Use filesystem tools to read these documents; their contents are
+not automatically included by this index. Keep them in context and apply the
+relevant rules throughout the task. If a document changes, or its contents are
+no longer available in context, read the applicable document again before
+continuing that work.
 
 | Task scope | Required documents |
 | --- | --- |
-| Plan creation/updates, handoff documents | `.agents/rules/plans_and_tools.md` |
-| Plan structure, authoring form, cross-plan review, plan validation and handoff | `.agents/rules/plan_authoring.md` |
-| Project tools, automation scripts, file organization | `.agents/rules/plans_and_tools.md`, `.agents/rules/tools.md` |
+| Plan creation/updates, handoff documents, cross-plan review, retention | `.agents/rules/plan_authoring.md` |
+| Project directory structure, file organization, relative paths | `.agents/rules/plans_and_tools.md` |
+| External development tools, automation scripts | `.agents/rules/tools.md` |
 | Any asset creation, duplication, generation, or import, including scenes and scripts/tools | `.agents/rules/asset_optimization.md` |
 | Code changes, architecture, MVC, services, models, controllers, views | `.agents/rules/architecture.md` |
 | Events, callbacks, communication between systems, game flow signals | `.agents/rules/events.md` |
@@ -53,6 +32,7 @@ requirements alongside the relevant specialized rules.
 | 3D modeling, mesh optimization, texturing, asset import/export | `.agents/rules/modeling.md` |
 | Blender Python scripts, add-ons, automation tools | `.agents/rules/blender_tools.md` |
 | Portrait mobile UI, layout, safe area, responsive scaling, UI hierarchy | `.agents/rules/portrait_ui.md` |
+| UI Markdown, spritesheet design specs, asset briefs, UI handoffs, validation docs | `.agents/rules/ui_markdown.md` |
 
 A task may require several documents. For example, a clear animation normally
 requires architecture, visual effects, DOTween, and any material rules that
