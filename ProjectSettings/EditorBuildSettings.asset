@@ -9,6 +9,12 @@ EditorBuildSettings:
     path: Assets/Scenes/BoostrapScene.unity
     guid: b8359c78e6e43244fb92a0c4641006e6
   - enabled: 1
+    path: Assets/Scenes/IntroScene.unity
+    guid: 54f198fef6af63547b16df3839728199
+  - enabled: 1
+    path: Assets/Scenes/LobbyScene.unity
+    guid: 874466365b7c6ef4690e2601ef7f3419
+  - enabled: 1
     path: Assets/Scenes/PlayScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:

@@ -151,8 +151,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fbd7798d284c1b46b9c7c3fb5cedcb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::Bootstrapper
-  _targetSceneBuildIndex: 1
-  _loadSceneMode: 0
+  _targetRoute: 0
+  _presentation: 0
   _minimumVisibleDuration: 0
   _clearColor: {r: 0.12, g: 0.13, b: 0.16, a: 1}
 --- !u!4 &204190410
@@ -392,6 +392,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5280641831842809171, guid: 93f1581434ddca341a96cc35bee2517f, type: 3}
       propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5280641831842809171, guid: 93f1581434ddca341a96cc35bee2517f, type: 3}
+      propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

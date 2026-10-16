@@ -1,15 +1,16 @@
 using System;
+using BlockBlast.Features.GameFlow.Navigation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Bootstrapper : MonoBehaviour
 {
     [Header("Scene Configuration")]
-    [Tooltip("Build index of the target scene to load after bootstrap initialization.")]
-    [SerializeField] private int _targetSceneBuildIndex = 1;
+    [Tooltip("Logical route destination to load after bootstrap initialization.")]
+    [SerializeField] private GameSceneRoute _targetRoute = GameSceneRoute.Intro;
 
-    [Tooltip("Scene load mode.")]
-    [SerializeField] private LoadSceneMode _loadSceneMode = LoadSceneMode.Single;
+    [Tooltip("Presentation mode for initial scene transition.")]
+    [SerializeField] private SceneTransitionPresentation _presentation = SceneTransitionPresentation.None;
 
     [Tooltip("Minimum visible duration in seconds for the initial transition.")]
     [SerializeField] private float _minimumVisibleDuration = 0f;
@@ -33,14 +34,19 @@ public class Bootstrapper : MonoBehaviour
     {
         try
         {
-            if (!ServiceLocator.TryGet<ISceneService>(out var sceneService))
+            if (ServiceLocator.TryGet<IGameSceneNavigator>(out var navigator))
             {
-                Debug.LogError("[Bootstrapper] ISceneService not found in ServiceLocator. Ensure SceneController is configured in the bootstrap scene.", this);
-                return;
+                await navigator.LoadAsync(_targetRoute, _presentation, _minimumVisibleDuration);
             }
-
-            var request = new SceneLoadRequest(_targetSceneBuildIndex, _loadSceneMode, _minimumVisibleDuration);
-            await sceneService.LoadSceneAsync(request);
+            else if (ServiceLocator.TryGet<ISceneService>(out var sceneService))
+            {
+                var request = new SceneLoadRequest(1, LoadSceneMode.Single, _minimumVisibleDuration, _presentation);
+                await sceneService.LoadSceneAsync(request);
+            }
+            else
+            {
+                Debug.LogError("[Bootstrapper] Neither IGameSceneNavigator nor ISceneService found in ServiceLocator. Ensure SceneController and GameSceneNavigator are configured in the bootstrap scene.", this);
+            }
         }
         catch (Exception ex)
         {
