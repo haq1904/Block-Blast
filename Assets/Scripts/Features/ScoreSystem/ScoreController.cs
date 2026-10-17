@@ -48,7 +48,7 @@ public class ScoreController : MonoBehaviour, IScoreService
             gridService.OnPlacementResolved -= HandlePlacementResolved;
         }
 
-        ServiceLocator.Unregister<IScoreService>();
+        ServiceLocator.Unregister<IScoreService>(this);
     }
 
     public void Initialize(ScoreConfiguration customConfig, IGridService customGridService = null)

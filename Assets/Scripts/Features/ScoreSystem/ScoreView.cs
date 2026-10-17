@@ -42,6 +42,15 @@ public class ScoreView : MonoBehaviour
 
     private void Awake()
     {
+        if (currentScoreText == null)
+        {
+            var scorePanel = GameObject.Find("ScorePanel");
+            if (scorePanel != null)
+            {
+                currentScoreText = scorePanel.GetComponentInChildren<TMP_Text>();
+            }
+        }
+
         if (currentScoreText != null)
         {
             originalScoreScale = currentScoreText.transform.localScale;

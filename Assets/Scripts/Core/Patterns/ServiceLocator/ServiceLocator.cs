@@ -83,6 +83,23 @@ public static class ServiceLocator
     }
 
     /// <summary>
+    /// Unregisters a service only if the current instance matches expectedOwner (owner-safe).
+    /// </summary>
+    public static bool Unregister<T>(T expectedOwner)
+    {
+        var type = typeof(T);
+        if (_services.TryGetValue(type, out var current))
+        {
+            if (ReferenceEquals(current, expectedOwner))
+            {
+                _services.Remove(type);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Clears all registered services. Useful when changing scenes or resetting the game.
     /// </summary>
     public static void ClearAll()

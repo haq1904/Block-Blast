@@ -35,7 +35,7 @@ public class GridController : MonoBehaviour, IGridService
 
     private void OnDestroy()
     {
-        ServiceLocator.Unregister<IGridService>();
+        ServiceLocator.Unregister<IGridService>(this);
     }
 
     public Vector2Int GetGridPositionFromWorld(Vector3 worldPos)

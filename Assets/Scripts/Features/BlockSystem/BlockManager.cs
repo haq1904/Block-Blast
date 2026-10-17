@@ -115,7 +115,7 @@ public class BlockManager : MonoBehaviour, IBlockService
 
     private void OnDestroy()
     {
-        ServiceLocator.Unregister<IBlockService>();
+        ServiceLocator.Unregister<IBlockService>(this);
     }
 
     public void SpawnBatch(BlockModel[] batch, Vector3[] trayPositions)
@@ -146,7 +146,7 @@ public class BlockManager : MonoBehaviour, IBlockService
             {
                 BlockController block = poolService != null
                     ? poolService.SpawnObject(blockPrefab, trayPositions[i], Quaternion.identity)
-                    : Instantiate(blockPrefab, trayPositions[i], Quaternion.identity);
+                    : Instantiate(blockPrefab, trayPositions[i], Quaternion.identity, transform);
 
                 if (block != null)
                 {

@@ -32,7 +32,7 @@ public class ObjectPoolingManager : MonoBehaviour, IPoolService
 
     private void OnDestroy()
     {
-        ServiceLocator.Unregister<IPoolService>();
+        ServiceLocator.Unregister<IPoolService>(this);
     }
 
     private void SetupEmpties()
@@ -66,12 +66,11 @@ public class ObjectPoolingManager : MonoBehaviour, IPoolService
     {
         prefab.SetActive(false);
 
-        GameObject obj = Instantiate(prefab, pos, rot);
+        GameObject parentObject = SetParentObject(poolType);
+        Transform parentTransform = parentObject != null ? parentObject.transform : transform;
+        GameObject obj = Instantiate(prefab, pos, rot, parentTransform);
 
         prefab.SetActive(true);
-
-        GameObject parentObject = SetParentObject(poolType);
-        obj.transform.SetParent(parentObject.transform);
 
         return obj;
     }
