@@ -19,9 +19,13 @@ namespace BlockBlast.Features.GameFlow.Navigation
         [Tooltip("Build Settings index for PlayScene.")]
         [SerializeField] private int _playBuildIndex = 3;
 
+        [Tooltip("Build Settings index for WorldScene.")]
+        [SerializeField] private int _worldBuildIndex = 4;
+
         public int IntroBuildIndex => _introBuildIndex;
         public int LobbyBuildIndex => _lobbyBuildIndex;
         public int PlayBuildIndex => _playBuildIndex;
+        public int WorldBuildIndex => _worldBuildIndex;
 
         /// <summary>
         /// Resolves the Unity Build Settings index for the given logical game route.
@@ -46,11 +50,36 @@ namespace BlockBlast.Features.GameFlow.Navigation
             return index;
         }
 
-        public void SetIndexesForTesting(int introIndex, int lobbyIndex, int playIndex)
+        /// <summary>
+        /// Validates that all route build indexes are non-negative and distinct.
+        /// </summary>
+        public void ValidateConfiguration()
+        {
+            if (_introBuildIndex < 0 || _lobbyBuildIndex < 0 || _playBuildIndex < 0 || _worldBuildIndex < 0)
+            {
+                throw new InvalidOperationException("All scene build indexes in route catalog must be non-negative.");
+            }
+
+            var set = new System.Collections.Generic.HashSet<int>
+            {
+                _introBuildIndex,
+                _lobbyBuildIndex,
+                _playBuildIndex,
+                _worldBuildIndex
+            };
+
+            if (set.Count < 4)
+            {
+                throw new InvalidOperationException("Duplicate build indexes detected in GameSceneRouteCatalog.");
+            }
+        }
+
+        public void SetIndexesForTesting(int introIndex, int lobbyIndex, int playIndex, int worldIndex = 4)
         {
             _introBuildIndex = introIndex;
             _lobbyBuildIndex = lobbyIndex;
             _playBuildIndex = playIndex;
+            _worldBuildIndex = worldIndex;
         }
     }
 }

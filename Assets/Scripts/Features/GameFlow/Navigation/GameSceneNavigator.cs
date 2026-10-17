@@ -26,10 +26,17 @@ namespace BlockBlast.Features.GameFlow.Navigation
 
         private void Awake()
         {
-            if (ServiceLocator.TryGet<IGameSceneNavigator>(out _))
+            if (ServiceLocator.TryGet<IGameSceneNavigator>(out var existing) && existing != null && !ReferenceEquals(existing, this))
             {
-                Debug.LogWarning("[GameSceneNavigator] An IGameSceneNavigator is already registered. Destroying duplicate instance.", this);
-                Destroy(gameObject);
+                Debug.LogWarning("[GameSceneNavigator] An active IGameSceneNavigator is already registered. Destroying duplicate component.", this);
+                if (Application.isPlaying)
+                {
+                    Destroy(this);
+                }
+                else
+                {
+                    DestroyImmediate(this);
+                }
                 return;
             }
 
@@ -53,17 +60,55 @@ namespace BlockBlast.Features.GameFlow.Navigation
                 throw new InvalidOperationException("[GameSceneNavigator] ISceneService not found in ServiceLocator.");
             }
 
-            int buildIndex = _routeCatalog.GetBuildIndex(route);
-            var request = new SceneLoadRequest(buildIndex, LoadSceneMode.Single, minimumVisibleDuration, presentation);
+            if (route == GameSceneRoute.Intro)
+            {
+                int introIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Intro);
+                var request = new SceneLoadRequest(introIndex, LoadSceneMode.Single, minimumVisibleDuration, presentation);
+                await sceneService.LoadSceneAsync(request, cancellationToken);
+                return;
+            }
 
-            await sceneService.LoadSceneAsync(request, cancellationToken);
+            int worldIndex = _routeCatalog.WorldBuildIndex;
+            int targetIndex = _routeCatalog.GetBuildIndex(route);
+
+            int[] loadIndexes;
+            int[] unloadIndexes;
+
+            if (route == GameSceneRoute.Lobby)
+            {
+                int introIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Intro);
+                int playIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Play);
+                loadIndexes = new[] { worldIndex, targetIndex };
+                unloadIndexes = new[] { introIndex, playIndex };
+            }
+            else if (route == GameSceneRoute.Play)
+            {
+                int introIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Intro);
+                int lobbyIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Lobby);
+                loadIndexes = new[] { worldIndex, targetIndex };
+                unloadIndexes = new[] { lobbyIndex, introIndex };
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(nameof(route), route, "Unsupported GameSceneRoute value.");
+            }
+
+            var additiveRequest = new AdditiveSceneTransitionRequest(
+                targetSceneBuildIndex: targetIndex,
+                loadBuildIndexes: loadIndexes,
+                unloadBuildIndexes: unloadIndexes,
+                activeSceneBuildIndex: worldIndex,
+                minimumVisibleDuration: minimumVisibleDuration,
+                presentation: presentation);
+
+            await sceneService.TransitionAdditiveAsync(additiveRequest, cancellationToken);
         }
 
         private void OnDestroy()
         {
             if (_isRegistered)
             {
-                ServiceLocator.Unregister<IGameSceneNavigator>();
+                ServiceLocator.Unregister<IGameSceneNavigator>(this);
                 _isRegistered = false;
             }
         }

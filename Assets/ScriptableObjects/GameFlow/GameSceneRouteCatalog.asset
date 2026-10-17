@@ -15,3 +15,4 @@ MonoBehaviour:
   _introBuildIndex: 1
   _lobbyBuildIndex: 2
   _playBuildIndex: 3
+  _worldBuildIndex: 4

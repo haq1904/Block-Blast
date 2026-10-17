@@ -59,25 +59,31 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public async Task LoadAsync_LobbyWithLoadingScreen_ForwardsCorrectParameters()
+        public async Task LoadAsync_LobbyWithLoadingScreen_ForwardsAdditiveRequestWithWorld()
         {
             await _navigator.LoadAsync(GameSceneRoute.Lobby, SceneTransitionPresentation.LoadingScreen, 0.5f);
 
-            Assert.AreEqual(1, _fakeSceneService.LoadCallCount);
-            Assert.AreEqual(2, _fakeSceneService.LastRequest.SceneBuildIndex);
-            Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastRequest.Presentation);
-            Assert.AreEqual(0.5f, _fakeSceneService.LastRequest.MinimumVisibleDuration, 0.0001f);
+            Assert.AreEqual(1, _fakeSceneService.AdditiveCallCount);
+            Assert.AreEqual(2, _fakeSceneService.LastAdditiveRequest.TargetSceneBuildIndex);
+            Assert.AreEqual(4, _fakeSceneService.LastAdditiveRequest.ActiveSceneBuildIndex);
+            CollectionAssert.AreEqual(new[] { 4, 2 }, _fakeSceneService.LastAdditiveRequest.LoadBuildIndexes);
+            CollectionAssert.AreEqual(new[] { 1, 3 }, _fakeSceneService.LastAdditiveRequest.UnloadBuildIndexes);
+            Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastAdditiveRequest.Presentation);
+            Assert.AreEqual(0.5f, _fakeSceneService.LastAdditiveRequest.MinimumVisibleDuration, 0.0001f);
         }
 
         [Test]
-        public async Task LoadAsync_PlayWithLoadingScreen_ForwardsCorrectParameters()
+        public async Task LoadAsync_PlayWithLoadingScreen_ForwardsAdditiveRequestWithWorld()
         {
             await _navigator.LoadAsync(GameSceneRoute.Play, SceneTransitionPresentation.LoadingScreen, 1.0f);
 
-            Assert.AreEqual(1, _fakeSceneService.LoadCallCount);
-            Assert.AreEqual(3, _fakeSceneService.LastRequest.SceneBuildIndex);
-            Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastRequest.Presentation);
-            Assert.AreEqual(1.0f, _fakeSceneService.LastRequest.MinimumVisibleDuration, 0.0001f);
+            Assert.AreEqual(1, _fakeSceneService.AdditiveCallCount);
+            Assert.AreEqual(3, _fakeSceneService.LastAdditiveRequest.TargetSceneBuildIndex);
+            Assert.AreEqual(4, _fakeSceneService.LastAdditiveRequest.ActiveSceneBuildIndex);
+            CollectionAssert.AreEqual(new[] { 4, 3 }, _fakeSceneService.LastAdditiveRequest.LoadBuildIndexes);
+            CollectionAssert.AreEqual(new[] { 2, 1 }, _fakeSceneService.LastAdditiveRequest.UnloadBuildIndexes);
+            Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastAdditiveRequest.Presentation);
+            Assert.AreEqual(1.0f, _fakeSceneService.LastAdditiveRequest.MinimumVisibleDuration, 0.0001f);
         }
 
         private sealed class FakeSceneService : ISceneService
@@ -85,11 +91,20 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             public bool IsTransitioning { get; set; }
             public int LoadCallCount { get; private set; }
             public SceneLoadRequest LastRequest { get; private set; }
+            public int AdditiveCallCount { get; private set; }
+            public AdditiveSceneTransitionRequest LastAdditiveRequest { get; private set; }
 
             public Task LoadSceneAsync(SceneLoadRequest request, CancellationToken cancellationToken = default)
             {
                 LoadCallCount++;
                 LastRequest = request;
+                return Task.CompletedTask;
+            }
+
+            public Task TransitionAdditiveAsync(AdditiveSceneTransitionRequest request, CancellationToken cancellationToken = default)
+            {
+                AdditiveCallCount++;
+                LastAdditiveRequest = request;
                 return Task.CompletedTask;
             }
         }

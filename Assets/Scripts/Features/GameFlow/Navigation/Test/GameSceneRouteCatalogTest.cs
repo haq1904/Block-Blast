@@ -45,5 +45,33 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => _catalog.GetBuildIndex((GameSceneRoute)999));
         }
+
+        [Test]
+        public void WorldBuildIndex_ReturnsConfiguredIndex()
+        {
+            _catalog.SetIndexesForTesting(1, 2, 3, 4);
+            Assert.AreEqual(4, _catalog.WorldBuildIndex);
+        }
+
+        [Test]
+        public void ValidateConfiguration_ValidUniqueIndexes_Passes()
+        {
+            _catalog.SetIndexesForTesting(1, 2, 3, 4);
+            Assert.DoesNotThrow(() => _catalog.ValidateConfiguration());
+        }
+
+        [Test]
+        public void ValidateConfiguration_DuplicateIndex_ThrowsInvalidOperationException()
+        {
+            _catalog.SetIndexesForTesting(1, 2, 2, 4);
+            Assert.Throws<InvalidOperationException>(() => _catalog.ValidateConfiguration());
+        }
+
+        [Test]
+        public void ValidateConfiguration_WorldDuplicatesContentRoute_ThrowsInvalidOperationException()
+        {
+            _catalog.SetIndexesForTesting(1, 2, 3, 2);
+            Assert.Throws<InvalidOperationException>(() => _catalog.ValidateConfiguration());
+        }
     }
 }
