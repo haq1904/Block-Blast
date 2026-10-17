@@ -19,4 +19,11 @@ public interface ISceneService
     /// Caller cancellation is honored until the engine operation begins; once started, the transition completes activation safely.
     /// </summary>
     Task LoadSceneAsync(SceneLoadRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes an additive scene transition batch, ensuring target scenes are loaded,
+    /// committing the active scene, and unloading specified source scenes.
+    /// Throws InvalidOperationException if a transition is already in progress.
+    /// </summary>
+    Task TransitionAdditiveAsync(AdditiveSceneTransitionRequest request, CancellationToken cancellationToken = default);
 }

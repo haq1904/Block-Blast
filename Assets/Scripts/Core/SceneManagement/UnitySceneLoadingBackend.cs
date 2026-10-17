@@ -29,6 +29,40 @@ public sealed class UnitySceneLoadingBackend : ISceneLoadingBackend, ISceneTimeP
         return op != null ? new UnitySceneLoadOperation(op) : null;
     }
 
+    public bool IsSceneLoaded(int buildIndex)
+    {
+        if (!IsBuildIndexValid(buildIndex)) return false;
+        Scene scene = SceneManager.GetSceneByBuildIndex(buildIndex);
+        return scene.IsValid() && scene.isLoaded;
+    }
+
+    public ISceneUnloadOperation UnloadSceneAsync(int buildIndex)
+    {
+        if (!IsBuildIndexValid(buildIndex)) return null;
+        Scene scene = SceneManager.GetSceneByBuildIndex(buildIndex);
+        if (!scene.IsValid() || !scene.isLoaded) return null;
+        AsyncOperation op = SceneManager.UnloadSceneAsync(scene);
+        return op != null ? new UnitySceneUnloadOperation(op) : null;
+    }
+
+    public bool TrySetActiveScene(int buildIndex)
+    {
+        if (!IsBuildIndexValid(buildIndex)) return false;
+        Scene scene = SceneManager.GetSceneByBuildIndex(buildIndex);
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            Debug.LogWarning($"[UnitySceneLoadingBackend] Scene with build index {buildIndex} is not loaded or invalid.");
+            return false;
+        }
+
+        if (SceneManager.GetActiveScene() == scene)
+        {
+            return true;
+        }
+
+        return SceneManager.SetActiveScene(scene);
+    }
+
     public float RealtimeSinceStartup => Time.realtimeSinceStartup;
 
     public async Task DelayAsync(float seconds, CancellationToken cancellationToken)
@@ -59,5 +93,18 @@ public sealed class UnitySceneLoadingBackend : ISceneLoadingBackend, ISceneTimeP
             get => _operation.allowSceneActivation;
             set => _operation.allowSceneActivation = value;
         }
+    }
+
+    private sealed class UnitySceneUnloadOperation : ISceneUnloadOperation
+    {
+        private readonly AsyncOperation _operation;
+
+        public UnitySceneUnloadOperation(AsyncOperation operation)
+        {
+            _operation = operation;
+        }
+
+        public float Progress => _operation.progress;
+        public bool IsDone => _operation.isDone;
     }
 }

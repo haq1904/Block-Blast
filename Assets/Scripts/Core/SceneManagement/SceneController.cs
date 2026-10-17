@@ -19,10 +19,17 @@ public sealed class SceneController : MonoBehaviour, ISceneService
 
     private void Awake()
     {
-        if (ServiceLocator.TryGet<ISceneService>(out _))
+        if (ServiceLocator.TryGet<ISceneService>(out var existing) && existing != null && !ReferenceEquals(existing, this))
         {
-            Debug.LogWarning("[SceneController] An ISceneService is already registered. Destroying duplicate instance.", this);
-            Destroy(gameObject);
+            Debug.LogWarning("[SceneController] An active ISceneService is already registered. Destroying duplicate component.", this);
+            if (Application.isPlaying)
+            {
+                Destroy(this);
+            }
+            else
+            {
+                DestroyImmediate(this);
+            }
             return;
         }
 
@@ -47,6 +54,17 @@ public sealed class SceneController : MonoBehaviour, ISceneService
         await _runner.RunAsync(request, linkedCts.Token);
     }
 
+    public async Task TransitionAdditiveAsync(AdditiveSceneTransitionRequest request, CancellationToken cancellationToken = default)
+    {
+        if (_runner == null)
+        {
+            throw new InvalidOperationException("[SceneController] Runner is not initialized.");
+        }
+
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _destroyCts.Token);
+        await _runner.RunAdditiveAsync(request, linkedCts.Token);
+    }
+
     private void OnDestroy()
     {
         _destroyCts.Cancel();
@@ -54,7 +72,7 @@ public sealed class SceneController : MonoBehaviour, ISceneService
 
         if (_isRegistered)
         {
-            ServiceLocator.Unregister<ISceneService>();
+            ServiceLocator.Unregister<ISceneService>(this);
             _isRegistered = false;
         }
 

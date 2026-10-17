@@ -24,6 +24,22 @@ public interface ISceneLoadOperation
 }
 
 /// <summary>
+/// Abstraction representing an active asynchronous scene unloading operation.
+/// </summary>
+public interface ISceneUnloadOperation
+{
+    /// <summary>
+    /// Raw unloading progress from the underlying engine (0 to 1).
+    /// </summary>
+    float Progress { get; }
+
+    /// <summary>
+    /// True when the scene unload has fully finished.
+    /// </summary>
+    bool IsDone { get; }
+}
+
+/// <summary>
 /// Abstraction around engine-level scene querying and loading APIs.
 /// </summary>
 public interface ISceneLoadingBackend
@@ -54,6 +70,22 @@ public interface ISceneLoadingBackend
     /// In Additive mode, the target scene is loaded alongside current scenes without automatically changing the active scene.
     /// </summary>
     ISceneLoadOperation LoadSceneAsync(int buildIndex, LoadSceneMode mode);
+
+    /// <summary>
+    /// Checks whether a scene at the given build index is currently loaded in memory.
+    /// </summary>
+    bool IsSceneLoaded(int buildIndex);
+
+    /// <summary>
+    /// Initiates an asynchronous scene unload operation by build index.
+    /// </summary>
+    ISceneUnloadOperation UnloadSceneAsync(int buildIndex);
+
+    /// <summary>
+    /// Attempts to set the active scene by build index.
+    /// Returns true if successful, false if the scene is invalid or not loaded.
+    /// </summary>
+    bool TrySetActiveScene(int buildIndex);
 }
 
 /// <summary>
