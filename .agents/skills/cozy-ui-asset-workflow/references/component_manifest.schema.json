@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blockblast.dev/schemas/ui_component_manifest.schema.json",
+  "title": "UIComponentManifest",
+  "description": "Schema for UI Component Manifests defining sheet definitions, component placements, geometry, named 9-slice borders, and state families for deterministic spritesheet assembly.",
+  "type": "object",
+  "required": [
+    "version",
+    "pack_name",
+    "strategy",
+    "sheets",
+    "components"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the manifest format",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "pack_name": {
+      "type": "string",
+      "description": "Identifier name of the UI asset pack",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "strategy": {
+      "type": "string",
+      "description": "Sheet organization strategy",
+      "enum": ["single_master", "multi_sheet_by_category"]
+    },
+    "sheets": {
+      "type": "object",
+      "description": "Dictionary of sheet definitions keyed by unique sheet ID",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9_-]+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "dimensions",
+          "grid"
+        ],
+        "properties": {
+          "dimensions": {
+            "type": "array",
+            "description": "[width, height] of the assembled texture sheet in pixels",
+            "items": { "type": "integer", "minimum": 64 },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "grid": {
+            "type": "object",
+            "description": "Grid configuration for cell positioning",
+            "required": ["cell_size", "columns", "rows"],
+            "properties": {
+              "cell_size": {
+                "type": "array",
+                "description": "[cell_width, cell_height] in pixels",
+                "items": { "type": "integer", "minimum": 16 },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "columns": { "type": "integer", "minimum": 1 },
+              "rows": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+          },
+          "padding": {
+            "type": "integer",
+            "description": "Sheet margin in pixels outside the grid area",
+            "minimum": 0,
+            "default": 0
+          },
+          "max_size": {
+            "type": "integer",
+            "description": "Maximum allowed sheet dimension in pixels",
+            "minimum": 64
+          },
+          "require_power_of_two": {
+            "type": "boolean",
+            "description": "Whether sheet dimensions must be powers of two",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "components": {
+      "type": "array",
+      "description": "List of individual UI components to assemble",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sheet_id",
+          "category",
+          "source_file",
+          "placement",
+          "dimensions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this component within the pack",
+            "pattern": "^[a-z0-9_-]+$"
+          },
+          "sheet_id": {
+            "type": "string",
+            "description": "Target sheet ID where this component belongs",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "category": {
+            "type": "string",
+            "description": "Logical category (e.g. Buttons, Containers, Badges, Controls, Icons)"
+          },
+          "source_file": {
+            "type": "string",
+            "description": "Relative path to the source component PNG file",
+            "pattern": ".*\\.png$"
+          },
+          "placement": {
+            "type": "object",
+            "description": "Grid cell position and span",
+            "required": ["col", "row"],
+            "properties": {
+              "col": { "type": "integer", "minimum": 0 },
+              "row": { "type": "integer", "minimum": 0 },
+              "col_span": { "type": "integer", "minimum": 1, "default": 1 },
+              "row_span": { "type": "integer", "minimum": 1, "default": 1 }
+            },
+            "additionalProperties": false
+          },
+          "dimensions": {
+            "type": "array",
+            "description": "[width, height] of the component in pixels",
+            "items": { "type": "integer", "minimum": 8 },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "padding": {
+            "type": "integer",
+            "description": "Component margin within its assigned bounding box in pixels",
+            "minimum": 0,
+            "default": 0
+          },
+          "requires_transparency": {
+            "type": "boolean",
+            "description": "Whether component requires clean alpha transparency",
+            "default": true
+          },
+          "expected_center": {
+            "type": "array",
+            "description": "Normalized [x, y] optical center coordinates (0.0 to 1.0)",
+            "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "minItems": 2,
+            "maxItems": 2,
+            "default": [0.5, 0.5]
+          },
+          "center_tolerance_px": {
+            "type": "number",
+            "description": "Allowed optical center offset from expected_center in pixels",
+            "minimum": 0.0,
+            "default": 2.5
+          },
+          "pivot": {
+            "type": "array",
+            "description": "Normalized [x, y] pivot coordinates (0.0 to 1.0)",
+            "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "minItems": 2,
+            "maxItems": 2,
+            "default": [0.5, 0.5]
+          },
+          "nine_slice": {
+            "type": ["object", "null"],
+            "description": "Named 9-slice border insets in pixels {left, bottom, right, top}",
+            "required": ["left", "bottom", "right", "top"],
+            "properties": {
+              "left": { "type": "integer", "minimum": 0 },
+              "bottom": { "type": "integer", "minimum": 0 },
+              "right": { "type": "integer", "minimum": 0 },
+              "top": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          "state_family": {
+            "type": "string",
+            "description": "Group identifier linking interactive state variants of a component"
+          },
+          "state": {
+            "type": "string",
+            "description": "Interactive state of this variant",
+            "enum": ["normal", "pressed", "hover", "disabled", "selected"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

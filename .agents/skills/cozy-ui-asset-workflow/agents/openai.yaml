@@ -1,0 +1,7 @@
+interface:
+  display_name: "Cozy UI Asset Workflow"
+  short_description: "End-to-end UI bitmap asset pipeline from reference"
+  default_prompt: "Use $cozy-ui-asset-workflow to analyze references and produce a 2D UI asset pack."
+
+policy:
+  allow_implicit_invocation: true
