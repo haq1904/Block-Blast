@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
+using BlockBlast.Features.GameFlow.Play;
 using BlockBlast.Features.Lobby;
 using NUnit.Framework;
 using UnityEngine;
@@ -24,6 +25,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         private LobbyWorldButtonView _btnSettings;
         private FakeCameraService _fakeCamera;
         private FakeNavigator _fakeNavigator;
+        private FakeTransitionVfxService _fakeTransitionVfx;
         private int _lobbyLayer;
 
         private LobbyWorldButtonView CreateButton(string name, LobbyWorldButtonAction action, bool addCollider = true, bool correctLayer = true)
@@ -53,9 +55,11 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
 
             _fakeCamera = new FakeCameraService();
             _fakeNavigator = new FakeNavigator();
+            _fakeTransitionVfx = new FakeTransitionVfxService();
 
             ServiceLocator.Register<IWorldCameraTransitionService>(_fakeCamera);
             ServiceLocator.Register<IGameSceneNavigator>(_fakeNavigator);
+            ServiceLocator.Register<IPlaySceneTransitionVfxService>(_fakeTransitionVfx);
 
             _lobbyLayer = LayerMask.NameToLayer("LobbyInteractable");
             if (_lobbyLayer == -1) _lobbyLayer = 8;
@@ -69,6 +73,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             _createdObjects.Add(_controllerObj);
             _controller = _controllerObj.AddComponent<LobbyController>();
             _controller.WorldButtons = new[] { _btnPlay, _btnCustom, _btnGameCenter, _btnSettings };
+            _controller.PlayTransitionDelay = 0f;
 
             var awake = typeof(LobbyController).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
@@ -137,6 +142,71 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             Assert.AreEqual(2, executionOrder.Count);
             Assert.AreEqual("CameraCompleted", executionOrder[0]);
             Assert.AreEqual("NavigatorStarted", executionOrder[1]);
+        }
+
+        [Test]
+        public async Task RequestPlayAsync_WaitsForFogCoverAndCameraBeforeNavigatorLoad()
+        {
+            var coverCompletion = new TaskCompletionSource<bool>();
+            var cameraCompletion = new TaskCompletionSource<bool>();
+            _fakeTransitionVfx.CoverOverride = coverCompletion.Task;
+            _fakeCamera.MoveToPlayOverride = cameraCompletion.Task;
+
+            Task request = _controller.RequestPlayAsync();
+
+            Assert.AreEqual(1, _fakeTransitionVfx.CoverCallCount);
+            Assert.AreEqual(1, _fakeCamera.MoveToPlayCallCount);
+            Assert.AreEqual(0, _fakeNavigator.LoadCount);
+
+            cameraCompletion.SetResult(true);
+            await Task.Yield();
+            Assert.AreEqual(0, _fakeNavigator.LoadCount, "Navigator must wait for fog cover.");
+
+            coverCompletion.SetResult(true);
+            await request;
+
+            Assert.AreEqual(1, _fakeNavigator.LoadCount);
+        }
+
+        [Test]
+        public async Task RequestPlayAsync_WhenFogCoverFails_ResetsFogAndDoesNotNavigate()
+        {
+            _fakeTransitionVfx.ThrowOnCover = new InvalidOperationException("Fog cover failed");
+            LogAssert.Expect(LogType.Warning, new Regex("Play transition failed"));
+
+            await _controller.RequestPlayAsync();
+
+            Assert.AreEqual(1, _fakeTransitionVfx.ResetCallCount);
+            Assert.IsTrue(_fakeCamera.SnapToLobbyCalled);
+            Assert.AreEqual(0, _fakeNavigator.LoadCount);
+        }
+
+        [Test]
+        public async Task RequestPlayAsync_UsesPlayRouteWithoutLoadingScreen()
+        {
+            await _controller.RequestPlayAsync();
+
+            Assert.AreEqual(GameSceneRoute.Play, _fakeNavigator.LastRoute);
+            Assert.AreEqual(SceneTransitionPresentation.None, _fakeNavigator.LastPresentation);
+            Assert.AreEqual(0f, _fakeNavigator.LastMinimumVisibleDuration, 0.0001f);
+        }
+
+        [Test]
+        public async Task RequestPlayAsync_DelayLocksInputBeforeCameraAndCancellationStopsFlow()
+        {
+            _controller.PlayTransitionDelay = 10f;
+            Task request = _controller.RequestPlayAsync();
+
+            Assert.IsFalse(_btnPlay.IsInteractable, "World input must be disabled before waiting.");
+            Assert.AreEqual(0, _fakeCamera.MoveToPlayCallCount, "Camera must wait for the configured delay.");
+            Assert.AreEqual(0, _fakeNavigator.LoadCount, "Navigation must wait for the configured delay.");
+
+            typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?.Invoke(_controller, null);
+            await request;
+
+            Assert.AreEqual(0, _fakeCamera.MoveToPlayCallCount);
+            Assert.AreEqual(0, _fakeNavigator.LoadCount);
         }
 
         [Test]
@@ -408,14 +478,17 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             public bool IsMoving { get; set; }
             public bool SnapToLobbyCalled { get; private set; }
             public bool MoveToLobbyCalled { get; private set; }
+            public int MoveToPlayCallCount { get; private set; }
             public Action OnMoveToPlay { get; set; }
             public Exception ThrowOnMoveToPlay { get; set; }
+            public Task MoveToPlayOverride { get; set; }
 
             public Task MoveToPlayAsync(CancellationToken cancellationToken = default)
             {
                 if (ThrowOnMoveToPlay != null) throw ThrowOnMoveToPlay;
+                MoveToPlayCallCount++;
                 OnMoveToPlay?.Invoke();
-                return Task.CompletedTask;
+                return MoveToPlayOverride ?? Task.CompletedTask;
             }
 
             public Task MoveToLobbyAsync(CancellationToken cancellationToken = default)
@@ -430,6 +503,26 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             }
         }
 
+        private sealed class FakeTransitionVfxService : IPlaySceneTransitionVfxService
+        {
+            public int CoverCallCount { get; private set; }
+            public int ResetCallCount { get; private set; }
+            public Task CoverOverride { get; set; }
+            public Exception ThrowOnCover { get; set; }
+
+            public Task CoverTableAsync(CancellationToken cancellationToken = default)
+            {
+                CoverCallCount++;
+                if (ThrowOnCover != null) throw ThrowOnCover;
+                return CoverOverride ?? Task.CompletedTask;
+            }
+
+            public void ResetImmediate()
+            {
+                ResetCallCount++;
+            }
+        }
+
         private sealed class FakeNavigator : IGameSceneNavigator
         {
             public bool IsTransitioning { get; set; }
@@ -437,6 +530,9 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             public Action OnLoad { get; set; }
             public Task LoadOverride { get; set; }
             public Exception ThrowOnLoad { get; set; }
+            public GameSceneRoute LastRoute { get; private set; }
+            public SceneTransitionPresentation LastPresentation { get; private set; }
+            public float LastMinimumVisibleDuration { get; private set; }
 
             public async Task LoadAsync(
                 GameSceneRoute route,
@@ -445,6 +541,9 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
                 CancellationToken cancellationToken = default)
             {
                 LoadCount++;
+                LastRoute = route;
+                LastPresentation = presentation;
+                LastMinimumVisibleDuration = minimumVisibleDuration;
                 OnLoad?.Invoke();
                 if (ThrowOnLoad != null) throw ThrowOnLoad;
                 if (LoadOverride != null) await LoadOverride;

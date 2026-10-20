@@ -78,8 +78,8 @@ namespace BlockBlast.Features.GameFlow.Navigation
             {
                 int introIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Intro);
                 int playIndex = _routeCatalog.GetBuildIndex(GameSceneRoute.Play);
-                loadIndexes = new[] { worldIndex, targetIndex };
-                unloadIndexes = new[] { introIndex, playIndex };
+                loadIndexes = new[] { worldIndex, targetIndex, playIndex };
+                unloadIndexes = new[] { introIndex };
             }
             else if (route == GameSceneRoute.Play)
             {
@@ -97,7 +97,7 @@ namespace BlockBlast.Features.GameFlow.Navigation
                 targetSceneBuildIndex: targetIndex,
                 loadBuildIndexes: loadIndexes,
                 unloadBuildIndexes: unloadIndexes,
-                activeSceneBuildIndex: worldIndex,
+                activeSceneBuildIndex: route == GameSceneRoute.Play ? targetIndex : worldIndex,
                 minimumVisibleDuration: minimumVisibleDuration,
                 presentation: presentation);
 

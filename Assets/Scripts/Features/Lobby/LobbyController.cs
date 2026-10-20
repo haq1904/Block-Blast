@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
+using BlockBlast.Features.GameFlow.Play;
 using UnityEngine;
 
 namespace BlockBlast.Features.Lobby
@@ -21,23 +22,40 @@ namespace BlockBlast.Features.Lobby
         [Tooltip("The four 3D interactive prop buttons in Lobby scene.")]
         [SerializeField] private LobbyWorldButtonView[] _worldButtons;
 
+        [Header("Transition VFX")]
+        [Tooltip("Feedback view for the Play world button, awaited before starting transition.")]
+        [SerializeField] private LobbyWorldButtonFeedbackView _playWorldButtonFeedback;
+
         [Header("Transition Config")]
-        [Tooltip("Minimum visible duration in seconds for the loading screen transition into PlayScene.")]
-        [SerializeField] private float _minimumLoadingDuration = 0.5f;
+        [Tooltip("Realtime delay in seconds before the camera moves into Play.")]
+        [SerializeField, Min(0f)] private float _playTransitionDelay = 1f;
 
         private IGameSceneNavigator _navigator;
         private LobbyTabId _currentTab = LobbyTabId.Home;
         private bool _playRequested;
         private bool _isBound;
         private bool _hasBoundValidButtons;
+        private bool _loggedMissingVfxServiceWarning;
         private CancellationTokenSource _destroyCts;
 
         public LobbyTabId CurrentTab => _currentTab;
+
+        public float PlayTransitionDelay
+        {
+            get => _playTransitionDelay;
+            set => _playTransitionDelay = Mathf.Max(0f, value);
+        }
 
         public LobbyWorldButtonView[] WorldButtons
         {
             get => _worldButtons;
             set => _worldButtons = value;
+        }
+
+        public LobbyWorldButtonFeedbackView PlayWorldButtonFeedback
+        {
+            get => _playWorldButtonFeedback;
+            set => _playWorldButtonFeedback = value;
         }
 
         private void Awake()
@@ -141,6 +159,22 @@ namespace BlockBlast.Features.Lobby
         private void OnValidate()
         {
             ValidateWorldButtons(isEditorValidation: true);
+            ValidatePlayButtonFeedback();
+        }
+
+        private void ValidatePlayButtonFeedback()
+        {
+            if (_playWorldButtonFeedback == null && _worldButtons != null)
+            {
+                for (int i = 0; i < _worldButtons.Length; i++)
+                {
+                    if (_worldButtons[i] != null && _worldButtons[i].Action == LobbyWorldButtonAction.Play)
+                    {
+                        _playWorldButtonFeedback = _worldButtons[i].GetComponent<LobbyWorldButtonFeedbackView>();
+                        break;
+                    }
+                }
+            }
         }
 #endif
 
@@ -247,7 +281,7 @@ namespace BlockBlast.Features.Lobby
             switch (action)
             {
                 case LobbyWorldButtonAction.Play:
-                    _ = RequestPlayAsync();
+                    _ = RequestPlayAsync(isWorldPlay: true);
                     break;
                 case LobbyWorldButtonAction.Customization:
                     OnTabSelected(LobbyTabId.Customization);
@@ -313,10 +347,10 @@ namespace BlockBlast.Features.Lobby
 
         private void OnPlayRequested()
         {
-            _ = RequestPlayAsync();
+            _ = RequestPlayAsync(isWorldPlay: false);
         }
 
-        public async Task RequestPlayAsync()
+        public async Task RequestPlayAsync(bool isWorldPlay = false)
         {
             if (_playRequested)
             {
@@ -354,22 +388,48 @@ namespace BlockBlast.Features.Lobby
                 return;
             }
 
+            IPlaySceneTransitionVfxService transitionVfx = null;
+            if (!ServiceLocator.TryGet(out transitionVfx))
+            {
+                if (!_loggedMissingVfxServiceWarning)
+                {
+                    _loggedMissingVfxServiceWarning = true;
+                    Debug.LogWarning("[LobbyController] IPlaySceneTransitionVfxService not found in ServiceLocator. Proceeding with camera-only transition.", this);
+                }
+            }
+
             CancellationToken token = _destroyCts != null ? _destroyCts.Token : CancellationToken.None;
 
             try
             {
-                // Move camera smoothly to play pose while Lobby is still visible
-                await cameraService.MoveToPlayAsync(token);
+                if (isWorldPlay && _playWorldButtonFeedback != null)
+                {
+                    await _playWorldButtonFeedback.WaitForCurrentPressAsync(token);
+                }
+                else
+                {
+                    await WaitForPlayTransitionDelayAsync(token);
+                }
+
+                Task fogCoverTask = transitionVfx != null
+                    ? transitionVfx.CoverTableAsync(token)
+                    : Task.CompletedTask;
+
+                Task cameraTask = cameraService.MoveToPlayAsync(token);
+
+                await Task.WhenAll(cameraTask, fogCoverTask);
             }
             catch (OperationCanceledException)
             {
+                transitionVfx?.ResetImmediate();
                 cameraService.SnapToLobby();
                 if (isActiveAndEnabled) ResetInputState();
                 return;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[LobbyController] Camera transition to Play pose failed: {ex.Message}. Snapping camera back to Lobby.", this);
+                Debug.LogWarning($"[LobbyController] Play transition failed: {ex.Message}. Snapping camera back to Lobby.", this);
+                transitionVfx?.ResetImmediate();
                 cameraService.SnapToLobby();
                 if (isActiveAndEnabled) ResetInputState();
                 return;
@@ -386,13 +446,14 @@ namespace BlockBlast.Features.Lobby
                 {
                     await _navigator.LoadAsync(
                         GameSceneRoute.Play,
-                        SceneTransitionPresentation.LoadingScreen,
-                        _minimumLoadingDuration,
+                        SceneTransitionPresentation.None,
+                        0f,
                         token);
                 }
                 else
                 {
                     Debug.LogError("[LobbyController] IGameSceneNavigator not found in ServiceLocator.", this);
+                    transitionVfx?.ResetImmediate();
                     if (cameraService != null)
                     {
                         await cameraService.MoveToLobbyAsync(CancellationToken.None);
@@ -402,6 +463,7 @@ namespace BlockBlast.Features.Lobby
             }
             catch (OperationCanceledException)
             {
+                transitionVfx?.ResetImmediate();
                 if (cameraService != null)
                 {
                     cameraService.SnapToLobby();
@@ -411,6 +473,7 @@ namespace BlockBlast.Features.Lobby
             catch (Exception exception)
             {
                 Debug.LogException(exception, this);
+                transitionVfx?.ResetImmediate();
                 if (cameraService != null)
                 {
                     try
@@ -424,6 +487,14 @@ namespace BlockBlast.Features.Lobby
                 }
                 if (isActiveAndEnabled) ResetInputState();
             }
+        }
+
+        private Task WaitForPlayTransitionDelayAsync(CancellationToken cancellationToken)
+        {
+            float delay = Mathf.Max(0f, _playTransitionDelay);
+            return delay > 0f
+                ? Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken)
+                : Task.CompletedTask;
         }
 
         private void ResetInputState()

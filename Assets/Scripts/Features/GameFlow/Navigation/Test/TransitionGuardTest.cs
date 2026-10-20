@@ -59,31 +59,31 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public async Task LoadAsync_LobbyWithLoadingScreen_ForwardsAdditiveRequestWithWorld()
+        public async Task LoadAsync_LobbyWithLoadingScreen_PreloadsWorldLobbyAndPlay()
         {
             await _navigator.LoadAsync(GameSceneRoute.Lobby, SceneTransitionPresentation.LoadingScreen, 0.5f);
 
             Assert.AreEqual(1, _fakeSceneService.AdditiveCallCount);
             Assert.AreEqual(2, _fakeSceneService.LastAdditiveRequest.TargetSceneBuildIndex);
             Assert.AreEqual(4, _fakeSceneService.LastAdditiveRequest.ActiveSceneBuildIndex);
-            CollectionAssert.AreEqual(new[] { 4, 2 }, _fakeSceneService.LastAdditiveRequest.LoadBuildIndexes);
-            CollectionAssert.AreEqual(new[] { 1, 3 }, _fakeSceneService.LastAdditiveRequest.UnloadBuildIndexes);
+            CollectionAssert.AreEqual(new[] { 4, 2, 3 }, _fakeSceneService.LastAdditiveRequest.LoadBuildIndexes);
+            CollectionAssert.AreEqual(new[] { 1 }, _fakeSceneService.LastAdditiveRequest.UnloadBuildIndexes);
             Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastAdditiveRequest.Presentation);
             Assert.AreEqual(0.5f, _fakeSceneService.LastAdditiveRequest.MinimumVisibleDuration, 0.0001f);
         }
 
         [Test]
-        public async Task LoadAsync_PlayWithLoadingScreen_ForwardsAdditiveRequestWithWorld()
+        public async Task LoadAsync_PlayWithoutLoadingScreen_ActivatesPlayAndUnloadsLobby()
         {
-            await _navigator.LoadAsync(GameSceneRoute.Play, SceneTransitionPresentation.LoadingScreen, 1.0f);
+            await _navigator.LoadAsync(GameSceneRoute.Play, SceneTransitionPresentation.None, 0f);
 
             Assert.AreEqual(1, _fakeSceneService.AdditiveCallCount);
             Assert.AreEqual(3, _fakeSceneService.LastAdditiveRequest.TargetSceneBuildIndex);
-            Assert.AreEqual(4, _fakeSceneService.LastAdditiveRequest.ActiveSceneBuildIndex);
+            Assert.AreEqual(3, _fakeSceneService.LastAdditiveRequest.ActiveSceneBuildIndex);
             CollectionAssert.AreEqual(new[] { 4, 3 }, _fakeSceneService.LastAdditiveRequest.LoadBuildIndexes);
             CollectionAssert.AreEqual(new[] { 2, 1 }, _fakeSceneService.LastAdditiveRequest.UnloadBuildIndexes);
-            Assert.AreEqual(SceneTransitionPresentation.LoadingScreen, _fakeSceneService.LastAdditiveRequest.Presentation);
-            Assert.AreEqual(1.0f, _fakeSceneService.LastAdditiveRequest.MinimumVisibleDuration, 0.0001f);
+            Assert.AreEqual(SceneTransitionPresentation.None, _fakeSceneService.LastAdditiveRequest.Presentation);
+            Assert.AreEqual(0f, _fakeSceneService.LastAdditiveRequest.MinimumVisibleDuration, 0.0001f);
         }
 
         private sealed class FakeSceneService : ISceneService
