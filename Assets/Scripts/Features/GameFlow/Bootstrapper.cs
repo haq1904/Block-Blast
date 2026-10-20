@@ -1,5 +1,8 @@
 using System;
 using BlockBlast.Features.GameFlow.Navigation;
+#if UNITY_EDITOR
+using BlockBlast.Features.GameFlow.EditorSupport;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -19,6 +22,12 @@ public class Bootstrapper : MonoBehaviour
     [Tooltip("Clear color used by the bootstrap camera to prevent stale GPU framebuffer artifacts from previous play sessions.")]
     [SerializeField] private Color _clearColor = new Color(0.12f, 0.13f, 0.16f, 1f);
 
+    private Camera _bootstrapCamera;
+    private AudioListener _bootstrapAudioListener;
+    private bool _bootstrapCameraWasEnabled;
+    private bool _bootstrapAudioListenerWasEnabled;
+    private bool _bootstrapPresentationSuppressed;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void InitializeDOTweenCapacity()
     {
@@ -28,15 +37,24 @@ public class Bootstrapper : MonoBehaviour
     private void Awake()
     {
         EnsureBootstrapCamera();
+        _bootstrapCamera = GetComponentInChildren<Camera>(true);
+        _bootstrapAudioListener = GetComponentInChildren<AudioListener>(true);
     }
 
     private async void Start()
     {
         try
         {
+            GameSceneRoute targetRoute = ResolveTargetRoute();
+
             if (ServiceLocator.TryGet<IGameSceneNavigator>(out var navigator))
             {
-                await navigator.LoadAsync(_targetRoute, _presentation, _minimumVisibleDuration);
+                if (UsesAdditiveComposition(targetRoute))
+                {
+                    SuppressBootstrapPresentation();
+                }
+
+                await navigator.LoadAsync(targetRoute, _presentation, _minimumVisibleDuration);
             }
             else if (ServiceLocator.TryGet<ISceneService>(out var sceneService))
             {
@@ -50,8 +68,69 @@ public class Bootstrapper : MonoBehaviour
         }
         catch (Exception ex)
         {
+            RestoreBootstrapPresentation();
             Debug.LogException(ex, this);
         }
+    }
+
+    private static bool UsesAdditiveComposition(GameSceneRoute route)
+    {
+        return route == GameSceneRoute.Lobby || route == GameSceneRoute.Play;
+    }
+
+    private void SuppressBootstrapPresentation()
+    {
+        if (_bootstrapPresentationSuppressed)
+        {
+            return;
+        }
+
+        if (_bootstrapCamera != null)
+        {
+            _bootstrapCameraWasEnabled = _bootstrapCamera.enabled;
+            _bootstrapCamera.enabled = false;
+        }
+
+        if (_bootstrapAudioListener != null)
+        {
+            _bootstrapAudioListenerWasEnabled = _bootstrapAudioListener.enabled;
+            _bootstrapAudioListener.enabled = false;
+        }
+
+        _bootstrapPresentationSuppressed = true;
+    }
+
+    private void RestoreBootstrapPresentation()
+    {
+        if (!_bootstrapPresentationSuppressed)
+        {
+            return;
+        }
+
+        if (_bootstrapCamera != null)
+        {
+            _bootstrapCamera.enabled = _bootstrapCameraWasEnabled;
+        }
+
+        if (_bootstrapAudioListener != null)
+        {
+            _bootstrapAudioListener.enabled = _bootstrapAudioListenerWasEnabled;
+        }
+
+        _bootstrapPresentationSuppressed = false;
+    }
+
+    private GameSceneRoute ResolveTargetRoute()
+    {
+#if UNITY_EDITOR
+        int rawProfile = UnityEditor.EditorPrefs.GetInt(
+            EditorSceneLaunchOverride.ProfilePreferenceKey,
+            (int)SceneQuickAccessProfile.FullFlow);
+        SceneQuickAccessProfile profile = EditorSceneLaunchOverride.SanitizeProfile(rawProfile);
+        return EditorSceneLaunchOverride.ResolveRoute(_targetRoute, profile);
+#else
+        return _targetRoute;
+#endif
     }
 
     private void EnsureBootstrapCamera()
