@@ -19,6 +19,11 @@ namespace BlockBlast.Features.Lobby
 
         public event Action<LobbyWorldButtonAction> Clicked;
 
+        /// <summary>
+        /// Presentation event fired immediately when valid click occurs, before Clicked.
+        /// </summary>
+        public event Action Pressed;
+
         public LobbyWorldButtonAction Action
         {
             get => _action;
@@ -96,6 +101,7 @@ namespace BlockBlast.Features.Lobby
                 return;
             }
 
+            Pressed?.Invoke();
             Clicked?.Invoke(_action);
         }
     }

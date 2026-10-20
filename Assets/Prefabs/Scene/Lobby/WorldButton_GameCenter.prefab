@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &96622477354719626
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 431156810660223902, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: _idleWorldYRange.y
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 431156810660223902, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: _idleLegDurationRange.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 431156810660223902, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: _idleLegDurationRange.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.52
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.6941153
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.1349223
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.6941153
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.1349223
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 1223662462553722687, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -22
+      objectReference: {fileID: 0}
+    - target: {fileID: 1995237753432757637, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_Name
+      value: WorldButton_GameCenter
+      objectReference: {fileID: 0}
+    - target: {fileID: 2314152961017187552, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: _action
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5291264336391656562, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 7038187938034454560, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_text
+      value: 'Game Center
+
+'
+      objectReference: {fileID: 0}
+    - target: {fileID: 7038187938034454560, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_fontSize
+      value: 3.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 7038187938034454560, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 3.14
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 30afc3047eea07c45b7a0aedbe90c01f, type: 3}
