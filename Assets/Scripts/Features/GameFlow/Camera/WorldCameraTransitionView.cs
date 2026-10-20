@@ -28,6 +28,9 @@ namespace BlockBlast.Features.GameFlow.Camera
         [Tooltip("Tween easing function.")]
         [SerializeField] private Ease _ease = Ease.InOutSine;
 
+        [Tooltip("Overshoot strength used by InBack, OutBack, and InOutBack ease types.")]
+        [SerializeField, Range(0f, 5f)] private float _backOvershoot = 2.5f;
+
         private Sequence _sequence;
 
         public bool IsMoving => _sequence != null && _sequence.IsActive() && _sequence.IsPlaying();
@@ -60,6 +63,12 @@ namespace BlockBlast.Features.GameFlow.Camera
         {
             get => _ease;
             set => _ease = value;
+        }
+
+        public float BackOvershoot
+        {
+            get => _backOvershoot;
+            set => _backOvershoot = Mathf.Clamp(value, 0f, 5f);
         }
 
         public Task MoveToPlayAsync(CancellationToken cancellationToken = default) =>
@@ -111,8 +120,8 @@ namespace BlockBlast.Features.GameFlow.Camera
             localSeq.SetLink(gameObject, LinkBehaviour.KillOnDisable);
             localSeq.SetUpdate(true);
 
-            localSeq.Append(_cameraTransform.DOMove(targetPose.position, _duration).SetEase(_ease));
-            localSeq.Join(_cameraTransform.DORotateQuaternion(targetPose.rotation, _duration).SetEase(_ease));
+            localSeq.Append(ApplyConfiguredEase(_cameraTransform.DOMove(targetPose.position, _duration)));
+            localSeq.Join(ApplyConfiguredEase(_cameraTransform.DORotateQuaternion(targetPose.rotation, _duration)));
 
             CancellationTokenRegistration registration = default;
 
@@ -177,6 +186,18 @@ namespace BlockBlast.Features.GameFlow.Camera
             {
                 _cameraTransform.DOKill();
             }
+        }
+
+        private T ApplyConfiguredEase<T>(T tween) where T : Tween
+        {
+            return IsBackEase(_ease)
+                ? tween.SetEase(_ease, _backOvershoot)
+                : tween.SetEase(_ease);
+        }
+
+        private static bool IsBackEase(Ease ease)
+        {
+            return ease == Ease.InBack || ease == Ease.OutBack || ease == Ease.InOutBack;
         }
 
         private void OnDisable()
