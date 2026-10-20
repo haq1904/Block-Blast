@@ -1167,8 +1167,8 @@ MonoBehaviour:
   _cameraTransform: {fileID: 2062340884}
   _lobbyPose: {fileID: 894014977}
   _playPose: {fileID: 330585546}
-  _duration: 1.1
-  _ease: 4
+  _duration: 2
+  _ease: 28
 --- !u!4 &403284917 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 36c5c27154b8aac40b59cd75e8524142, type: 3}
@@ -6241,7 +6241,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.04
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6249,7 +6249,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.41
+      value: 5.22
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 446a4bbcce9424e4abf4bb220a342869, type: 3}
       propertyPath: m_LocalRotation.w
