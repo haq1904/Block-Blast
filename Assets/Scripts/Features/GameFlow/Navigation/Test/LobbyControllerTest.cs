@@ -471,6 +471,79 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             _btnPlay.OnPointerClick(null);
         }
 
+        [Test]
+        public void OnEnable_WhenNavigatorTransitioning_LocksAllWorldButtonsAndIgnoresClicks()
+        {
+            InvokeOnDisable();
+            _fakeNavigator.IsTransitioning = true;
+            InvokeOnEnable();
+
+            Assert.IsFalse(_btnPlay.IsInteractable);
+            Assert.IsFalse(_btnCustom.IsInteractable);
+            Assert.IsFalse(_btnGameCenter.IsInteractable);
+            Assert.IsFalse(_btnSettings.IsInteractable);
+            _btnPlay.OnPointerClick(null);
+            Assert.AreEqual(0, _fakeCamera.MoveToPlayCallCount);
+            Assert.AreEqual(0, _fakeNavigator.LoadCount);
+        }
+
+        [Test]
+        public async Task OnEnable_WhenTransitionFinishes_UnlocksButtonsAndProcessesFirstClick()
+        {
+            InvokeOnDisable();
+            _fakeNavigator.IsTransitioning = true;
+            InvokeOnEnable();
+
+            Assert.IsFalse(_btnPlay.IsInteractable);
+            _fakeNavigator.IsTransitioning = false;
+            await Task.Yield();
+
+            Assert.IsTrue(_btnPlay.IsInteractable);
+            Assert.IsTrue(_btnCustom.IsInteractable);
+            Assert.IsTrue(_btnGameCenter.IsInteractable);
+            Assert.IsTrue(_btnSettings.IsInteractable);
+            _btnPlay.OnPointerClick(null);
+            Assert.AreEqual(1, _fakeCamera.MoveToPlayCallCount);
+        }
+
+        [Test]
+        public async Task OnDisable_WhileWaitingForTransition_CancelsGateAndRestoresCanonicalState()
+        {
+            InvokeOnDisable();
+            _fakeNavigator.IsTransitioning = true;
+            InvokeOnEnable();
+            Assert.IsFalse(_btnPlay.IsInteractable);
+
+            InvokeOnDisable();
+            Assert.IsTrue(_btnPlay.IsInteractable, "Disabling controller must restore canonical collider state.");
+
+            _fakeNavigator.IsTransitioning = false;
+            await Task.Yield();
+
+            int clickCount = 0;
+            _fakeCamera.OnMoveToPlay = () => clickCount++;
+            _btnPlay.OnPointerClick(null);
+            Assert.AreEqual(0, clickCount, "Buttons must not be bound after controller was disabled.");
+        }
+
+        [Test]
+        public void OnEnable_WhenNavigatorIdle_WorldButtonsRemainInteractableImmediately()
+        {
+            InvokeOnDisable();
+            _fakeNavigator.IsTransitioning = false;
+            InvokeOnEnable();
+
+            Assert.IsTrue(_btnPlay.IsInteractable);
+            Assert.IsTrue(_btnCustom.IsInteractable);
+            Assert.IsTrue(_btnGameCenter.IsInteractable);
+            Assert.IsTrue(_btnSettings.IsInteractable);
+            _btnPlay.OnPointerClick(null);
+            Assert.AreEqual(1, _fakeCamera.MoveToPlayCallCount);
+        }
+
+        private void InvokeOnDisable() => typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(_controller, null);
+        private void InvokeOnEnable() => typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(_controller, null);
+
         // --- Fakes ---
 
         private sealed class FakeCameraService : IWorldCameraTransitionService

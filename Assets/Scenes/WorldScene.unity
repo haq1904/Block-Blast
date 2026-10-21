@@ -1167,8 +1167,9 @@ MonoBehaviour:
   _cameraTransform: {fileID: 2062340884}
   _lobbyPose: {fileID: 894014977}
   _playPose: {fileID: 330585546}
-  _duration: 2
+  _duration: 3
   _ease: 28
+  _backOvershoot: 5
 --- !u!4 &403284917 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 36c5c27154b8aac40b59cd75e8524142, type: 3}

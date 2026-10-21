@@ -36,6 +36,7 @@ namespace BlockBlast.Features.Lobby
         private bool _isBound;
         private bool _hasBoundValidButtons;
         private bool _loggedMissingVfxServiceWarning;
+        private bool _ownsInitialWorldButtonGate;
         private CancellationTokenSource _destroyCts;
 
         public LobbyTabId CurrentTab => _currentTab;
@@ -190,6 +191,7 @@ namespace BlockBlast.Features.Lobby
 
             BindViews();
             _hasBoundValidButtons = true;
+            _ = GateWorldButtonsUntilNavigationIdleAsync(_destroyCts.Token);
         }
 
         private void Start()
@@ -341,6 +343,44 @@ namespace BlockBlast.Features.Lobby
                     {
                         _worldButtons[i].SetInteractable(interactable);
                     }
+                }
+            }
+        }
+
+        private async Task GateWorldButtonsUntilNavigationIdleAsync(CancellationToken cancellationToken)
+        {
+            if (_navigator == null)
+            {
+                ServiceLocator.TryGet<IGameSceneNavigator>(out _navigator);
+            }
+
+            if (_navigator == null || !_navigator.IsTransitioning)
+            {
+                return;
+            }
+
+            _ownsInitialWorldButtonGate = true;
+            SetWorldButtonsInteractable(false);
+
+            try
+            {
+                while (_navigator.IsTransitioning)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await Task.Yield();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (_ownsInitialWorldButtonGate)
+            {
+                _ownsInitialWorldButtonGate = false;
+                if (!cancellationToken.IsCancellationRequested && this != null && isActiveAndEnabled && !_playRequested)
+                {
+                    SetWorldButtonsInteractable(true);
                 }
             }
         }
@@ -524,6 +564,15 @@ namespace BlockBlast.Features.Lobby
             _destroyCts?.Dispose();
             _destroyCts = null;
 
+            if (_ownsInitialWorldButtonGate)
+            {
+                _ownsInitialWorldButtonGate = false;
+                if (!_playRequested)
+                {
+                    SetWorldButtonsInteractable(true);
+                }
+            }
+
             UnbindViews();
         }
 
@@ -532,6 +581,11 @@ namespace BlockBlast.Features.Lobby
             _destroyCts?.Cancel();
             _destroyCts?.Dispose();
             _destroyCts = null;
+
+            if (_ownsInitialWorldButtonGate)
+            {
+                _ownsInitialWorldButtonGate = false;
+            }
 
             UnbindViews();
         }
