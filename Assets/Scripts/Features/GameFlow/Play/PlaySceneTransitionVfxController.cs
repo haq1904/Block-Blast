@@ -16,6 +16,12 @@ namespace BlockBlast.Features.GameFlow.Play
         [Tooltip("The passive fog transition view.")]
         [SerializeField] private PlayTableFogTransitionView _view;
 
+        [Tooltip("Whether this scene instance publishes the play transition VFX service.")]
+        [SerializeField] private bool _registerAsTransitionService = true;
+
+        private bool _isServiceRegistered;
+        private bool _isActiveSceneSubscribed;
+
         private bool _coverRequested;
         private bool _coverCompleted;
         private Task _activeCoverTask;
@@ -25,6 +31,15 @@ namespace BlockBlast.Features.GameFlow.Play
             get => _view;
             set => _view = value;
         }
+
+        public bool RegisterAsTransitionService
+        {
+            get => _registerAsTransitionService;
+            set => _registerAsTransitionService = value;
+        }
+
+        public bool IsServiceRegistered => _isServiceRegistered;
+        public bool IsActiveSceneSubscribed => _isActiveSceneSubscribed;
 
         public bool IsCoverRequested => _coverRequested;
         public bool IsCoverCompleted => _coverCompleted;
@@ -39,8 +54,13 @@ namespace BlockBlast.Features.GameFlow.Play
 
         private void OnEnable()
         {
-            ServiceLocator.Register<IPlaySceneTransitionVfxService>(this);
-            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+            SubscribeToActiveSceneChangesOnce();
+            TryRegisterTransitionService();
+
+            if (!enabled)
+            {
+                return;
+            }
 
             if (SceneManager.GetActiveScene() == gameObject.scene && _coverRequested && _coverCompleted)
             {
@@ -50,16 +70,72 @@ namespace BlockBlast.Features.GameFlow.Play
 
         private void OnDisable()
         {
-            SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
-            ServiceLocator.Unregister<IPlaySceneTransitionVfxService>(this);
+            ReleaseLifecycleOwnership();
             ResetImmediate();
         }
 
         private void OnDestroy()
         {
-            SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
-            ServiceLocator.Unregister<IPlaySceneTransitionVfxService>(this);
+            ReleaseLifecycleOwnership();
             ResetImmediate();
+        }
+
+        private void SubscribeToActiveSceneChangesOnce()
+        {
+            if (_isActiveSceneSubscribed)
+            {
+                return;
+            }
+
+            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+            _isActiveSceneSubscribed = true;
+        }
+
+        private void UnsubscribeFromActiveSceneChangesOnce()
+        {
+            if (!_isActiveSceneSubscribed)
+            {
+                return;
+            }
+
+            SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+            _isActiveSceneSubscribed = false;
+        }
+
+        private void TryRegisterTransitionService()
+        {
+            if (!_registerAsTransitionService || _isServiceRegistered)
+            {
+                return;
+            }
+
+            if (ServiceLocator.TryGet<IPlaySceneTransitionVfxService>(out var current) && current != null)
+            {
+                if (ReferenceEquals(current, this))
+                {
+                    _isServiceRegistered = true;
+                    return;
+                }
+
+                Debug.LogWarning("[PlaySceneTransitionVfxController] An active IPlaySceneTransitionVfxService is already registered. Disabling duplicate controller.", this);
+                UnsubscribeFromActiveSceneChangesOnce();
+                enabled = false;
+                return;
+            }
+
+            ServiceLocator.Register<IPlaySceneTransitionVfxService>(this);
+            _isServiceRegistered = true;
+        }
+
+        private void ReleaseLifecycleOwnership()
+        {
+            UnsubscribeFromActiveSceneChangesOnce();
+
+            if (_isServiceRegistered)
+            {
+                ServiceLocator.Unregister<IPlaySceneTransitionVfxService>(this);
+                _isServiceRegistered = false;
+            }
         }
 
         /// <summary>

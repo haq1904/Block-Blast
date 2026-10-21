@@ -4950,7 +4950,6 @@ MonoBehaviour:
   _gridDepth: 8
   _sideSpawnOffset: 2.5
   _coveredCenterOffset: 2
-  _centerOverlap: 0.5
   _coverDuration: 0.75
   _holdAfterPlaySceneActive: 0.45
   _revealDuration: 0.9

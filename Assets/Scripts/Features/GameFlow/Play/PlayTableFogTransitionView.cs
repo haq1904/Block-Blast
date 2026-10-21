@@ -37,13 +37,10 @@ namespace BlockBlast.Features.GameFlow.Play
         [SerializeField, Min(1f)] private float _gridDepth = 8f;
 
         [Tooltip("Side spawn offset outside grid edges in units.")]
-        [SerializeField, Range(2f, 3f)] private float _sideSpawnOffset = 2.5f;
+        [SerializeField, Range(2f, 10f)] private float _sideSpawnOffset = 2.5f;
 
         [Tooltip("Center offset when covered, allowing a slight overlap in the middle.")]
         [SerializeField, Min(0f)] private float _coveredCenterOffset = 2f;
-
-        [Tooltip("Center overlap amount in units.")]
-        [SerializeField, Min(0f)] private float _centerOverlap = 0.5f;
 
         [Header("Timing")]
         [Tooltip("Duration in seconds for the fog to cover the table.")]
@@ -112,7 +109,7 @@ namespace BlockBlast.Features.GameFlow.Play
         public float SideSpawnOffset
         {
             get => _sideSpawnOffset;
-            set => _sideSpawnOffset = Mathf.Clamp(value, 2f, 3f);
+            set => _sideSpawnOffset = Mathf.Clamp(value, 2f, 10f);
         }
 
         public float CoveredCenterOffset
@@ -131,12 +128,6 @@ namespace BlockBlast.Features.GameFlow.Play
         {
             get => _holdAfterPlaySceneActive;
             set => _holdAfterPlaySceneActive = Mathf.Max(0f, value);
-        }
-
-        public float CenterOverlap
-        {
-            get => _centerOverlap;
-            set => _centerOverlap = Mathf.Max(0f, value);
         }
 
         public float RevealDuration
@@ -202,14 +193,12 @@ namespace BlockBlast.Features.GameFlow.Play
             // Start particles
             if (_leftParticles != null)
             {
-                _leftParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                _leftParticles.Play(true);
+                RestartParticles(_leftParticles);
             }
 
             if (_rightParticles != null)
             {
-                _rightParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                _rightParticles.Play(true);
+                RestartParticles(_rightParticles);
             }
 
             _coverTcs = new TaskCompletionSource<bool>();
@@ -341,6 +330,12 @@ namespace BlockBlast.Features.GameFlow.Play
         {
             KillCoverSequence();
             KillRevealSequence();
+        }
+
+        private static void RestartParticles(ParticleSystem particles)
+        {
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particles.Play(true);
         }
 
         private void KillCoverSequence()

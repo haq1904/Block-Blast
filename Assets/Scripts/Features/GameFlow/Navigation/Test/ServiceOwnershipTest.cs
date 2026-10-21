@@ -94,5 +94,31 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             Assert.IsTrue(ServiceLocator.TryGet<IWorldCameraTransitionService>(out var stillRegistered));
             Assert.AreSame(camA, stillRegistered, "Original WorldCameraController must remain registered after duplicate destruction.");
         }
+
+        [Test]
+        public void PlaySceneTransitionVfxController_DuplicateInstance_DoesNotUnregisterActiveInstanceWhenDestroyed()
+        {
+            var vfxA = _rootA.AddComponent<BlockBlast.Features.GameFlow.Play.PlaySceneTransitionVfxController>();
+            var onEnable = typeof(BlockBlast.Features.GameFlow.Play.PlaySceneTransitionVfxController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onDisable = typeof(BlockBlast.Features.GameFlow.Play.PlaySceneTransitionVfxController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+            onEnable?.Invoke(vfxA, null);
+            Assert.IsTrue(ServiceLocator.TryGet<BlockBlast.Features.GameFlow.Play.IPlaySceneTransitionVfxService>(out var registeredVfx));
+            Assert.AreSame(vfxA, registeredVfx);
+
+            // Add duplicate vfx controller
+            var vfxB = _rootB.AddComponent<BlockBlast.Features.GameFlow.Play.PlaySceneTransitionVfxController>();
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("already registered"));
+            onEnable?.Invoke(vfxB, null);
+            Assert.IsFalse(vfxB.enabled, "Duplicate PlaySceneTransitionVfxController should disable itself.");
+
+            // Destroy duplicate
+            onDisable?.Invoke(vfxB, null);
+            UnityEngine.Object.DestroyImmediate(vfxB);
+
+            // vfxA must still be registered
+            Assert.IsTrue(ServiceLocator.TryGet<BlockBlast.Features.GameFlow.Play.IPlaySceneTransitionVfxService>(out var stillRegistered));
+            Assert.AreSame(vfxA, stillRegistered, "Original PlaySceneTransitionVfxController must remain registered after duplicate destruction.");
+        }
     }
 }
