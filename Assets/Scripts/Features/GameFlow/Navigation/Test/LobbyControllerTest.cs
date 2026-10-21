@@ -244,10 +244,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         {
             LogAssert.Expect(LogType.Error, new Regex("must contain exactly 4"));
             _controller.WorldButtons = new[] { _btnPlay, _btnCustom };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -255,10 +252,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         {
             LogAssert.Expect(LogType.Error, new Regex("World button at index 1 is null"));
             _controller.WorldButtons = new[] { _btnPlay, null, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -266,10 +260,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         {
             LogAssert.Expect(LogType.Error, new Regex("Duplicate button view reference"));
             _controller.WorldButtons = new[] { _btnPlay, _btnPlay, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -278,10 +269,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             LogAssert.Expect(LogType.Error, new Regex("Duplicate action"));
             var dupPlay = CreateButton("DupPlay", LobbyWorldButtonAction.Play);
             _controller.WorldButtons = new[] { _btnPlay, dupPlay, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -290,10 +278,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             LogAssert.Expect(LogType.Error, new Regex("must contain actions: Play, Customization, GameCenter, and Settings"));
             var unknownActionBtn = CreateButton("UnknownAction", (LobbyWorldButtonAction)99);
             _controller.WorldButtons = new[] { _btnPlay, _btnCustom, _btnGameCenter, unknownActionBtn };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -302,10 +287,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             LogAssert.Expect(LogType.Error, new Regex("missing a Collider"));
             var noCol = CreateButton("NoCol", LobbyWorldButtonAction.Play, addCollider: false);
             _controller.WorldButtons = new[] { noCol, _btnCustom, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -315,15 +297,10 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             var otherObj = new GameObject("OtherObj");
             _createdObjects.Add(otherObj);
             var otherCol = otherObj.AddComponent<BoxCollider>();
-
             var badButton = CreateButton("BadColButton", LobbyWorldButtonAction.Play, addCollider: false);
             badButton.HitCollider = otherCol;
-
             _controller.WorldButtons = new[] { badButton, _btnCustom, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
@@ -331,13 +308,9 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         {
             var wrongLayerBtn = CreateButton("WrongLayerBtn", LobbyWorldButtonAction.Play, correctLayer: false);
             wrongLayerBtn.gameObject.layer = 0; // Default layer
-
             LogAssert.Expect(LogType.Error, new Regex("expected 'LobbyInteractable'"));
             _controller.WorldButtons = new[] { wrongLayerBtn, _btnCustom, _btnGameCenter, _btnSettings };
-
-            bool valid = _controller.ValidateWorldButtons();
-
-            Assert.IsFalse(valid);
+            Assert.IsFalse(_controller.ValidateWorldButtons());
         }
 
         [Test]
