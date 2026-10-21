@@ -41,6 +41,14 @@ public class SpawnModel
         return IsSlotEmpty[0] && IsSlotEmpty[1] && IsSlotEmpty[2];
     }
 
+    // Opening Flow State
+    public OpeningGenerationMode GenerationMode { get; private set; } = OpeningGenerationMode.LegacyScenarioChain;
+
+    public void SetGenerationMode(OpeningGenerationMode mode)
+    {
+        GenerationMode = mode;
+    }
+
     // Scenario Sequence State (< 250,000 points)
     public int ActiveScenarioId { get; set; } = -1;
     public int ScenarioStepIndex { get; set; } = 0;

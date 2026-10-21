@@ -16,6 +16,7 @@ public interface IGridService
     event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     event Action<List<int>, List<int>> OnPreviewLinesToClear;
     event Action<int, int, bool> OnPlacementResolved; // (tilesPlaced, totalLinesCleared, isAllClear)
+    event Action<List<CellPlacementData>> OnBoardInitialized { add { } remove { } }
     event Action<Vector2Int> OnCellReleased { add { } remove { } }
 
     // --- COMMANDS (Invoked by Block/Input) ---
@@ -33,6 +34,7 @@ public interface IGridService
     void RequestPreview(List<Vector2Int> gridPositions);
     void PlaceBlocks(List<CellPlacementData> cells);
     void PlaceBlocks(List<Vector2Int> gridPositions);
+    bool TryInitializeBoard(List<CellPlacementData> cells) => false;
 
     // --- PRESENTATION HELPERS (Humble View Support) ---
     List<Vector3> GetComboVFXPositions(List<int> rows, List<int> cols) => new List<Vector3>();

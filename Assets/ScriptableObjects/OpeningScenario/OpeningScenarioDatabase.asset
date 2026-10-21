@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0b38358dc72b5c47b3cc53d866fb294, type: 3}
+  m_Name: OpeningScenarioDatabase
+  m_EditorClassIdentifier: BlockBlast.Feature::OpeningScenarioDatabase
+  scenarios:
+  - {fileID: 11400000, guid: 7205d95f4939c214da80cac82d608235, type: 2}
+  - {fileID: 11400000, guid: ada7a6a72b1b6b445aae7135d396be3f, type: 2}
+  - {fileID: 11400000, guid: 10fb150e8ce848e4690ad220e175dc30, type: 2}
+  - {fileID: 11400000, guid: 393836db34e505c40afa2f24bc10838f, type: 2}
+  - {fileID: 11400000, guid: fda6b6d3a66afd7468dd0ea521588c87, type: 2}
+  - {fileID: 11400000, guid: 027bdca4471e9884abadb20453670917, type: 2}
+  - {fileID: 11400000, guid: cd83ec1f2fb98994ca5a0cb79f0c1848, type: 2}
+  - {fileID: 11400000, guid: f7d134e7d19d70b49bab2264c0375620, type: 2}
+  - {fileID: 11400000, guid: ccd6291f50f4a194bb681ce7d31163c5, type: 2}
+  - {fileID: 11400000, guid: 8c4532fc4dce6c54cb2084306c184087, type: 2}

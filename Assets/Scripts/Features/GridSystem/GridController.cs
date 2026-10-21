@@ -14,6 +14,7 @@ public class GridController : MonoBehaviour, IGridService
     public event Action<List<int>, List<int>, List<Vector3>> OnLinesCleared;
     public event Action<List<int>, List<int>> OnPreviewLinesToClear;
     public event Action<int, int, bool> OnPlacementResolved;
+    public event Action<List<CellPlacementData>> OnBoardInitialized;
     public event Action<Vector2Int> OnCellReleased;
 
     public int GridWidth => model != null ? model.Cols : 8;
@@ -215,6 +216,27 @@ public class GridController : MonoBehaviour, IGridService
             }
         }
         PlaceBlocks(cells);
+    }
+
+    public bool TryInitializeBoard(List<CellPlacementData> cells)
+    {
+        if (model == null || model.GetOccupiedCount() > 0) return false;
+        if (cells == null || cells.Count == 0) return false;
+
+        var seen = new HashSet<Vector2Int>();
+        foreach (var cell in cells)
+        {
+            if (!model.IsWithinBounds(cell.gridPos.x, cell.gridPos.y)) return false;
+            if (!seen.Add(cell.gridPos)) return false;
+        }
+
+        foreach (var cell in cells)
+        {
+            model.SetOccupied(cell.gridPos.x, cell.gridPos.y, true, cell.blockTypeId, cell.variantIndex, cell.rotationY);
+        }
+
+        OnBoardInitialized?.Invoke(cells);
+        return true;
     }
 
     public List<Vector3> GetComboVFXPositions(List<int> rows, List<int> cols)

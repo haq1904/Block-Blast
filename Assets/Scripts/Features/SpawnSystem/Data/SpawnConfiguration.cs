@@ -17,6 +17,14 @@ public class SpawnConfiguration : ScriptableObject
     [Tooltip("Enable scripted scenario chains below score threshold (Setup tray -> Finisher multi-blast)")]
     public bool enableScenarioChains = true;
 
+    [Header("Opening Flow")]
+    [Tooltip("Authored prefilled opening boards used by the intelligent generator.")]
+    public OpeningScenarioDatabase openingScenarioDatabase;
+
+    [Range(0f, 1f)]
+    [Tooltip("Chance to start with a prefilled board. The remaining chance keeps the legacy scenario flow.")]
+    public float prefilledOpeningChance = 0.30f;
+
     [Header("Mercy Mode")]
     [Tooltip("If none of the 3 batch shapes can fit on the board, replace one with a playable piece")]
     public bool enableMercyMode = true;
@@ -30,6 +38,7 @@ public class SpawnConfiguration : ScriptableObject
     {
         if (comboPhaseScoreThreshold == 0) comboPhaseScoreThreshold = 250000;
         if (highScoreBulkyPieceChance == 0f) highScoreBulkyPieceChance = 0.40f;
+        if (prefilledOpeningChance == 0f) prefilledOpeningChance = 0.30f;
         enableScenarioChains = true;
         enableMercyMode = true;
     }

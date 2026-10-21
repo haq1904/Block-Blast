@@ -35,7 +35,6 @@ public class GridView : MonoBehaviour
         public ClearAnimationSO clearAnimation;
     }
 
-
     private List<ShadowInstance> activeShadows = new List<ShadowInstance>();
     private List<AnimatingCell> activePreClearCells = new List<AnimatingCell>();
     private List<ClearingBlock> activeClearingBlocks = new List<ClearingBlock>();
@@ -73,6 +72,7 @@ public class GridView : MonoBehaviour
             gridService.OnBlockPlaced += HandleBlockPlaced;
             gridService.OnLinesCleared += HandleLinesCleared;
             gridService.OnPreviewLinesToClear += HandlePreviewLinesToClear;
+            gridService.OnBoardInitialized += HandleBoardInitialized;
         }
     }
 
@@ -100,6 +100,7 @@ public class GridView : MonoBehaviour
             gridService.OnBlockPlaced -= HandleBlockPlaced;
             gridService.OnLinesCleared -= HandleLinesCleared;
             gridService.OnPreviewLinesToClear -= HandlePreviewLinesToClear;
+            gridService.OnBoardInitialized -= HandleBoardInitialized;
         }
 
         ClearActiveShadows();
@@ -317,54 +318,72 @@ public class GridView : MonoBehaviour
         currentActivePreClearAnimation = null;
     }
 
+    private void HandleBoardInitialized(List<CellPlacementData> positions)
+    {
+        RenderBlocks(positions, isInitialBoard: true);
+    }
+
     private void HandleBlockPlaced(List<CellPlacementData> positions)
     {
-        lastShadowPositions.Clear();
-        lastPreviewRows.Clear();
-        lastPreviewCols.Clear();
-        CancelCurrentPreClearEffects();
+        RenderBlocks(positions, isInitialBoard: false);
+    }
+
+    private void RenderBlocks(List<CellPlacementData> positions, bool isInitialBoard)
+    {
+        if (positions == null || gridService == null) return;
+
+        if (!isInitialBoard)
+        {
+            lastShadowPositions.Clear();
+            lastPreviewRows.Clear();
+            lastPreviewCols.Clear();
+            CancelCurrentPreClearEffects();
+        }
 
         var theme = blockService?.CurrentBlockType;
-        PlacementAnimationSO activePlacementAnimation = theme != null
+        PlacementAnimationSO activePlacementAnimation = (!isInitialBoard && theme != null)
             ? theme.GetPlacementAnimation()
             : null;
-        List<Vector3> cellWorldPositions = new List<Vector3>(positions.Count);
+        List<Vector3> cellWorldPositions = !isInitialBoard ? new List<Vector3>(positions.Count) : null;
         Vector3 worldCenterSum = Vector3.zero;
 
         foreach (var cell in positions)
         {
             Vector3 worldPos = gridService.GetWorldPositionFromGrid(cell.gridPos);
-            cellWorldPositions.Add(worldPos);
-            worldCenterSum += worldPos;
+            if (!isInitialBoard)
+            {
+                cellWorldPositions.Add(worldPos);
+                worldCenterSum += worldPos;
+            }
 
             GameObject prefabToSpawn = blockService != null ? blockService.GetCellPrefab(cell.variantIndex) : null;
-
-            if (prefabToSpawn != null)
+            if (prefabToSpawn != null && poolService != null)
             {
                 Quaternion cellRot = Quaternion.Euler(0f, cell.rotationY, 0f);
                 GameObject block = poolService.SpawnObject(prefabToSpawn, worldPos, cellRot);
                 block.transform.rotation = cellRot;
                 visualGrid[cell.gridPos.x, cell.gridPos.y] = block;
-
                 activePlacementAnimation?.Apply(block.transform);
             }
         }
 
-        if (positions.Count > 0)
+        if (!isInitialBoard)
         {
-            lastPlacedWorldCenter = worldCenterSum / positions.Count;
-        }
+            if (positions.Count > 0)
+            {
+                lastPlacedWorldCenter = worldCenterSum / positions.Count;
+            }
 
-        // Trigger placement particle effects (smoke puff along exposed edges + debris at cell centers)
-        if (theme != null && theme.placementVFX != null && poolService != null && gridService != null)
-        {
-            List<PlacementEdgeData> edges = gridService.GetExposedEdges(positions);
-            theme.placementVFX.Play(edges, cellWorldPositions, poolService);
-        }
+            if (theme != null && theme.placementVFX != null && poolService != null)
+            {
+                List<PlacementEdgeData> edges = gridService.GetExposedEdges(positions);
+                theme.placementVFX.Play(edges, cellWorldPositions, poolService);
+            }
 
-        if (soundService != null && theme != null)
-        {
-            soundService.PlaySound(theme.placeSound);
+            if (soundService != null && theme != null)
+            {
+                soundService.PlaySound(theme.placeSound);
+            }
         }
     }
 

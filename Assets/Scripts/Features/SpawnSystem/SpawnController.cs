@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class SpawnController : MonoBehaviour, ISpawnService
@@ -6,7 +8,11 @@ public class SpawnController : MonoBehaviour, ISpawnService
     [SerializeField] private SpawnConfiguration config;
 
     private SpawnModel model;
-    
+    private IGridService cachedGridService;
+    private bool pendingLegacyRestart;
+
+    public SpawnModel Model => model;
+
     public event Action<BlockModel[], Vector3[]> OnBatchSpawned;
     public event Action OnNoMovesLeft;
 
@@ -16,24 +22,96 @@ public class SpawnController : MonoBehaviour, ISpawnService
         ServiceLocator.Register<ISpawnService>(this);
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        // Initial spawn for the first batch
+        cachedGridService = ServiceLocator.Get<IGridService>();
+        if (cachedGridService != null)
+        {
+            cachedGridService.OnPlacementResolved += HandlePlacementResolved;
+        }
+
         int initialScore = ServiceLocator.Get<IScoreService>()?.CurrentScore ?? 0;
+        OpeningGenerationMode mode = OpeningScenarioSelector.SelectMode(config, UnityEngine.Random.value);
+        model.SetGenerationMode(mode);
+
+        if (mode == OpeningGenerationMode.LegacyScenarioChain)
+        {
+            SpawnBatch(initialScore);
+            yield break;
+        }
+
+        yield return null; // allow GridView and BlockManager Start subscriptions/setup
+
+        if (!TryInitializeOpeningBoard())
+        {
+            model.SetGenerationMode(OpeningGenerationMode.LegacyScenarioChain);
+        }
+
         SpawnBatch(initialScore);
     }
 
     private void OnDestroy()
     {
+        if (cachedGridService != null)
+        {
+            cachedGridService.OnPlacementResolved -= HandlePlacementResolved;
+        }
         ServiceLocator.Unregister<ISpawnService>();
+    }
+
+    private bool TryInitializeOpeningBoard()
+    {
+        if (config == null || config.openingScenarioDatabase == null) return false;
+        if (!OpeningScenarioSelector.TrySelectScenario(config.openingScenarioDatabase, out var selection))
+        {
+            return false;
+        }
+
+        List<Vector2Int> cellCoords = selection.GetOccupiedCells();
+        if (cellCoords == null || cellCoords.Count == 0) return false;
+
+        var blockService = ServiceLocator.Get<IBlockService>();
+        BlockTypeSO theme = blockService?.CurrentBlockType;
+
+        var placementCells = new List<CellPlacementData>(cellCoords.Count);
+        for (int i = 0; i < cellCoords.Count; i++)
+        {
+            int variant = blockService != null ? blockService.GetRandomVariantId() : 0;
+            int rotationY = (theme != null && theme.randomCellRotationY) ? UnityEngine.Random.Range(0, 4) * 90 : 0;
+            string typeId = theme != null ? theme.typeId : "";
+            placementCells.Add(new CellPlacementData(cellCoords[i], typeId, variant, rotationY));
+        }
+
+        if (cachedGridService == null)
+        {
+            cachedGridService = ServiceLocator.Get<IGridService>();
+            if (cachedGridService != null)
+            {
+                cachedGridService.OnPlacementResolved -= HandlePlacementResolved;
+                cachedGridService.OnPlacementResolved += HandlePlacementResolved;
+            }
+        }
+
+        if (cachedGridService == null) return false;
+        return cachedGridService.TryInitializeBoard(placementCells);
+    }
+
+    private void HandlePlacementResolved(int tilesPlaced, int linesCleared, bool isAllClear)
+    {
+        if (isAllClear && model.GenerationMode == OpeningGenerationMode.IntelligentOnly)
+        {
+            pendingLegacyRestart = true;
+        }
     }
 
     public void SpawnBatch(int score)
     {
         ShapeDatabase db = config != null ? config.shapeDatabase : null;
-        IGridService gridService = ServiceLocator.Get<IGridService>();
+        IGridService gridService = cachedGridService ?? ServiceLocator.Get<IGridService>();
 
-        BlockModel[] newBatch = BlockSpawnGenerator.GenerateBatch(score, gridService, db, config, model);
+        BlockModel[] newBatch = model.GenerationMode == OpeningGenerationMode.IntelligentOnly
+            ? BlockSpawnGenerator.GenerateIntelligentBatch(db, gridService, config, score)
+            : BlockSpawnGenerator.GenerateBatch(score, gridService, db, config, model);
 
         var blockService = ServiceLocator.Get<IBlockService>();
         if (blockService != null && blockService.CurrentBlockType != null)
@@ -61,6 +139,16 @@ public class SpawnController : MonoBehaviour, ISpawnService
     {
         model.MarkSlotEmpty(slotIndex);
 
+        if (pendingLegacyRestart)
+        {
+            pendingLegacyRestart = false;
+            model.SetGenerationMode(OpeningGenerationMode.LegacyScenarioChain);
+            model.ResetScenario();
+            int currentScore = ServiceLocator.Get<IScoreService>()?.CurrentScore ?? 0;
+            SpawnBatch(currentScore);
+            return;
+        }
+
         // If tray is completely empty, spawn a new batch with current score
         if (model.IsTrayEmpty())
         {
@@ -76,7 +164,7 @@ public class SpawnController : MonoBehaviour, ISpawnService
 
     private void CheckGameOver()
     {
-        IGridService gridService = ServiceLocator.Get<IGridService>();
+        IGridService gridService = cachedGridService ?? ServiceLocator.Get<IGridService>();
         if (gridService == null) return;
 
         bool canPlaceAny = false;
@@ -99,4 +187,3 @@ public class SpawnController : MonoBehaviour, ISpawnService
         }
     }
 }
-
