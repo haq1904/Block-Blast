@@ -18,6 +18,7 @@ public class BlockManager : MonoBehaviour, IBlockService
 
     private BlockController currentDraggingBlock;
     private int activePointerId = -1;
+    private bool hasPresentedInitialBatch;
 
     public bool HasActiveBlocks =>
         activeBlocks[0] != null || activeBlocks[1] != null || activeBlocks[2] != null;
@@ -140,6 +141,9 @@ public class BlockManager : MonoBehaviour, IBlockService
         // Clean up any remaining active blocks before spawning a new batch
         DespawnAll();
 
+        bool playSpawnEntrance = !hasPresentedInitialBatch;
+        bool spawnedAnyBlock = false;
+
         for (int i = 0; i < 3; i++)
         {
             if (i < batch.Length && batch[i] != null && i < trayPositions.Length)
@@ -150,8 +154,9 @@ public class BlockManager : MonoBehaviour, IBlockService
 
                 if (block != null)
                 {
-                    block.Setup(batch[i], trayPositions[i], i);
+                    block.Setup(batch[i], trayPositions[i], i, playSpawnEntrance);
                     activeBlocks[i] = block;
+                    spawnedAnyBlock = true;
                 }
                 else
                 {
@@ -162,6 +167,11 @@ public class BlockManager : MonoBehaviour, IBlockService
             {
                 activeBlocks[i] = null;
             }
+        }
+
+        if (playSpawnEntrance && spawnedAnyBlock)
+        {
+            hasPresentedInitialBatch = true;
         }
     }
 

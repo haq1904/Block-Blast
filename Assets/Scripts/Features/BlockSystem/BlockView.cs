@@ -40,6 +40,31 @@ public class BlockView : MonoBehaviour
     [Tooltip("Duration of the decisive slam down animation when placing a block on the grid.")]
     [SerializeField] private float placeDuration = 0.08f;
 
+    [Header("Initial Spawn Entrance")]
+    [Tooltip("Delay before the first tray batch starts rising after PlayScene becomes active.")]
+    [SerializeField, Min(0f)] private float spawnEntranceDelay = 0.45f;
+
+    [Tooltip("Additional delay between the center, left, and right tray shapes.")]
+    [SerializeField, Min(0f)] private float spawnEntranceStagger = 0.08f;
+
+    [Tooltip("World-space distance below the tray from which each initial shape rises.")]
+    [SerializeField, Min(0f)] private float spawnEntranceRiseDistance = 1.25f;
+
+    [Tooltip("Duration of the upward motion for each initial shape.")]
+    [SerializeField, Min(0.01f)] private float spawnEntranceRiseDuration = 0.38f;
+
+    [Tooltip("Duration of the final scale settle after each shape reaches the tray.")]
+    [SerializeField, Min(0.01f)] private float spawnEntranceSettleDuration = 0.10f;
+
+    [Tooltip("Scale multiplier used while each shape starts below the tray.")]
+    [SerializeField] private Vector3 spawnEntranceStartScaleMultiplier = new Vector3(0.82f, 1.14f, 0.82f);
+
+    [Tooltip("Scale multiplier at the top of the rise before the final settle.")]
+    [SerializeField] private Vector3 spawnEntranceOvershootScaleMultiplier = new Vector3(1.06f, 0.94f, 1.06f);
+
+    [Tooltip("Maximum roll angle used to give the left and right shape a subtle entrance tilt.")]
+    [SerializeField, Min(0f)] private float spawnEntranceTiltAngle = 4f;
+
     private BlockController blockController;
     private IPoolService poolService;
     private IBlockService blockService;
@@ -54,6 +79,7 @@ public class BlockView : MonoBehaviour
     private Tween liftMoveZTween;
     private Tween liftScaleTween;
     private Tween placeTween;
+    private Sequence spawnEntranceSequence;
     private bool isLifting;
     private bool isPlacing;
 
@@ -71,6 +97,7 @@ public class BlockView : MonoBehaviour
             blockController.OnTrayPositionSet += HandleTrayPositionSet;
             blockController.OnDragPositionUpdated += HandleDragPositionUpdated;
             blockController.OnBlockReset += HandleBlockReset;
+            blockController.OnSpawnEntranceRequested += HandleSpawnEntranceRequested;
         }
     }
 
@@ -88,6 +115,7 @@ public class BlockView : MonoBehaviour
 
     private void OnDisable()
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.DOKill();
@@ -100,6 +128,7 @@ public class BlockView : MonoBehaviour
 
     private void OnDestroy()
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
 
@@ -114,6 +143,7 @@ public class BlockView : MonoBehaviour
             blockController.OnTrayPositionSet -= HandleTrayPositionSet;
             blockController.OnDragPositionUpdated -= HandleDragPositionUpdated;
             blockController.OnBlockReset -= HandleBlockReset;
+            blockController.OnSpawnEntranceRequested -= HandleSpawnEntranceRequested;
         }
 
         foreach (var cell in activeCells)
@@ -127,6 +157,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleTrayPositionSet(Vector3 trayPos)
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         transform.position = trayPos;
         transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
@@ -155,6 +186,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleBlockReset()
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.DOKill();
@@ -167,6 +199,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleDragStarted()
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
         isDragging = true;
@@ -176,6 +209,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleBlockLiftRequested(Vector3 targetLiftPos)
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
 
@@ -212,6 +246,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleBlockPlaceSlideRequested(Vector3 groundPos, Action onComplete)
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
 
@@ -279,6 +314,7 @@ public class BlockView : MonoBehaviour
 
     private void HandleDragEnded(bool isPlaced)
     {
+        KillSpawnEntrance();
         isDragging = false;
         if (isPlaced)
         {
@@ -362,6 +398,76 @@ public class BlockView : MonoBehaviour
         isPlacing = false;
     }
 
+    private void HandleSpawnEntranceRequested(int slotIndex, Vector3 trayPos, Action onComplete)
+    {
+        PlaySpawnEntrance(slotIndex, trayPos, onComplete);
+    }
+
+    private void PlaySpawnEntrance(int slotIndex, Vector3 trayPos, Action onComplete)
+    {
+        KillSpawnEntrance();
+        KillLiftAndPlaceTweens();
+        KillTiltTweens();
+
+        Vector3 canonicalScale = transform.localScale;
+        Vector3 buriedPosition = trayPos + Vector3.down * spawnEntranceRiseDistance;
+        Vector3 startScale = Vector3.Scale(canonicalScale, spawnEntranceStartScaleMultiplier);
+        Vector3 overshootScale = Vector3.Scale(canonicalScale, spawnEntranceOvershootScaleMultiplier);
+        float tilt = GetSpawnEntranceTilt(slotIndex);
+        float delay = spawnEntranceDelay + GetSpawnEntranceOrder(slotIndex) * spawnEntranceStagger;
+
+        transform.position = buriedPosition;
+        transform.localScale = startScale;
+        transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
+
+        spawnEntranceSequence = DOTween.Sequence();
+        spawnEntranceSequence.SetTarget(transform);
+        spawnEntranceSequence.SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        spawnEntranceSequence.AppendInterval(delay);
+        spawnEntranceSequence.Append(transform.DOMoveY(trayPos.y, spawnEntranceRiseDuration).SetEase(Ease.OutCubic));
+        spawnEntranceSequence.Join(transform.DOScale(overshootScale, spawnEntranceRiseDuration).SetEase(Ease.OutBack));
+        spawnEntranceSequence.Join(transform.DOLocalRotate(Vector3.zero, spawnEntranceRiseDuration).SetEase(Ease.OutQuad));
+        spawnEntranceSequence.Append(transform.DOScale(canonicalScale, spawnEntranceSettleDuration).SetEase(Ease.OutQuad));
+        spawnEntranceSequence.OnComplete(() =>
+        {
+            transform.position = trayPos;
+            transform.localScale = canonicalScale;
+            transform.localRotation = Quaternion.identity;
+            spawnEntranceSequence = null;
+            onComplete?.Invoke();
+        });
+    }
+
+    private void KillSpawnEntrance()
+    {
+        if (spawnEntranceSequence != null && spawnEntranceSequence.IsActive())
+        {
+            spawnEntranceSequence.Kill();
+        }
+
+        spawnEntranceSequence = null;
+    }
+
+    private static int GetSpawnEntranceOrder(int slotIndex)
+    {
+        return slotIndex switch
+        {
+            2 => 0,
+            0 => 1,
+            _ => 2
+        };
+    }
+
+    private float GetSpawnEntranceTilt(int slotIndex)
+    {
+        return slotIndex switch
+        {
+            0 => -spawnEntranceTiltAngle,
+            1 => spawnEntranceTiltAngle,
+            _ => 0f
+        };
+    }
+
     private void KillTiltTweens()
     {
         if (settleSequence != null && settleSequence.IsActive())
@@ -413,6 +519,7 @@ public class BlockView : MonoBehaviour
 
     private void ClearShape()
     {
+        KillSpawnEntrance();
         KillLiftAndPlaceTweens();
         KillTiltTweens();
         transform.localRotation = Quaternion.identity;

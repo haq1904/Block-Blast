@@ -27,12 +27,16 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public event Action<Vector3, Action> OnBlockPlaceSlideRequested;
     public event Action<bool> OnDragEnded;
     public event Action OnBlockReset;
+    public event Action<int, Vector3, Action> OnSpawnEntranceRequested;
 
     private Vector2 CenterOffset => model != null ? model.CenterOffset : Vector2.zero;
 
     private bool isDragging;
     private int activePointerId = -1;
     private Vector3 lastDragPosition;
+    private bool isInteractionEnabled;
+
+    public bool IsInteractionEnabled => isInteractionEnabled;
 
     private void Awake()
     {
@@ -84,6 +88,8 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             activePointerId = -1;
             OnDragEnded?.Invoke(false);
         }
+
+        isInteractionEnabled = false;
     }
 
     private void HandleCellReleased(Vector2Int releasedPos)
@@ -104,20 +110,40 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
     }
 
-    public void Setup(BlockModel newModel, Vector3 trayPos, int slotId)
+    public void Setup(BlockModel newModel, Vector3 trayPos, int slotId, bool playSpawnEntrance = false)
     {
         model = newModel;
         trayPosition = trayPos;
         slotIndex = slotId;
         isDragging = false;
         activePointerId = -1;
+        isInteractionEnabled = !playSpawnEntrance;
 
         OnTrayPositionSet?.Invoke(trayPosition);
         OnShapeAssigned?.Invoke(model.ShapeOffsets, model.CenterOffset, model.VariantIds, model.RotationsY);
+
+        if (!playSpawnEntrance)
+        {
+            return;
+        }
+
+        Action<int, Vector3, Action> handler = OnSpawnEntranceRequested;
+        if (handler == null)
+        {
+            EnableInteraction();
+            return;
+        }
+
+        handler.Invoke(slotIndex, trayPosition, EnableInteraction);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (!isInteractionEnabled)
+        {
+            return;
+        }
+
         if (ServiceLocator.TryGet<IBlockService>(out var blockService) && !blockService.TryAcquireDragLock(this, eventData.pointerId))
         {
             // Another block is already actively dragging -> reject this drag attempt
@@ -284,6 +310,16 @@ public class BlockController : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
 
         return result;
+    }
+
+    private void EnableInteraction()
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        isInteractionEnabled = true;
     }
 
     // Helper: Raycast from Camera to plane y=0 to find 3D pointer coordinates
