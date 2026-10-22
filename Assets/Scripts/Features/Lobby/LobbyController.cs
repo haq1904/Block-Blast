@@ -139,22 +139,6 @@ namespace BlockBlast.Features.Lobby
         private void OnValidate()
         {
             ValidateWorldButtons(isEditorValidation: true);
-            ValidatePlayButtonFeedback();
-        }
-
-        private void ValidatePlayButtonFeedback()
-        {
-            if (_playWorldButtonFeedback == null && _worldButtons != null)
-            {
-                for (int i = 0; i < _worldButtons.Length; i++)
-                {
-                    if (_worldButtons[i] != null && _worldButtons[i].Action == LobbyWorldButtonAction.Play)
-                    {
-                        _playWorldButtonFeedback = _worldButtons[i].GetComponent<LobbyWorldButtonFeedbackView>();
-                        break;
-                    }
-                }
-            }
         }
 #endif
 

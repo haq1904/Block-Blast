@@ -11,38 +11,10 @@ namespace BlockBlast.Features.Lobby
     public sealed partial class LobbyController : MonoBehaviour
     {
         [Header("Transition VFX")]
-        [Tooltip("Feedback view for the Play world button, awaited for press motion before starting transition.")]
-        [SerializeField] private LobbyWorldButtonFeedbackView _playWorldButtonFeedback;
-
         [Tooltip("Exit view that shrinks and hides the four world buttons after fog covers table center.")]
         [SerializeField] private LobbyWorldButtonsExitView _worldButtonsExitView;
 
-        [Header("Transition Config")]
-        [Tooltip("Realtime delay in seconds before the camera moves into Play.")]
-        [SerializeField, Min(0f)] private float _playTransitionDelay = 1f;
-
-        [Tooltip("Realtime delay after Play world-button press motion completes before fog and camera transition begin.")]
-        [SerializeField, Min(0f)] private float _worldPlayDelayAfterPress = 0.05f;
-
         private bool _loggedMissingVfxServiceWarning;
-
-        public float PlayTransitionDelay
-        {
-            get => _playTransitionDelay;
-            set => _playTransitionDelay = Mathf.Max(0f, value);
-        }
-
-        public float WorldPlayDelayAfterPress
-        {
-            get => _worldPlayDelayAfterPress;
-            set => _worldPlayDelayAfterPress = Mathf.Max(0f, value);
-        }
-
-        public LobbyWorldButtonFeedbackView PlayWorldButtonFeedback
-        {
-            get => _playWorldButtonFeedback;
-            set => _playWorldButtonFeedback = value;
-        }
 
         public LobbyWorldButtonsExitView WorldButtonsExitView
         {
@@ -102,16 +74,6 @@ namespace BlockBlast.Features.Lobby
 
             try
             {
-                if (isWorldPlay && _playWorldButtonFeedback != null)
-                {
-                    await _playWorldButtonFeedback.WaitForCurrentPressMotionAsync(token);
-                    await WaitForDelayAsync(_worldPlayDelayAfterPress, token);
-                }
-                else
-                {
-                    await WaitForDelayAsync(_playTransitionDelay, token);
-                }
-
                 Task fogCoverTask = transitionVfx != null
                     ? transitionVfx.CoverTableAsync(token)
                     : Task.CompletedTask;
@@ -215,14 +177,6 @@ namespace BlockBlast.Features.Lobby
                     ResetInputState();
                 }
             }
-        }
-
-        private static Task WaitForDelayAsync(float seconds, CancellationToken cancellationToken)
-        {
-            float delay = Mathf.Max(0f, seconds);
-            return delay > 0f
-                ? Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken)
-                : Task.CompletedTask;
         }
 
         private void ResetInputState()

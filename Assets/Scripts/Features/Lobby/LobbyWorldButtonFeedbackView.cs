@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -91,7 +89,6 @@ namespace BlockBlast.Features.Lobby
         private Tween _idleTween;
         private Sequence _pressSequence;
         private Sequence _markingSequence;
-        private TaskCompletionSource<bool> _pressMotionCompletion;
 
         public LobbyWorldButtonView ButtonView { get => _buttonView; set => _buttonView = value; }
         public Transform AnimatedRoot { get => _animatedRoot; set => _animatedRoot = value; }
@@ -292,8 +289,6 @@ namespace BlockBlast.Features.Lobby
             _animatedRoot.localScale = _baseLocalScale;
             SetWorldY(_currentPressStartY);
 
-            _pressMotionCompletion = new TaskCompletionSource<bool>();
-
             Vector3 compressedScale = new Vector3(
                 _baseLocalScale.x * _pressSquashScale.x,
                 _baseLocalScale.y * _pressSquashScale.y,
@@ -342,7 +337,6 @@ namespace BlockBlast.Features.Lobby
                 }
 
                 PlayNextIdleLeg();
-                _pressMotionCompletion?.TrySetResult(true);
             });
         }
 
@@ -438,51 +432,6 @@ namespace BlockBlast.Features.Lobby
             }
         }
 
-        /// <summary>
-        /// Awaits completion of the current press transform motion.
-        /// Edge particles and marking flash do not delay this task.
-        /// Returns immediately if no press is running.
-        /// </summary>
-        public Task WaitForCurrentPressMotionAsync(CancellationToken cancellationToken = default)
-        {
-            Task pressMotionTask = _pressMotionCompletion?.Task;
-            if (pressMotionTask == null || pressMotionTask.IsCompleted)
-            {
-                return Task.CompletedTask;
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return Task.FromCanceled(cancellationToken);
-            }
-
-            if (!cancellationToken.CanBeCanceled)
-            {
-                return pressMotionTask;
-            }
-
-            var tcs = new TaskCompletionSource<bool>();
-            var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-            pressMotionTask.ContinueWith(t =>
-            {
-                registration.Dispose();
-                if (t.IsCanceled)
-                {
-                    tcs.TrySetCanceled();
-                }
-                else if (t.IsFaulted)
-                {
-                    tcs.TrySetException(t.Exception.InnerExceptions);
-                }
-                else
-                {
-                    tcs.TrySetResult(true);
-                }
-            }, TaskScheduler.Default);
-
-            return tcs.Task;
-        }
-
         private void KillIdleTween()
         {
             if (_idleTween != null && _idleTween.IsActive())
@@ -501,8 +450,6 @@ namespace BlockBlast.Features.Lobby
             }
 
             _pressSequence = null;
-            _pressMotionCompletion?.TrySetCanceled();
-            _pressMotionCompletion = null;
         }
 
         private void KillMarkingSequence()

@@ -73,7 +73,6 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             _createdObjects.Add(_controllerObj);
             _controller = _controllerObj.AddComponent<LobbyController>();
             _controller.WorldButtons = new[] { _btnPlay, _btnCustom, _btnGameCenter, _btnSettings };
-            _controller.PlayTransitionDelay = 0f;
 
             var awake = typeof(LobbyController).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
@@ -84,6 +83,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         [TearDown]
         public void TearDown()
         {
+            DG.Tweening.DOTween.KillAll();
             for (int i = 0; i < _createdObjects.Count; i++)
             {
                 if (_createdObjects[i] != null)
@@ -192,21 +192,25 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public async Task RequestPlayAsync_DelayLocksInputBeforeCameraAndCancellationStopsFlow()
+        public async Task RequestPlayAsync_LocksInputAndStartsFogAndCameraImmediately()
         {
-            _controller.PlayTransitionDelay = 10f;
+            var coverCompletion = new TaskCompletionSource<bool>();
+            var cameraCompletion = new TaskCompletionSource<bool>();
+            _fakeTransitionVfx.CoverOverride = coverCompletion.Task;
+            _fakeCamera.MoveToPlayOverride = cameraCompletion.Task;
+
             Task request = _controller.RequestPlayAsync();
 
-            Assert.IsFalse(_btnPlay.IsInteractable, "World input must be disabled before waiting.");
-            Assert.AreEqual(0, _fakeCamera.MoveToPlayCallCount, "Camera must wait for the configured delay.");
-            Assert.AreEqual(0, _fakeNavigator.LoadCount, "Navigation must wait for the configured delay.");
+            Assert.IsFalse(_btnPlay.IsInteractable, "World input must be disabled immediately.");
+            Assert.AreEqual(1, _fakeTransitionVfx.CoverCallCount, "Fog cover must start immediately.");
+            Assert.AreEqual(1, _fakeCamera.MoveToPlayCallCount, "Camera move must start immediately.");
+            Assert.AreEqual(0, _fakeNavigator.LoadCount, "Navigator must wait for transitions to complete.");
 
-            typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                ?.Invoke(_controller, null);
+            coverCompletion.SetResult(true);
+            cameraCompletion.SetResult(true);
             await request;
 
-            Assert.AreEqual(0, _fakeCamera.MoveToPlayCallCount);
-            Assert.AreEqual(0, _fakeNavigator.LoadCount);
+            Assert.AreEqual(1, _fakeNavigator.LoadCount);
         }
 
         [Test]

@@ -35,6 +35,35 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
+        public async Task RequestPlayAsync_WorldPlay_StartsFogAndCameraImmediatelyWhilePressPending()
+        {
+            var exitView = CreateExitView();
+            var playFeedback = _btnPlay.GetComponent<LobbyWorldButtonFeedbackView>();
+            playFeedback.PlayPressSequence();
+
+            var fogTcs = new TaskCompletionSource<bool>();
+            _fakeTransitionVfx.CoverOverride = fogTcs.Task;
+
+            Task request = _controller.RequestPlayAsync(isWorldPlay: true);
+
+            Assert.AreEqual(1, _fakeTransitionVfx.CoverCallCount, "Fog cover must start immediately on world Play.");
+            Assert.AreEqual(1, _fakeCamera.MoveToPlayCallCount, "Camera move must start immediately on world Play.");
+            Assert.AreEqual(0, exitView.PlayExitCallCount, "Exit sequence must wait for fog cover even on world Play.");
+            Assert.AreEqual(0, _fakeNavigator.LoadCount, "Navigator must wait for fog cover and exit.");
+
+            fogTcs.SetResult(true);
+            await Task.Yield();
+
+            Assert.AreEqual(1, exitView.PlayExitCallCount, "Exit sequence begins after fog completes.");
+
+            DOTween.Complete(exitView.gameObject, true);
+            DOTween.Complete(_btnPlay.transform, true);
+            await request;
+
+            Assert.AreEqual(1, _fakeNavigator.LoadCount, "Navigator loads after exit completes.");
+        }
+
+        [Test]
         public async Task RequestPlayAsync_CameraCompletedFirst_WaitsForExitBeforeLoadingPlay()
         {
             var exitView = CreateExitView();
