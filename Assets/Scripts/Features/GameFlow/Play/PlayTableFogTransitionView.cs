@@ -154,11 +154,23 @@ namespace BlockBlast.Features.GameFlow.Play
 
         private void OnDisable()
         {
+#if UNITY_EDITOR
+            if (!UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+#endif
             ResetImmediate();
         }
 
         private void OnDestroy()
         {
+#if UNITY_EDITOR
+            if (!UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+#endif
             ResetImmediate();
         }
 
@@ -313,14 +325,30 @@ namespace BlockBlast.Features.GameFlow.Play
 
             if (_leftFogRoot != null)
             {
-                _leftFogRoot.DOKill();
+                try
+                {
+                    _leftFogRoot.DOKill();
+                }
+                catch
+                {
+                    // Ignore during teardown
+                }
+
                 _leftFogRoot.localPosition = LeftStartPosition;
                 _leftFogRoot.localScale = InitialScale;
             }
 
             if (_rightFogRoot != null)
             {
-                _rightFogRoot.DOKill();
+                try
+                {
+                    _rightFogRoot.DOKill();
+                }
+                catch
+                {
+                    // Ignore during teardown
+                }
+
                 _rightFogRoot.localPosition = RightStartPosition;
                 _rightFogRoot.localScale = InitialScale;
             }
@@ -340,24 +368,45 @@ namespace BlockBlast.Features.GameFlow.Play
 
         private void KillCoverSequence()
         {
-            if (_coverSequence != null && _coverSequence.IsActive())
+            if (_coverSequence != null)
             {
-                _coverSequence.Kill();
+                try
+                {
+                    if (_coverSequence.IsActive())
+                    {
+                        _coverSequence.Kill();
+                    }
+                }
+                catch
+                {
+                    // Ignore during teardown
+                }
+
+                _coverSequence = null;
             }
 
-            _coverSequence = null;
             _coverTcs?.TrySetCanceled();
             _coverTcs = null;
         }
 
         private void KillRevealSequence()
         {
-            if (_revealSequence != null && _revealSequence.IsActive())
+            if (_revealSequence != null)
             {
-                _revealSequence.Kill();
-            }
+                try
+                {
+                    if (_revealSequence.IsActive())
+                    {
+                        _revealSequence.Kill();
+                    }
+                }
+                catch
+                {
+                    // Ignore during teardown
+                }
 
-            _revealSequence = null;
+                _revealSequence = null;
+            }
         }
     }
 }

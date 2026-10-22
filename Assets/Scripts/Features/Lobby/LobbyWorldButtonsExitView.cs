@@ -180,7 +180,6 @@ namespace BlockBlast.Features.Lobby
                 var fb = _feedbackViews[i];
                 if (fb != null && fb.AnimatedRoot != null)
                 {
-                    fb.StopFeedbackAndRestoreBaseState();
                     Transform rootTransform = fb.AnimatedRoot;
                     _cachedRoots[i] = new RootState
                     {
@@ -292,6 +291,24 @@ namespace BlockBlast.Features.Lobby
             _exitTcs = null;
 
             RestoreRoots();
+            ResumeFeedbackIfNeeded();
+        }
+
+        private void ResumeFeedbackIfNeeded()
+        {
+            if (_feedbackViews == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _feedbackViews.Length; i++)
+            {
+                var fb = _feedbackViews[i];
+                if (fb != null && fb.isActiveAndEnabled)
+                {
+                    fb.StartIdle();
+                }
+            }
         }
 
         private void ResetExitSequenceOnly()
@@ -360,7 +377,6 @@ namespace BlockBlast.Features.Lobby
                 var root = _cachedRoots[i];
                 if (root.Transform != null)
                 {
-                    root.Transform.DOKill();
                     root.Transform.localScale = root.BaseLocalScale;
                 }
                 if (root.GameObject != null)
