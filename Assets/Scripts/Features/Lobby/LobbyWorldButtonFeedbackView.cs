@@ -91,8 +91,7 @@ namespace BlockBlast.Features.Lobby
         private Tween _idleTween;
         private Sequence _pressSequence;
         private Sequence _markingSequence;
-        private Sequence _completionSequence;
-        private TaskCompletionSource<bool> _pressTcs;
+        private TaskCompletionSource<bool> _pressMotionCompletion;
 
         public LobbyWorldButtonView ButtonView { get => _buttonView; set => _buttonView = value; }
         public Transform AnimatedRoot { get => _animatedRoot; set => _animatedRoot = value; }
@@ -277,7 +276,6 @@ namespace BlockBlast.Features.Lobby
 
             KillIdleTween();
             KillPressSequence();
-            KillCompletionSequence();
             KillMarkingSequence();
 
             if (_markingText != null && _baseStateCaptured)
@@ -294,17 +292,7 @@ namespace BlockBlast.Features.Lobby
             _animatedRoot.localScale = _baseLocalScale;
             SetWorldY(_currentPressStartY);
 
-            _pressTcs = new TaskCompletionSource<bool>();
-            float totalDuration = CalculateTotalPressDuration();
-
-            _completionSequence = DOTween.Sequence();
-            _completionSequence.SetTarget(gameObject);
-            _completionSequence.SetLink(gameObject, LinkBehaviour.KillOnDisable);
-            _completionSequence.AppendInterval(totalDuration);
-            _completionSequence.OnComplete(() =>
-            {
-                _pressTcs?.TrySetResult(true);
-            });
+            _pressMotionCompletion = new TaskCompletionSource<bool>();
 
             Vector3 compressedScale = new Vector3(
                 _baseLocalScale.x * _pressSquashScale.x,
@@ -354,6 +342,7 @@ namespace BlockBlast.Features.Lobby
                 }
 
                 PlayNextIdleLeg();
+                _pressMotionCompletion?.TrySetResult(true);
             });
         }
 
@@ -428,7 +417,6 @@ namespace BlockBlast.Features.Lobby
             KillIdleTween();
             KillPressSequence();
             KillMarkingSequence();
-            KillCompletionSequence();
 
             if (_animatedRoot != null)
             {
@@ -451,12 +439,14 @@ namespace BlockBlast.Features.Lobby
         }
 
         /// <summary>
-        /// Awaits completion of the current press visual sequence including all edge particles.
+        /// Awaits completion of the current press transform motion.
+        /// Edge particles and marking flash do not delay this task.
         /// Returns immediately if no press is running.
         /// </summary>
-        public Task WaitForCurrentPressAsync(CancellationToken cancellationToken = default)
+        public Task WaitForCurrentPressMotionAsync(CancellationToken cancellationToken = default)
         {
-            if (_pressTcs == null || _pressTcs.Task.IsCompleted)
+            Task pressMotionTask = _pressMotionCompletion?.Task;
+            if (pressMotionTask == null || pressMotionTask.IsCompleted)
             {
                 return Task.CompletedTask;
             }
@@ -468,12 +458,12 @@ namespace BlockBlast.Features.Lobby
 
             if (!cancellationToken.CanBeCanceled)
             {
-                return _pressTcs.Task;
+                return pressMotionTask;
             }
 
             var tcs = new TaskCompletionSource<bool>();
             var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-            _pressTcs.Task.ContinueWith(t =>
+            pressMotionTask.ContinueWith(t =>
             {
                 registration.Dispose();
                 if (t.IsCanceled)
@@ -491,48 +481,6 @@ namespace BlockBlast.Features.Lobby
             }, TaskScheduler.Default);
 
             return tcs.Task;
-        }
-
-        public float CalculateTotalPressDuration()
-        {
-            float transformDuration = _pressDownDuration + _reboundDuration + _settleDuration;
-            float markingDuration = _pressDownDuration + _markingFlashInDuration + _markingFlashOutDuration;
-            float particleTailDuration = GetParticleTailDuration();
-            return Mathf.Max(transformDuration, Mathf.Max(markingDuration, particleTailDuration));
-        }
-
-        private float GetParticleTailDuration()
-        {
-            float maxParticleDuration = 0f;
-            if (_edgeEffects != null)
-            {
-                for (int i = 0; i < _edgeEffects.Length; i++)
-                {
-                    var edge = _edgeEffects[i];
-                    if (edge == null) continue;
-                    if (edge.Debris != null)
-                    {
-                        maxParticleDuration = Mathf.Max(maxParticleDuration, GetParticleMaxDuration(edge.Debris));
-                    }
-                    if (edge.Smoke != null)
-                    {
-                        maxParticleDuration = Mathf.Max(maxParticleDuration, GetParticleMaxDuration(edge.Smoke));
-                    }
-                }
-            }
-
-            if (maxParticleDuration <= 0f)
-            {
-                maxParticleDuration = 0.80f;
-            }
-
-            return _pressDownDuration + maxParticleDuration;
-        }
-
-        private static float GetParticleMaxDuration(ParticleSystem particleSystem)
-        {
-            ParticleSystem.MainModule main = particleSystem.main;
-            return main.startDelay.constantMax + main.startLifetime.constantMax;
         }
 
         private void KillIdleTween()
@@ -553,6 +501,8 @@ namespace BlockBlast.Features.Lobby
             }
 
             _pressSequence = null;
+            _pressMotionCompletion?.TrySetCanceled();
+            _pressMotionCompletion = null;
         }
 
         private void KillMarkingSequence()
@@ -563,18 +513,6 @@ namespace BlockBlast.Features.Lobby
             }
 
             _markingSequence = null;
-        }
-
-        private void KillCompletionSequence()
-        {
-            if (_completionSequence != null && _completionSequence.IsActive())
-            {
-                _completionSequence.Kill();
-            }
-
-            _completionSequence = null;
-            _pressTcs?.TrySetCanceled();
-            _pressTcs = null;
         }
     }
 }

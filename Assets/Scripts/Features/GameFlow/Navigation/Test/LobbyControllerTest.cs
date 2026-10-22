@@ -14,7 +14,7 @@ using UnityEngine.TestTools;
 namespace BlockBlast.Features.GameFlow.Navigation.Test
 {
     [TestFixture]
-    public class LobbyControllerTest
+    public partial class LobbyControllerTest
     {
         private readonly List<GameObject> _createdObjects = new List<GameObject>();
         private GameObject _controllerObj;

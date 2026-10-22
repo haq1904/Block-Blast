@@ -11,7 +11,7 @@ namespace BlockBlast.Features.Lobby
     /// <summary>
     /// Master controller for the Lobby scene, managing navigation tabs, high score display, 3D prop buttons, and transition to PlayScene.
     /// </summary>
-    public sealed class LobbyController : MonoBehaviour
+    public sealed partial class LobbyController : MonoBehaviour
     {
         [Header("Views")]
         [SerializeField] private LobbyNavigationView _navigationView;
@@ -22,41 +22,20 @@ namespace BlockBlast.Features.Lobby
         [Tooltip("The four 3D interactive prop buttons in Lobby scene.")]
         [SerializeField] private LobbyWorldButtonView[] _worldButtons;
 
-        [Header("Transition VFX")]
-        [Tooltip("Feedback view for the Play world button, awaited before starting transition.")]
-        [SerializeField] private LobbyWorldButtonFeedbackView _playWorldButtonFeedback;
-
-        [Header("Transition Config")]
-        [Tooltip("Realtime delay in seconds before the camera moves into Play.")]
-        [SerializeField, Min(0f)] private float _playTransitionDelay = 1f;
-
         private IGameSceneNavigator _navigator;
         private LobbyTabId _currentTab = LobbyTabId.Home;
         private bool _playRequested;
         private bool _isBound;
         private bool _hasBoundValidButtons;
-        private bool _loggedMissingVfxServiceWarning;
         private bool _ownsInitialWorldButtonGate;
         private CancellationTokenSource _destroyCts;
 
         public LobbyTabId CurrentTab => _currentTab;
 
-        public float PlayTransitionDelay
-        {
-            get => _playTransitionDelay;
-            set => _playTransitionDelay = Mathf.Max(0f, value);
-        }
-
         public LobbyWorldButtonView[] WorldButtons
         {
             get => _worldButtons;
             set => _worldButtons = value;
-        }
-
-        public LobbyWorldButtonFeedbackView PlayWorldButtonFeedback
-        {
-            get => _playWorldButtonFeedback;
-            set => _playWorldButtonFeedback = value;
         }
 
         private void Awake()
@@ -183,6 +162,11 @@ namespace BlockBlast.Features.Lobby
         {
             _destroyCts?.Dispose();
             _destroyCts = new CancellationTokenSource();
+
+            if (_worldButtonsExitView != null)
+            {
+                _worldButtonsExitView.ResetImmediate();
+            }
 
             if (!ValidateWorldButtons(requireEnabled: !_hasBoundValidButtons))
             {
@@ -388,174 +372,6 @@ namespace BlockBlast.Features.Lobby
         private void OnPlayRequested()
         {
             _ = RequestPlayAsync(isWorldPlay: false);
-        }
-
-        public async Task RequestPlayAsync(bool isWorldPlay = false)
-        {
-            if (_playRequested)
-            {
-                return;
-            }
-
-            if (_navigator != null && _navigator.IsTransitioning)
-            {
-                return;
-            }
-
-            _playRequested = true;
-
-            if (_navigationView != null)
-            {
-                _navigationView.SetNavigationEnabled(false);
-            }
-
-            if (_transitionView != null)
-            {
-                if (_transitionView.HomeView != null)
-                {
-                    _transitionView.HomeView.SetPlayInteractable(false);
-                }
-                _transitionView.SetTransitionBlockerActive(true);
-            }
-
-            SetWorldButtonsInteractable(false);
-
-            IWorldCameraTransitionService cameraService = null;
-            if (!ServiceLocator.TryGet(out cameraService))
-            {
-                Debug.LogError("[LobbyController] IWorldCameraTransitionService not found in ServiceLocator.", this);
-                ResetInputState();
-                return;
-            }
-
-            IPlaySceneTransitionVfxService transitionVfx = null;
-            if (!ServiceLocator.TryGet(out transitionVfx))
-            {
-                if (!_loggedMissingVfxServiceWarning)
-                {
-                    _loggedMissingVfxServiceWarning = true;
-                    Debug.LogWarning("[LobbyController] IPlaySceneTransitionVfxService not found in ServiceLocator. Proceeding with camera-only transition.", this);
-                }
-            }
-
-            CancellationToken token = _destroyCts != null ? _destroyCts.Token : CancellationToken.None;
-
-            try
-            {
-                if (isWorldPlay && _playWorldButtonFeedback != null)
-                {
-                    await _playWorldButtonFeedback.WaitForCurrentPressAsync(token);
-                }
-                else
-                {
-                    await WaitForPlayTransitionDelayAsync(token);
-                }
-
-                Task fogCoverTask = transitionVfx != null
-                    ? transitionVfx.CoverTableAsync(token)
-                    : Task.CompletedTask;
-
-                Task cameraTask = cameraService.MoveToPlayAsync(token);
-
-                await Task.WhenAll(cameraTask, fogCoverTask);
-            }
-            catch (OperationCanceledException)
-            {
-                transitionVfx?.ResetImmediate();
-                cameraService.SnapToLobby();
-                if (isActiveAndEnabled) ResetInputState();
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[LobbyController] Play transition failed: {ex.Message}. Snapping camera back to Lobby.", this);
-                transitionVfx?.ResetImmediate();
-                cameraService.SnapToLobby();
-                if (isActiveAndEnabled) ResetInputState();
-                return;
-            }
-
-            try
-            {
-                if (_navigator == null)
-                {
-                    ServiceLocator.TryGet<IGameSceneNavigator>(out _navigator);
-                }
-
-                if (_navigator != null)
-                {
-                    await _navigator.LoadAsync(
-                        GameSceneRoute.Play,
-                        SceneTransitionPresentation.None,
-                        0f,
-                        token);
-                }
-                else
-                {
-                    Debug.LogError("[LobbyController] IGameSceneNavigator not found in ServiceLocator.", this);
-                    transitionVfx?.ResetImmediate();
-                    if (cameraService != null)
-                    {
-                        await cameraService.MoveToLobbyAsync(CancellationToken.None);
-                    }
-                    if (isActiveAndEnabled) ResetInputState();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                transitionVfx?.ResetImmediate();
-                if (cameraService != null)
-                {
-                    cameraService.SnapToLobby();
-                }
-                if (isActiveAndEnabled) ResetInputState();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
-                transitionVfx?.ResetImmediate();
-                if (cameraService != null)
-                {
-                    try
-                    {
-                        await cameraService.MoveToLobbyAsync(CancellationToken.None);
-                    }
-                    catch
-                    {
-                        cameraService.SnapToLobby();
-                    }
-                }
-                if (isActiveAndEnabled) ResetInputState();
-            }
-        }
-
-        private Task WaitForPlayTransitionDelayAsync(CancellationToken cancellationToken)
-        {
-            float delay = Mathf.Max(0f, _playTransitionDelay);
-            return delay > 0f
-                ? Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken)
-                : Task.CompletedTask;
-        }
-
-        private void ResetInputState()
-        {
-            _playRequested = false;
-
-            if (_navigationView != null)
-            {
-                _navigationView.SetNavigationEnabled(true);
-            }
-
-            if (_transitionView != null)
-            {
-                if (_transitionView.HomeView != null)
-                {
-                    _transitionView.HomeView.SetPlayInteractable(true);
-                }
-                _transitionView.SetTransitionBlockerActive(false);
-            }
-
-            SetWorldButtonsInteractable(true);
         }
 
         private void OnDisable()
