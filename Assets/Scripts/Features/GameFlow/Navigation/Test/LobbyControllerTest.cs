@@ -401,10 +401,14 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public void WorldButton_Customization_SwitchesTabToCustomization()
+        public void WorldButton_Customization_OpensOverlayAndKeepsHomeTab()
         {
             _btnCustom.OnPointerClick(null);
-            Assert.AreEqual(LobbyTabId.Customization, _controller.CurrentTab);
+            Assert.AreEqual(LobbyTabId.Home, _controller.CurrentTab);
+            for (int i = 0; i < _controller.WorldButtons.Length; i++)
+            {
+                Assert.IsFalse(_controller.WorldButtons[i].HitCollider.enabled, $"Button {i} should be disabled when Customization overlay is open.");
+            }
         }
 
         [Test]

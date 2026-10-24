@@ -18,12 +18,23 @@ namespace BlockBlast.Features.Lobby
         [SerializeField] private LobbyPanelView _highScoreOverlay;
         [SerializeField] private LobbyPanelView _statisticOverlay;
         [SerializeField] private LobbyPanelView _settingOverlay;
+        [SerializeField] private LobbyPanelView _customizationOverlay;
 
         [Header("Blocker")]
         [Tooltip("Full-screen CanvasGroup blocking interaction during scene transitions.")]
         [SerializeField] private CanvasGroup _transitionBlocker;
 
         public LobbyHomeView HomeView => _homeView;
+        public LobbySettingsOverlayView SettingsOverlay
+        {
+            get => _settingOverlay as LobbySettingsOverlayView;
+            set => _settingOverlay = value;
+        }
+        public LobbyWorldCustomizationOverlayView WorldCustomizationOverlay
+        {
+            get => _customizationOverlay as LobbyWorldCustomizationOverlayView;
+            set => _customizationOverlay = value;
+        }
 
         public void InitializePanels()
         {
@@ -35,6 +46,7 @@ namespace BlockBlast.Features.Lobby
             if (_highScoreOverlay != null) _highScoreOverlay.SetImmediate(false);
             if (_statisticOverlay != null) _statisticOverlay.SetImmediate(false);
             if (_settingOverlay != null) _settingOverlay.SetImmediate(false);
+            if (_customizationOverlay != null) _customizationOverlay.SetImmediate(false);
 
             SetTransitionBlockerActive(false);
         }
@@ -78,6 +90,11 @@ namespace BlockBlast.Features.Lobby
             {
                 if (overlayId == LobbyOverlayId.Setting) _settingOverlay.Show(); else _settingOverlay.Hide();
             }
+
+            if (_customizationOverlay != null)
+            {
+                if (overlayId == LobbyOverlayId.Customization) _customizationOverlay.Show(); else _customizationOverlay.Hide();
+            }
         }
 
         public void HideAllOverlays()
@@ -85,6 +102,7 @@ namespace BlockBlast.Features.Lobby
             if (_highScoreOverlay != null) _highScoreOverlay.Hide();
             if (_statisticOverlay != null) _statisticOverlay.Hide();
             if (_settingOverlay != null) _settingOverlay.Hide();
+            if (_customizationOverlay != null) _customizationOverlay.Hide();
         }
 
         public void SetTransitionBlockerActive(bool isBlocked)

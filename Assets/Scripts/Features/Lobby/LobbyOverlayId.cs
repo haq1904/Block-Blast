@@ -8,6 +8,7 @@ namespace BlockBlast.Features.Lobby
         None,
         HighScore,
         Statistic,
-        Setting
+        Setting,
+        Customization
     }
 }

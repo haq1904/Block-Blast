@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BlockBlast.Features.GameFlow.Audio;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
 using BlockBlast.Features.GameFlow.Play;
@@ -17,12 +18,15 @@ namespace BlockBlast.Features.Lobby
         [SerializeField] private LobbyNavigationView _navigationView;
         [SerializeField] private LobbyTransitionView _transitionView;
         [SerializeField] private LobbyBackgroundView _backgroundView;
+        [SerializeField] private LobbySettingsOverlayView _settingsOverlay;
+        [SerializeField] private LobbyWorldCustomizationOverlayView _worldCustomizationOverlay;
 
         [Header("3D World Buttons")]
         [Tooltip("The four 3D interactive prop buttons in Lobby scene.")]
         [SerializeField] private LobbyWorldButtonView[] _worldButtons;
 
         private IGameSceneNavigator _navigator;
+        private IAudioMixerService _audioMixerService;
         private LobbyTabId _currentTab = LobbyTabId.Home;
         private bool _playRequested;
         private bool _isBound;
@@ -38,9 +42,22 @@ namespace BlockBlast.Features.Lobby
             set => _worldButtons = value;
         }
 
+        public LobbySettingsOverlayView SettingsOverlay
+        {
+            get => _settingsOverlay != null ? _settingsOverlay : _transitionView?.SettingsOverlay;
+            set => _settingsOverlay = value;
+        }
+
+        public LobbyWorldCustomizationOverlayView WorldCustomizationOverlay
+        {
+            get => _worldCustomizationOverlay != null ? _worldCustomizationOverlay : _transitionView?.WorldCustomizationOverlay;
+            set => _worldCustomizationOverlay = value;
+        }
+
         private void Awake()
         {
             ServiceLocator.TryGet<IGameSceneNavigator>(out _navigator);
+            ServiceLocator.TryGet<IAudioMixerService>(out _audioMixerService);
             if (_transitionView != null)
             {
                 _transitionView.InitializePanels();
@@ -169,6 +186,11 @@ namespace BlockBlast.Features.Lobby
                 cameraService.SnapToLobby();
             }
 
+            if (ServiceLocator.TryGet<IGameMusicService>(out var musicService))
+            {
+                musicService.PlayLobby();
+            }
+
             UpdateHighScoreDisplay();
         }
 
@@ -197,12 +219,42 @@ namespace BlockBlast.Features.Lobby
             {
                 _navigationView.TabSelected += OnTabSelected;
             }
+
+            var settings = SettingsOverlay;
+            if (settings != null)
+            {
+                settings.CloseRequested += CloseOverlay;
+                settings.MusicVolumeChanged += HandleMusicVolumeChanged;
+                settings.SfxVolumeChanged += HandleSfxVolumeChanged;
+            }
+
+            var customization = WorldCustomizationOverlay;
+            if (customization != null)
+            {
+                customization.CloseRequested += CloseOverlay;
+            }
+
+            SyncAudioSettingsFromService();
         }
 
         private void UnbindViews()
         {
             if (!_isBound) return;
             _isBound = false;
+
+            var settings = SettingsOverlay;
+            if (settings != null)
+            {
+                settings.CloseRequested -= CloseOverlay;
+                settings.MusicVolumeChanged -= HandleMusicVolumeChanged;
+                settings.SfxVolumeChanged -= HandleSfxVolumeChanged;
+            }
+
+            var customization = WorldCustomizationOverlay;
+            if (customization != null)
+            {
+                customization.CloseRequested -= CloseOverlay;
+            }
 
             if (_transitionView != null && _transitionView.HomeView != null)
             {
@@ -254,7 +306,7 @@ namespace BlockBlast.Features.Lobby
                     _ = RequestPlayAsync(isWorldPlay: true);
                     break;
                 case LobbyWorldButtonAction.Customization:
-                    OnTabSelected(LobbyTabId.Customization);
+                    OpenOverlay(LobbyOverlayId.Customization);
                     break;
                 case LobbyWorldButtonAction.GameCenter:
                     OnTabSelected(LobbyTabId.GameCenter);
@@ -280,6 +332,11 @@ namespace BlockBlast.Features.Lobby
         {
             if (_playRequested) return;
 
+            if (overlayId == LobbyOverlayId.Setting)
+            {
+                SyncAudioSettingsFromService();
+            }
+
             SetWorldButtonsInteractable(false);
 
             if (_transitionView != null)
@@ -300,6 +357,48 @@ namespace BlockBlast.Features.Lobby
                 SetWorldButtonsInteractable(true);
             }
         }
+
+        public void SyncAudioSettingsFromService()
+        {
+            var settings = SettingsOverlay;
+            if (settings == null) return;
+
+            var audioService = GetAudioMixerService();
+            if (audioService == null) return;
+
+            float music = audioService.GetChannelVolume(AudioChannels.BGMusicVolume);
+            float sfx = audioService.GetChannelVolume(AudioChannels.SoundFXVolume);
+            settings.SetAudioSliderValues(music, sfx);
+        }
+
+        private IAudioMixerService GetAudioMixerService()
+        {
+            if (_audioMixerService == null)
+            {
+                ServiceLocator.TryGet<IAudioMixerService>(out _audioMixerService);
+            }
+            return _audioMixerService;
+        }
+
+        public void SetAudioMixerServiceForTest(IAudioMixerService audioMixerService)
+        {
+            _audioMixerService = audioMixerService;
+        }
+
+        private void TrySetAudioVolume(AudioChannels channel, float value)
+        {
+            var audioService = GetAudioMixerService();
+            if (audioService != null)
+            {
+                audioService.SetChannelVolume(channel, value);
+            }
+        }
+
+        private void HandleMusicVolumeChanged(float value) =>
+            TrySetAudioVolume(AudioChannels.BGMusicVolume, value);
+
+        private void HandleSfxVolumeChanged(float value) =>
+            TrySetAudioVolume(AudioChannels.SoundFXVolume, value);
 
         private void SetWorldButtonsInteractable(bool interactable)
         {
