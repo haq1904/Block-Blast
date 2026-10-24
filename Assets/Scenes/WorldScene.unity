@@ -1104,7 +1104,7 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 4000
+  m_ColorTemperature: 2130
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
@@ -1177,8 +1177,8 @@ MonoBehaviour:
   _noonPitch: 55
   _sunriseYaw: -55
   _sunsetYaw: 37
-  _warmTemperature: 4000
-  _noonTemperature: 5000
+  _warmTemperature: 2000
+  _noonTemperature: 4000
 --- !u!1001 &459760272
 PrefabInstance:
   m_ObjectHideFlags: 0
