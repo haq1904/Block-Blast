@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BlockBlast.Features.GameFlow.Audio;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
 using BlockBlast.Features.GameFlow.Play;
@@ -72,6 +73,11 @@ namespace BlockBlast.Features.Lobby
 
             CancellationToken token = _destroyCts != null ? _destroyCts.Token : CancellationToken.None;
 
+            ServiceLocator.TryGet<IGameMusicService>(out var musicService);
+            Task musicTask = musicService != null
+                ? musicService.TransitionToPlayingAsync(token)
+                : Task.CompletedTask;
+
             try
             {
                 Task fogCoverTask = transitionVfx != null
@@ -87,10 +93,11 @@ namespace BlockBlast.Features.Lobby
                     buttonExitTask = _worldButtonsExitView.PlayExitAsync(token);
                 }
 
-                await Task.WhenAll(cameraTask, fogCoverTask, buttonExitTask);
+                await Task.WhenAll(cameraTask, fogCoverTask, buttonExitTask, musicTask);
             }
             catch (OperationCanceledException)
             {
+                musicService?.RestoreLobbyImmediate();
                 transitionVfx?.ResetImmediate();
                 _worldButtonsExitView?.ResetImmediate();
                 cameraService.SnapToLobby();
@@ -103,6 +110,7 @@ namespace BlockBlast.Features.Lobby
             catch (Exception ex)
             {
                 Debug.LogWarning($"[LobbyController] Play transition failed: {ex.Message}. Snapping camera back to Lobby.", this);
+                musicService?.RestoreLobbyImmediate();
                 transitionVfx?.ResetImmediate();
                 _worldButtonsExitView?.ResetImmediate();
                 cameraService.SnapToLobby();
@@ -131,6 +139,7 @@ namespace BlockBlast.Features.Lobby
                 else
                 {
                     Debug.LogError("[LobbyController] IGameSceneNavigator not found in ServiceLocator.", this);
+                    musicService?.RestoreLobbyImmediate();
                     transitionVfx?.ResetImmediate();
                     _worldButtonsExitView?.ResetImmediate();
                     if (cameraService != null)
@@ -145,6 +154,7 @@ namespace BlockBlast.Features.Lobby
             }
             catch (OperationCanceledException)
             {
+                musicService?.RestoreLobbyImmediate();
                 transitionVfx?.ResetImmediate();
                 _worldButtonsExitView?.ResetImmediate();
                 if (cameraService != null)
@@ -159,6 +169,7 @@ namespace BlockBlast.Features.Lobby
             catch (Exception exception)
             {
                 Debug.LogException(exception, this);
+                musicService?.RestoreLobbyImmediate();
                 transitionVfx?.ResetImmediate();
                 _worldButtonsExitView?.ResetImmediate();
                 if (cameraService != null)

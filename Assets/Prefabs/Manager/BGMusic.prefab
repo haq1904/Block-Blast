@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6681602363727878632}
   - component: {fileID: 2078077658973592786}
   - component: {fileID: 1285951777173009546}
+  - component: {fileID: 1785893760930191769}
   m_Layer: 0
   m_Name: BGMusic
   m_TagString: Untagged
@@ -45,6 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 877468f6c1f0cab418b76a3783ab7115, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Core::MusicManager
+  _audioSource: {fileID: 0}
 --- !u!82 &1285951777173009546
 AudioSource:
   m_ObjectHideFlags: 0
@@ -57,10 +59,10 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 1078184797030184260, guid: db374742bee39934e87c64b35753619b, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -142,3 +144,20 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1785893760930191769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7210432269861914798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e62d5e64090a82e49b9372543eec685d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.GameFlow.Audio.GameMusicDirector
+  _musicManager: {fileID: 2078077658973592786}
+  _lobbyBgm: {fileID: 8300000, guid: 3a9e3ce9e606c404bbe18b6779c04dc9, type: 3}
+  _playingBgm: {fileID: 8300000, guid: 0e972a81685f13e4698d11a15e47ae91, type: 3}
+  _fadeOutSeconds: 0.65
+  _fadeInSeconds: 0.85

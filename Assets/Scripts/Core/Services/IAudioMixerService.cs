@@ -1,4 +1,5 @@
 public interface IAudioMixerService
 {
-    void ChangeChannelVolume(AudioChannels channel, float volume);
+    void SetChannelVolume(AudioChannels channel, float normalizedVolume);
+    float GetChannelVolume(AudioChannels channel);
 }
