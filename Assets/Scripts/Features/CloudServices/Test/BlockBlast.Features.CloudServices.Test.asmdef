@@ -1,0 +1,25 @@
+{
+    "name": "BlockBlast.Features.CloudServices.Test",
+    "rootNamespace": "",
+    "references": [
+        "GUID:388217bc777637447858ae8c194fc442",
+        "GUID:478e5cec54e178745b5bd369124d2267",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

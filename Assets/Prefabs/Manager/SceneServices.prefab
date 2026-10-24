@@ -324,6 +324,7 @@ GameObject:
   - component: {fileID: 2120480444303189403}
   - component: {fileID: 5433016335358944705}
   - component: {fileID: 1704995786263492966}
+  - component: {fileID: 3269987017067946802}
   m_Layer: 0
   m_Name: SceneServices
   m_TagString: Untagged
@@ -374,6 +375,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.GameFlow.Navigation.GameSceneNavigator
   _routeCatalog: {fileID: 11400000, guid: b237fc672f7763b4d970b113e633e37e, type: 2}
+--- !u!114 &3269987017067946802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3097831842687504d958f1883cfd035e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.CloudServices.UGSBootstrap
 --- !u!1 &2588700702430483745
 GameObject:
   m_ObjectHideFlags: 0

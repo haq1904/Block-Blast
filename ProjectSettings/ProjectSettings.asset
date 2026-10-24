@@ -923,7 +923,13 @@ PlayerSettings:
   XboxOneOverrideIdentityName: 
   XboxOneOverrideIdentityPublisher: 
   vrEditorSettings: {}
-  cloudServicesEnabled: {}
+  cloudServicesEnabled:
+    Build: 0
+    Game Performance: 0
+    Legacy Analytics: 0
+    Purchasing: 0
+    UDP: 0
+    Unity Ads: 0
   luminIcon:
     m_Name: 
     m_ModelFolderPath: 
@@ -946,10 +952,10 @@ PlayerSettings:
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
-  cloudProjectId: 42d38a66-1356-4b55-a8c9-40d7a7c34446
+  cloudProjectId: 4d2723eb-7755-47ae-a041-9b17ce79fc83
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: Block Blast
+  projectName: Cube Puzzle 3D
   organizationId: unity_178061ce417d64a4a6f4
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
