@@ -1,0 +1,17 @@
+{
+    "name": "BlockBlast.Integrations.Cinemachine",
+    "rootNamespace": "BlockBlast.Integrations.Cinemachine",
+    "references": [
+        "GUID:388217bc777637447858ae8c194fc442",
+        "GUID:4307f53044263cf4b835bd812fc161a4"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
