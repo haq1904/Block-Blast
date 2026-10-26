@@ -21,7 +21,7 @@ namespace BlockBlast.Features.Lobby
         [SerializeField] private Slider _musicSlider;
         [SerializeField] private Slider _sfxSlider;
 
-        [Header("Feedback (Presentation Only)")]
+        [Header("Feedback")]
         [SerializeField] private Toggle _vibrationToggle;
         [SerializeField] private Toggle _cameraShakeToggle;
 
@@ -31,6 +31,8 @@ namespace BlockBlast.Features.Lobby
         public event Action CloseRequested;
         public event Action<float> MusicVolumeChanged;
         public event Action<float> SfxVolumeChanged;
+        public event Action<bool> HapticEnabledChanged;
+        public event Action<bool> CameraShakeEnabledChanged;
 
         public Canvas Canvas => _canvas;
         public Button CloseButton => _closeButton;
@@ -67,6 +69,8 @@ namespace BlockBlast.Features.Lobby
             CloseRequested = null;
             MusicVolumeChanged = null;
             SfxVolumeChanged = null;
+            HapticEnabledChanged = null;
+            CameraShakeEnabledChanged = null;
         }
 
         public void RequestClose()
@@ -78,6 +82,48 @@ namespace BlockBlast.Features.Lobby
         {
             _musicSlider?.SetValueWithoutNotify(Mathf.Clamp01(music));
             _sfxSlider?.SetValueWithoutNotify(Mathf.Clamp01(sfx));
+        }
+
+        public void SetHapticEnabled(bool enabled, bool available = true)
+        {
+            if (_vibrationToggle != null)
+            {
+                _vibrationToggle.SetIsOnWithoutNotify(enabled);
+                _vibrationToggle.interactable = available;
+            }
+        }
+
+        public void SetCameraShakeEnabled(bool enabled, bool available = true)
+        {
+            if (_cameraShakeToggle != null)
+            {
+                _cameraShakeToggle.SetIsOnWithoutNotify(enabled);
+                _cameraShakeToggle.interactable = available;
+            }
+        }
+
+        public void SetFeedbackTogglesForTest(Toggle vibrationToggle, Toggle cameraShakeToggle)
+        {
+            if (_vibrationToggle != null)
+            {
+                _vibrationToggle.onValueChanged.RemoveListener(HandleVibrationToggleChanged);
+            }
+            if (_cameraShakeToggle != null)
+            {
+                _cameraShakeToggle.onValueChanged.RemoveListener(HandleCameraShakeToggleChanged);
+            }
+
+            _vibrationToggle = vibrationToggle;
+            _cameraShakeToggle = cameraShakeToggle;
+
+            if (_vibrationToggle != null)
+            {
+                _vibrationToggle.onValueChanged.AddListener(HandleVibrationToggleChanged);
+            }
+            if (_cameraShakeToggle != null)
+            {
+                _cameraShakeToggle.onValueChanged.AddListener(HandleCameraShakeToggleChanged);
+            }
         }
 
         public void SetSlidersForTest(Slider musicSlider, Slider sfxSlider)
@@ -113,16 +159,6 @@ namespace BlockBlast.Features.Lobby
 
         private void InitializeDefaultPresentationState()
         {
-            if (_vibrationToggle != null)
-            {
-                _vibrationToggle.isOn = true;
-            }
-
-            if (_cameraShakeToggle != null)
-            {
-                _cameraShakeToggle.isOn = true;
-            }
-
             if (_versionText != null)
             {
                 _versionText.text = $"v{Application.version}";
@@ -150,6 +186,16 @@ namespace BlockBlast.Features.Lobby
             {
                 _sfxSlider.onValueChanged.AddListener(HandleSfxSliderChanged);
             }
+
+            if (_vibrationToggle != null)
+            {
+                _vibrationToggle.onValueChanged.AddListener(HandleVibrationToggleChanged);
+            }
+
+            if (_cameraShakeToggle != null)
+            {
+                _cameraShakeToggle.onValueChanged.AddListener(HandleCameraShakeToggleChanged);
+            }
         }
 
         private void UnregisterListeners()
@@ -173,6 +219,16 @@ namespace BlockBlast.Features.Lobby
             {
                 _sfxSlider.onValueChanged.RemoveListener(HandleSfxSliderChanged);
             }
+
+            if (_vibrationToggle != null)
+            {
+                _vibrationToggle.onValueChanged.RemoveListener(HandleVibrationToggleChanged);
+            }
+
+            if (_cameraShakeToggle != null)
+            {
+                _cameraShakeToggle.onValueChanged.RemoveListener(HandleCameraShakeToggleChanged);
+            }
         }
 
         private void HandleCloseRequested()
@@ -188,6 +244,16 @@ namespace BlockBlast.Features.Lobby
         private void HandleSfxSliderChanged(float value)
         {
             SfxVolumeChanged?.Invoke(value);
+        }
+
+        private void HandleVibrationToggleChanged(bool value)
+        {
+            HapticEnabledChanged?.Invoke(value);
+        }
+
+        private void HandleCameraShakeToggleChanged(bool value)
+        {
+            CameraShakeEnabledChanged?.Invoke(value);
         }
     }
 }

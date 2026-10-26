@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.Linq;
 using BlockBlast.Features.Lobby;
 using TMPro;
@@ -13,6 +14,7 @@ namespace BlockBlast.Features.Lobby.Editor
     {
         private const string ScenePath = "Assets/Scenes/LobbyScene.unity";
         private const string BaseUi = "Assets/Art/UI/BlockPuzzleHD/";
+        private const string BgHillsPath = "Assets/Art/UI/CozyStationeryUI/Backgrounds/bg_hills_portrait.png";
 
         [MenuItem("BlockBlast/Build World Customization Overlay")]
         public static void Build()
@@ -26,7 +28,7 @@ namespace BlockBlast.Features.Lobby.Editor
             var lobbyRoot = GameObject.Find("LobbyRoot");
             if (lobbyRoot == null)
             {
-                Debug.LogError("[LobbyWorldCustomizationBuilder] LobbyRoot not found.");
+                Debug.LogError("[LobbyWorldCustomizationBuilder] LobbyRoot not found in scene.");
                 return;
             }
 
@@ -38,81 +40,71 @@ namespace BlockBlast.Features.Lobby.Editor
                 return;
             }
 
-            // Ensure Canvas object is active so child overlays can render
-            canvasObj.SetActive(true);
-
-            // Load sprites & fonts
-            var panelModalLight = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/panel_modal_light.png");
-            var panelTopHeader = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/panel_top_header.png");
-            var frameEquipped = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_equipped.png");
-            var frameNormal = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_normal.png");
-            var frameLocked = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_locked.png");
-
-            var btnCloseNorm = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_close_normal.png");
-            var btnClosePress = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_close_pressed.png");
-            var btnPillNorm = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_pill_primary_normal.png");
-            var btnPillPress = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_pill_primary_pressed.png");
-
-            var icClose = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_close.png");
-            var icCheck = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_check.png");
-            var icLock = AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_lock.png");
-            var bgHills = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/CozyStationeryUI/Backgrounds/bg_hills_portrait.png");
-            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/TrueType (.ttf)/Kaph-Regular SDF.asset");
-
-            // Restructure SettingsOverlay as sibling if currently on canvasObj directly
-            LobbySettingsOverlayView settingsOverlayView = canvasObj.GetComponent<LobbySettingsOverlayView>();
-            Transform settingsOverlayTransform = canvasObj.transform.Find("SettingsOverlay");
-
-            if (settingsOverlayView != null && settingsOverlayTransform == null)
+            // 1. Validate all dependencies before any scene modification
+            var dependencies = new Dictionary<string, Object>
             {
-                var settingsObj = CreateStretchUi("SettingsOverlay", canvasObj.transform);
-                settingsObj.transform.SetSiblingIndex(0);
-                var newSettingsView = settingsObj.AddComponent<LobbySettingsOverlayView>();
+                { "panelModalLight", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/panel_modal_light.png") },
+                { "panelTopHeader", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/panel_top_header.png") },
+                { "frameEquipped", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_equipped.png") },
+                { "frameNormal", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_normal.png") },
+                { "frameLocked", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Panels/frame_inventory_locked.png") },
+                { "btnCloseNorm", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_close_normal.png") },
+                { "btnClosePress", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_close_pressed.png") },
+                { "btnPillNorm", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_pill_primary_normal.png") },
+                { "btnPillPress", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Buttons/btn_pill_primary_pressed.png") },
+                { "icClose", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_close.png") },
+                { "icCheck", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_check.png") },
+                { "icLock", AssetDatabase.LoadAssetAtPath<Sprite>(BaseUi + "Icons/System/icon_lock.png") },
+                { "bgHills", AssetDatabase.LoadMainAssetAtPath(BgHillsPath) },
+                { "font", AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/TrueType (.ttf)/Kaph-Regular SDF.asset") }
+            };
 
-                // Move Dimmer_FullBleed & SafeArea_Content under SettingsOverlay
-                var oldDimmer = canvasObj.transform.Find("Dimmer_FullBleed");
-                if (oldDimmer != null) oldDimmer.SetParent(settingsObj.transform, false);
-
-                var oldSafeArea = canvasObj.transform.Find("SafeArea_Content");
-                if (oldSafeArea != null) oldSafeArea.SetParent(settingsObj.transform, false);
-
-                // Copy serialized properties
-                EditorUtility.CopySerialized(settingsOverlayView, newSettingsView);
-
-                // Remove components from root canvasObj
-                Object.DestroyImmediate(settingsOverlayView);
-                var rootCg = canvasObj.GetComponent<CanvasGroup>();
-                if (rootCg != null) Object.DestroyImmediate(rootCg);
-
-                settingsOverlayView = newSettingsView;
-            }
-            else if (settingsOverlayTransform != null)
+            foreach (var kvp in dependencies)
             {
-                settingsOverlayView = settingsOverlayTransform.GetComponent<LobbySettingsOverlayView>();
+                if (kvp.Value == null)
+                {
+                    Debug.LogError($"[LobbyWorldCustomizationBuilder] Missing required asset dependency '{kvp.Key}'. Aborting build without mutating scene.");
+                    return;
+                }
             }
 
-            // Remove existing WorldCustomizationOverlay if present
+            var panelModalLight = (Sprite)dependencies["panelModalLight"];
+            var panelTopHeader = (Sprite)dependencies["panelTopHeader"];
+            var frameEquipped = (Sprite)dependencies["frameEquipped"];
+            var frameNormal = (Sprite)dependencies["frameNormal"];
+            var frameLocked = (Sprite)dependencies["frameLocked"];
+            var btnCloseNorm = (Sprite)dependencies["btnCloseNorm"];
+            var btnClosePress = (Sprite)dependencies["btnClosePress"];
+            var btnPillNorm = (Sprite)dependencies["btnPillNorm"];
+            var btnPillPress = (Sprite)dependencies["btnPillPress"];
+            var icClose = (Sprite)dependencies["icClose"];
+            var icCheck = (Sprite)dependencies["icCheck"];
+            var icLock = (Sprite)dependencies["icLock"];
+            var bgHills = AssetDatabase.LoadAssetAtPath<Sprite>(BgHillsPath);
+            var font = (TMP_FontAsset)dependencies["font"];
+
+            // 2. Remove existing WorldCustomizationOverlay if present (idempotent build)
             var existingCustom = canvasObj.transform.Find("WorldCustomizationOverlay");
             if (existingCustom != null)
             {
                 Object.DestroyImmediate(existingCustom.gameObject);
             }
 
-            // 1. Root WorldCustomizationOverlay (stretched full)
+            // 3. Root WorldCustomizationOverlay (stretched full canvas)
             var overlayObj = CreateStretchUi("WorldCustomizationOverlay", canvasObj.transform);
             var overlayView = overlayObj.AddComponent<LobbyWorldCustomizationOverlayView>();
 
-            // 2. Dimmer_FullBleed (stretched full, navy alpha 0.62, raycastTarget = true, no Button)
+            // 4. Dimmer_FullBleed (stretched full, navy alpha 0.62, raycastTarget = true, no Button)
             var dimmerObj = CreateStretchUi("Dimmer_FullBleed", overlayObj.transform);
             var dimmerImg = dimmerObj.AddComponent<Image>();
             dimmerImg.color = new Color(0.04f, 0.07f, 0.12f, 0.62f);
             dimmerImg.raycastTarget = true;
 
-            // 3. SafeArea_Customization
+            // 5. SafeArea_Customization
             var safeAreaObj = CreateStretchUi("SafeArea_Customization", overlayObj.transform);
             safeAreaObj.AddComponent<LobbySafeAreaView>();
 
-            // 4. WorldCustomizationCard (900 x 1300, centered)
+            // 6. WorldCustomizationCard (900 x 1300, centered)
             var cardObj = new GameObject("WorldCustomizationCard");
             cardObj.transform.SetParent(safeAreaObj.transform, false);
             var cardRt = cardObj.AddComponent<RectTransform>();
@@ -125,9 +117,9 @@ namespace BlockBlast.Features.Lobby.Editor
             var cardImg = cardObj.AddComponent<Image>();
             cardImg.sprite = panelModalLight;
             cardImg.type = Image.Type.Sliced;
-            cardImg.raycastTarget = true;
+            cardImg.raycastTarget = false; // Non-raycast target
 
-            // 5. Header (panel_top_header, height 144)
+            // 7. Zone 1: Header (panel_top_header, height 144)
             var headerObj = new GameObject("Header");
             headerObj.transform.SetParent(cardObj.transform, false);
             var headerRt = headerObj.AddComponent<RectTransform>();
@@ -143,13 +135,13 @@ namespace BlockBlast.Features.Lobby.Editor
             headerImg.raycastTarget = false;
 
             // Header Title
-            var titleObj = CreateStretchUi("Title_COZY_FOREST", headerObj.transform);
+            var titleObj = CreateStretchUi("Title_World", headerObj.transform);
             var titleRt = titleObj.GetComponent<RectTransform>();
             titleRt.offsetMin = new Vector2(56f, 0f);
             titleRt.offsetMax = new Vector2(-128f, 0f);
             var titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
             titleTmp.text = "COZY FOREST";
-            if (font != null) titleTmp.font = font;
+            titleTmp.font = font;
             titleTmp.fontSize = 44f;
             titleTmp.enableAutoSizing = true;
             titleTmp.fontSizeMin = 30f;
@@ -191,22 +183,24 @@ namespace BlockBlast.Features.Lobby.Editor
             closeIconImg.sprite = icClose;
             closeIconImg.raycastTarget = false;
 
-            // 6. Image_WorldPreview (808 x 520, landscape)
-            var previewObj = new GameObject("Image_WorldPreview");
-            previewObj.transform.SetParent(cardObj.transform, false);
-            var previewRt = previewObj.AddComponent<RectTransform>();
-            previewRt.anchorMin = new Vector2(0.5f, 1f);
-            previewRt.anchorMax = new Vector2(0.5f, 1f);
-            previewRt.pivot = new Vector2(0.5f, 1f);
-            previewRt.anchoredPosition = new Vector2(0f, -168f);
-            previewRt.sizeDelta = new Vector2(808f, 520f);
+            // 8. Zone 2: PreviewViewport (808 x 520, RectMask2D) + Image_WorldPreview
+            var previewViewportObj = new GameObject("PreviewViewport");
+            previewViewportObj.transform.SetParent(cardObj.transform, false);
+            var previewViewportRt = previewViewportObj.AddComponent<RectTransform>();
+            previewViewportRt.anchorMin = new Vector2(0.5f, 1f);
+            previewViewportRt.anchorMax = new Vector2(0.5f, 1f);
+            previewViewportRt.pivot = new Vector2(0.5f, 1f);
+            previewViewportRt.anchoredPosition = new Vector2(0f, -168f);
+            previewViewportRt.sizeDelta = new Vector2(808f, 520f);
+            previewViewportObj.AddComponent<RectMask2D>();
 
-            var previewImg = previewObj.AddComponent<Image>();
+            var previewImgObj = CreateStretchUi("Image_WorldPreview", previewViewportObj.transform);
+            var previewImg = previewImgObj.AddComponent<Image>();
             previewImg.sprite = bgHills;
             previewImg.preserveAspect = true;
             previewImg.raycastTarget = false;
 
-            // 7. Button_ViewWorldInLobby (680 x 112)
+            // 9. Zone 3: Button_ViewWorldInLobby (680 x 112)
             var viewWorldBtnObj = new GameObject("Button_ViewWorldInLobby");
             viewWorldBtnObj.transform.SetParent(cardObj.transform, false);
             var viewWorldRt = viewWorldBtnObj.AddComponent<RectTransform>();
@@ -232,7 +226,7 @@ namespace BlockBlast.Features.Lobby.Editor
             var viewWorldLabelObj = CreateStretchUi("Label", viewWorldBtnObj.transform);
             var viewWorldLabelTmp = viewWorldLabelObj.AddComponent<TextMeshProUGUI>();
             viewWorldLabelTmp.text = "VIEW WORLD IN LOBBY";
-            if (font != null) viewWorldLabelTmp.font = font;
+            viewWorldLabelTmp.font = font;
             viewWorldLabelTmp.fontSize = 32f;
             viewWorldLabelTmp.enableAutoSizing = true;
             viewWorldLabelTmp.fontSizeMin = 22f;
@@ -241,7 +235,7 @@ namespace BlockBlast.Features.Lobby.Editor
             viewWorldLabelTmp.color = Color.white;
             viewWorldLabelTmp.raycastTarget = false;
 
-            // 8. OtherWorldsSection (808 x 400)
+            // 10. Zone 4: OtherWorldsSection (808 x 400)
             var otherWorldsObj = new GameObject("OtherWorldsSection");
             otherWorldsObj.transform.SetParent(cardObj.transform, false);
             var otherWorldsRt = otherWorldsObj.AddComponent<RectTransform>();
@@ -251,7 +245,6 @@ namespace BlockBlast.Features.Lobby.Editor
             otherWorldsRt.anchoredPosition = new Vector2(0f, -848f);
             otherWorldsRt.sizeDelta = new Vector2(808f, 400f);
 
-            // Label_OTHER_WORLDS
             var otherLabelObj = new GameObject("Label_OTHER_WORLDS");
             otherLabelObj.transform.SetParent(otherWorldsObj.transform, false);
             var otherLabelRt = otherLabelObj.AddComponent<RectTransform>();
@@ -263,13 +256,13 @@ namespace BlockBlast.Features.Lobby.Editor
 
             var otherLabelTmp = otherLabelObj.AddComponent<TextMeshProUGUI>();
             otherLabelTmp.text = "OTHER WORLDS";
-            if (font != null) otherLabelTmp.font = font;
+            otherLabelTmp.font = font;
             otherLabelTmp.fontSize = 26f;
             otherLabelTmp.alignment = TextAlignmentOptions.MidlineLeft;
             otherLabelTmp.color = new Color32(0x5A, 0x44, 0x30, 0xFF);
             otherLabelTmp.raycastTarget = false;
 
-            // WorldListViewport
+            // WorldListViewport (808 x 300, RectMask2D)
             var viewportObj = new GameObject("WorldListViewport");
             viewportObj.transform.SetParent(otherWorldsObj.transform, false);
             var viewportRt = viewportObj.AddComponent<RectTransform>();
@@ -278,8 +271,11 @@ namespace BlockBlast.Features.Lobby.Editor
             viewportRt.pivot = new Vector2(0.5f, 1f);
             viewportRt.anchoredPosition = new Vector2(0f, -56f);
             viewportRt.sizeDelta = new Vector2(808f, 300f);
+            viewportObj.AddComponent<RectMask2D>();
 
-            var hlg = viewportObj.AddComponent<HorizontalLayoutGroup>();
+            // WorldListContent (HorizontalLayoutGroup, spacing 20)
+            var contentObj = CreateStretchUi("WorldListContent", viewportObj.transform);
+            var hlg = contentObj.AddComponent<HorizontalLayoutGroup>();
             hlg.spacing = 20f;
             hlg.childAlignment = TextAnchor.MiddleLeft;
             hlg.childControlWidth = false;
@@ -289,7 +285,7 @@ namespace BlockBlast.Features.Lobby.Editor
 
             // Card 1: Cozy Forest (Selected)
             CreateWorldCard(
-                viewportObj.transform,
+                contentObj.transform,
                 "Card_CozyForest_Selected",
                 "COZY FOREST",
                 frameEquipped,
@@ -301,7 +297,7 @@ namespace BlockBlast.Features.Lobby.Editor
 
             // Card 2: Sunny Farm (Available)
             CreateWorldCard(
-                viewportObj.transform,
+                contentObj.transform,
                 "Card_SunnyFarm_Available",
                 "SUNNY FARM",
                 frameNormal,
@@ -313,7 +309,7 @@ namespace BlockBlast.Features.Lobby.Editor
 
             // Card 3: Coral Cove (Locked)
             CreateWorldCard(
-                viewportObj.transform,
+                contentObj.transform,
                 "Card_CoralCove_Locked",
                 "CORAL COVE",
                 frameLocked,
@@ -323,45 +319,43 @@ namespace BlockBlast.Features.Lobby.Editor
                 isSelected: false,
                 isLocked: true);
 
-            // 9. Wire LobbyWorldCustomizationOverlayView
+            // 11. Wire LobbyWorldCustomizationOverlayView internal buttons
             var overlaySo = new SerializedObject(overlayView);
             overlaySo.FindProperty("_closeButton").objectReferenceValue = closeBtn;
             overlaySo.FindProperty("_viewWorldInLobbyButton").objectReferenceValue = viewWorldBtn;
             overlaySo.ApplyModifiedPropertiesWithoutUndo();
 
-            // 10. Wire LobbyTransitionView & LobbyController on LobbyRoot
-            var transitionView = lobbyRoot.GetComponent<LobbyTransitionView>() ?? lobbyRoot.AddComponent<LobbyTransitionView>();
-            var tvSo = new SerializedObject(transitionView);
-            if (settingsOverlayView != null)
+            // 12. Wire serialized references on LobbyRoot (only the 2 specific references)
+            var transitionView = lobbyRoot.GetComponent<LobbyTransitionView>();
+            if (transitionView != null)
             {
-                tvSo.FindProperty("_settingOverlay").objectReferenceValue = settingsOverlayView;
+                var tvSo = new SerializedObject(transitionView);
+                var prop = tvSo.FindProperty("_customizationOverlay");
+                if (prop != null)
+                {
+                    prop.objectReferenceValue = overlayView;
+                    tvSo.ApplyModifiedPropertiesWithoutUndo();
+                }
             }
-            tvSo.FindProperty("_customizationOverlay").objectReferenceValue = overlayView;
-            tvSo.ApplyModifiedPropertiesWithoutUndo();
 
             var controller = lobbyRoot.GetComponent<LobbyController>();
             if (controller != null)
             {
                 var ctrlSo = new SerializedObject(controller);
-                ctrlSo.FindProperty("_transitionView").objectReferenceValue = transitionView;
-                if (settingsOverlayView != null)
+                var prop = ctrlSo.FindProperty("_worldCustomizationOverlay");
+                if (prop != null)
                 {
-                    ctrlSo.FindProperty("_settingsOverlay").objectReferenceValue = settingsOverlayView;
+                    prop.objectReferenceValue = overlayView;
+                    ctrlSo.ApplyModifiedPropertiesWithoutUndo();
                 }
-                ctrlSo.FindProperty("_worldCustomizationOverlay").objectReferenceValue = overlayView;
-                ctrlSo.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            // Hide both overlays initially
-            if (settingsOverlayView != null)
-            {
-                settingsOverlayView.SetImmediate(false);
-            }
+            // 13. Set overlay hidden initially
             overlayView.SetImmediate(false);
 
+            // 14. Mark scene dirty (do NOT call SaveScene automatically)
             EditorSceneManager.MarkSceneDirty(activeScene);
-            EditorSceneManager.SaveScene(activeScene);
-            Debug.Log("[LobbyWorldCustomizationBuilder] World Customization Overlay built and wired successfully!");
+            Debug.Log("[LobbyWorldCustomizationBuilder] World Customization Overlay built and wired successfully. Scene marked dirty for review.");
         }
 
         private static GameObject CreateStretchUi(string name, Transform parent)
@@ -425,7 +419,7 @@ namespace BlockBlast.Features.Lobby.Editor
 
             var nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
             nameTmp.text = worldTitle;
-            if (font != null) nameTmp.font = font;
+            nameTmp.font = font;
             nameTmp.fontSize = 20f;
             nameTmp.enableAutoSizing = true;
             nameTmp.fontSizeMin = 14f;

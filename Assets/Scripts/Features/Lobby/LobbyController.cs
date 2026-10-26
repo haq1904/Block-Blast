@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BlockBlast.Core.Feedback;
+using BlockBlast.Features.Feedback;
 using BlockBlast.Features.GameFlow.Audio;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
@@ -27,6 +29,11 @@ namespace BlockBlast.Features.Lobby
 
         private IGameSceneNavigator _navigator;
         private IAudioMixerService _audioMixerService;
+        private IHapticService _hapticService;
+        private ICameraShakeService _cameraShakeService;
+        private IFeedbackSettingsStore _feedbackSettingsStore;
+        private HapticSettingsController _hapticSettingsController;
+        private CameraShakeSettingsController _cameraShakeSettingsController;
         private LobbyTabId _currentTab = LobbyTabId.Home;
         private bool _playRequested;
         private bool _isBound;
@@ -58,6 +65,7 @@ namespace BlockBlast.Features.Lobby
         {
             ServiceLocator.TryGet<IGameSceneNavigator>(out _navigator);
             ServiceLocator.TryGet<IAudioMixerService>(out _audioMixerService);
+            InitializeFeedbackSettingsControllers();
             if (_transitionView != null)
             {
                 _transitionView.InitializePanels();
@@ -226,6 +234,8 @@ namespace BlockBlast.Features.Lobby
                 settings.CloseRequested += CloseOverlay;
                 settings.MusicVolumeChanged += HandleMusicVolumeChanged;
                 settings.SfxVolumeChanged += HandleSfxVolumeChanged;
+                settings.HapticEnabledChanged += HandleHapticEnabledChanged;
+                settings.CameraShakeEnabledChanged += HandleCameraShakeEnabledChanged;
             }
 
             var customization = WorldCustomizationOverlay;
@@ -235,6 +245,7 @@ namespace BlockBlast.Features.Lobby
             }
 
             SyncAudioSettingsFromService();
+            SyncFeedbackSettingsToView();
         }
 
         private void UnbindViews()
@@ -248,6 +259,8 @@ namespace BlockBlast.Features.Lobby
                 settings.CloseRequested -= CloseOverlay;
                 settings.MusicVolumeChanged -= HandleMusicVolumeChanged;
                 settings.SfxVolumeChanged -= HandleSfxVolumeChanged;
+                settings.HapticEnabledChanged -= HandleHapticEnabledChanged;
+                settings.CameraShakeEnabledChanged -= HandleCameraShakeEnabledChanged;
             }
 
             var customization = WorldCustomizationOverlay;
@@ -287,7 +300,7 @@ namespace BlockBlast.Features.Lobby
             }
             else
             {
-                highScore = PlayerPrefs.GetInt("HighScore", 0);
+                highScore = GetLocalPlayerDataStore().LoadHighScore();
             }
 
             if (_transitionView != null && _transitionView.HomeView != null)
@@ -335,6 +348,7 @@ namespace BlockBlast.Features.Lobby
             if (overlayId == LobbyOverlayId.Setting)
             {
                 SyncAudioSettingsFromService();
+                SyncFeedbackSettingsToView();
             }
 
             SetWorldButtonsInteractable(false);
@@ -347,6 +361,8 @@ namespace BlockBlast.Features.Lobby
 
         public void CloseOverlay()
         {
+            _feedbackSettingsStore?.Flush();
+
             if (_transitionView != null)
             {
                 _transitionView.HideAllOverlays();
@@ -399,6 +415,82 @@ namespace BlockBlast.Features.Lobby
 
         private void HandleSfxVolumeChanged(float value) =>
             TrySetAudioVolume(AudioChannels.SoundFXVolume, value);
+
+        private void HandleHapticEnabledChanged(bool enabled) =>
+            _hapticSettingsController?.SetEnabled(enabled);
+
+        private void HandleCameraShakeEnabledChanged(bool enabled) =>
+            _cameraShakeSettingsController?.SetEnabled(enabled);
+
+        private void InitializeFeedbackSettingsControllers()
+        {
+            if (_feedbackSettingsStore == null)
+            {
+                _feedbackSettingsStore = new PlayerPrefsFeedbackSettingsStore();
+            }
+
+            if (_hapticService == null)
+            {
+                if (!ServiceLocator.TryGet<IHapticService>(out _hapticService))
+                {
+                    Debug.LogWarning("[LobbyController] IHapticService not registered in ServiceLocator. Haptic settings will be disabled.", this);
+                }
+            }
+
+            if (_cameraShakeService == null)
+            {
+                if (!ServiceLocator.TryGet<ICameraShakeService>(out _cameraShakeService))
+                {
+                    Debug.LogWarning("[LobbyController] ICameraShakeService not registered in ServiceLocator. Camera shake settings will be disabled.", this);
+                }
+            }
+
+            if (_hapticSettingsController == null)
+            {
+                _hapticSettingsController = new HapticSettingsController(_hapticService, _feedbackSettingsStore);
+                _hapticSettingsController.LoadAndApply();
+            }
+
+            if (_cameraShakeSettingsController == null)
+            {
+                _cameraShakeSettingsController = new CameraShakeSettingsController(_cameraShakeService, _feedbackSettingsStore);
+                _cameraShakeSettingsController.LoadAndApply();
+            }
+        }
+
+        public void SetFeedbackSettingsForTest(
+            IHapticService hapticService,
+            ICameraShakeService cameraShakeService,
+            IFeedbackSettingsStore store)
+        {
+            _hapticService = hapticService;
+            _cameraShakeService = cameraShakeService;
+            _feedbackSettingsStore = store;
+            _hapticSettingsController = new HapticSettingsController(_hapticService, _feedbackSettingsStore);
+            _cameraShakeSettingsController = new CameraShakeSettingsController(_cameraShakeService, _feedbackSettingsStore);
+            _hapticSettingsController.LoadAndApply();
+            _cameraShakeSettingsController.LoadAndApply();
+            SyncFeedbackSettingsToView();
+        }
+
+        public void SyncFeedbackSettingsToView()
+        {
+            var settings = SettingsOverlay;
+            if (settings == null) return;
+
+            if (_hapticSettingsController == null || _cameraShakeSettingsController == null)
+            {
+                InitializeFeedbackSettingsControllers();
+            }
+
+            bool hapticAvailable = _hapticService != null;
+            bool hapticEnabled = _hapticSettingsController != null && _hapticSettingsController.IsEnabled;
+            settings.SetHapticEnabled(hapticEnabled, hapticAvailable);
+
+            bool cameraAvailable = _cameraShakeService != null;
+            bool cameraEnabled = _cameraShakeSettingsController != null && _cameraShakeSettingsController.IsEnabled;
+            settings.SetCameraShakeEnabled(cameraEnabled, cameraAvailable);
+        }
 
         private void SetWorldButtonsInteractable(bool interactable)
         {
@@ -459,6 +551,8 @@ namespace BlockBlast.Features.Lobby
 
         private void OnDisable()
         {
+            _feedbackSettingsStore?.Flush();
+
             _destroyCts?.Cancel();
             _destroyCts?.Dispose();
             _destroyCts = null;
@@ -477,6 +571,8 @@ namespace BlockBlast.Features.Lobby
 
         private void OnDestroy()
         {
+            _feedbackSettingsStore?.Flush();
+
             _destroyCts?.Cancel();
             _destroyCts?.Dispose();
             _destroyCts = null;

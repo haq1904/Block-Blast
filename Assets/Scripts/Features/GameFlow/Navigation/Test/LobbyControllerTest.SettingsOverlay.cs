@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using BlockBlast.Core.Feedback;
+using BlockBlast.Features.Feedback;
 using BlockBlast.Features.Lobby;
 using NUnit.Framework;
 using UnityEngine;
@@ -7,6 +10,53 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
 {
     public partial class LobbyControllerTest
     {
+        private class FakeFeedbackSettingsStore : IFeedbackSettingsStore
+        {
+            public readonly Dictionary<string, bool> Storage = new Dictionary<string, bool>();
+            public int FlushCount { get; private set; }
+            public bool IsDirty { get; private set; }
+
+            public bool HasKey(string key) => Storage.ContainsKey(key);
+            public bool GetBool(string key, bool defaultValue = false) => Storage.TryGetValue(key, out var val) ? val : defaultValue;
+            public void SetBool(string key, bool value)
+            {
+                Storage[key] = value;
+                IsDirty = true;
+            }
+            public void Flush()
+            {
+                if (IsDirty)
+                {
+                    FlushCount++;
+                    IsDirty = false;
+                }
+            }
+        }
+
+        private class FakeHapticService : IHapticService
+        {
+            public bool Enabled { get; set; } = true;
+            public int TryPlayCount { get; private set; }
+            public HapticCapabilities Capabilities => HapticCapabilities.BasicPulse;
+            public bool TryPlay(HapticProfileSO profile, float runtimeIntensityScale = 1f)
+            {
+                TryPlayCount++;
+                return Enabled;
+            }
+        }
+
+        private class FakeCameraShakeService : ICameraShakeService
+        {
+            public bool Enabled { get; set; } = true;
+            public int TryPlayCount { get; private set; }
+            public bool IsSupported => true;
+            public bool TryPlay(in CameraShakeRequest request)
+            {
+                TryPlayCount++;
+                return Enabled;
+            }
+        }
+
         private class FakeAudioMixerService : IAudioMixerService
         {
             public float MasterVolume = 1f;
@@ -51,7 +101,11 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             }
         }
 
-        private LobbySettingsOverlayView CreateSettingsOverlayView(out Slider musicSlider, out Slider sfxSlider)
+        private LobbySettingsOverlayView CreateSettingsOverlayView(
+            out Slider musicSlider,
+            out Slider sfxSlider,
+            out Toggle vibrationToggle,
+            out Toggle cameraShakeToggle)
         {
             var go = new GameObject("TestSettingsOverlay");
             _createdObjects.Add(go);
@@ -66,8 +120,22 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             sfxGo.transform.SetParent(go.transform);
             sfxSlider = sfxGo.AddComponent<Slider>();
 
+            var vibGo = new GameObject("VibrationToggle");
+            vibGo.transform.SetParent(go.transform);
+            vibrationToggle = vibGo.AddComponent<Toggle>();
+
+            var shakeGo = new GameObject("CameraShakeToggle");
+            shakeGo.transform.SetParent(go.transform);
+            cameraShakeToggle = shakeGo.AddComponent<Toggle>();
+
             view.SetSlidersForTest(musicSlider, sfxSlider);
+            view.SetFeedbackTogglesForTest(vibrationToggle, cameraShakeToggle);
             return view;
+        }
+
+        private LobbySettingsOverlayView CreateSettingsOverlayView(out Slider musicSlider, out Slider sfxSlider)
+        {
+            return CreateSettingsOverlayView(out musicSlider, out sfxSlider, out _, out _);
         }
 
         [Test]
@@ -254,6 +322,123 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
 
             Assert.AreEqual(0.88f, musicSlider.value, 0.001f);
             Assert.AreEqual(0.77f, sfxSlider.value, 0.001f);
+        }
+
+        [Test]
+        public void SettingsOverlay_InitialSync_AppliesFeedbackServiceStateWithoutInvokingEvents()
+        {
+            var fakeHaptic = new FakeHapticService { Enabled = false };
+            var fakeCamera = new FakeCameraShakeService { Enabled = true };
+            var fakeStore = new FakeFeedbackSettingsStore();
+
+            var settingsView = CreateSettingsOverlayView(out _, out _, out var vibToggle, out var shakeToggle);
+            _controller.SetFeedbackSettingsForTest(fakeHaptic, fakeCamera, fakeStore);
+            _controller.SettingsOverlay = settingsView;
+
+            var onDisable = typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            onDisable?.Invoke(_controller, null);
+            onEnable?.Invoke(_controller, null);
+
+            Assert.IsFalse(vibToggle.isOn, "Vibration toggle should sync to false.");
+            Assert.IsTrue(shakeToggle.isOn, "Camera shake toggle should sync to true.");
+            Assert.AreEqual(0, fakeStore.FlushCount, "Initial sync must not flush store.");
+        }
+
+        [Test]
+        public void SettingsOverlay_ChangingVibrationToggle_OnlyUpdatesHapticServiceAndStore()
+        {
+            var fakeHaptic = new FakeHapticService { Enabled = true };
+            var fakeCamera = new FakeCameraShakeService { Enabled = true };
+            var fakeStore = new FakeFeedbackSettingsStore();
+
+            var settingsView = CreateSettingsOverlayView(out _, out _, out var vibToggle, out var shakeToggle);
+            _controller.SetFeedbackSettingsForTest(fakeHaptic, fakeCamera, fakeStore);
+            _controller.SettingsOverlay = settingsView;
+
+            var onDisable = typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            onDisable?.Invoke(_controller, null);
+            onEnable?.Invoke(_controller, null);
+
+            vibToggle.isOn = false;
+
+            Assert.IsFalse(fakeHaptic.Enabled, "Haptic service should be disabled.");
+            Assert.IsTrue(fakeCamera.Enabled, "Camera shake service must remain unaffected.");
+            Assert.IsTrue(fakeStore.HasKey(HapticSettingsController.PreferenceKey));
+            Assert.IsFalse(fakeStore.GetBool(HapticSettingsController.PreferenceKey));
+            Assert.AreEqual(0, fakeStore.FlushCount, "Toggle change must not trigger disk flush immediately.");
+        }
+
+        [Test]
+        public void SettingsOverlay_ChangingCameraShakeToggle_OnlyUpdatesCameraShakeServiceAndStore()
+        {
+            var fakeHaptic = new FakeHapticService { Enabled = true };
+            var fakeCamera = new FakeCameraShakeService { Enabled = true };
+            var fakeStore = new FakeFeedbackSettingsStore();
+
+            var settingsView = CreateSettingsOverlayView(out _, out _, out var vibToggle, out var shakeToggle);
+            _controller.SetFeedbackSettingsForTest(fakeHaptic, fakeCamera, fakeStore);
+            _controller.SettingsOverlay = settingsView;
+
+            var onDisable = typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            onDisable?.Invoke(_controller, null);
+            onEnable?.Invoke(_controller, null);
+
+            shakeToggle.isOn = false;
+
+            Assert.IsFalse(fakeCamera.Enabled, "Camera shake service should be disabled.");
+            Assert.IsTrue(fakeHaptic.Enabled, "Haptic service must remain unaffected.");
+            Assert.IsTrue(fakeStore.HasKey(CameraShakeSettingsController.PreferenceKey));
+            Assert.IsFalse(fakeStore.GetBool(CameraShakeSettingsController.PreferenceKey));
+            Assert.AreEqual(0, fakeStore.FlushCount, "Toggle change must not trigger disk flush immediately.");
+        }
+
+        [Test]
+        public void SettingsOverlay_ClosingOverlay_FlushesFeedbackSettingsStore()
+        {
+            var fakeHaptic = new FakeHapticService { Enabled = true };
+            var fakeCamera = new FakeCameraShakeService { Enabled = true };
+            var fakeStore = new FakeFeedbackSettingsStore();
+
+            var settingsView = CreateSettingsOverlayView(out _, out _, out var vibToggle, out _);
+            _controller.SetFeedbackSettingsForTest(fakeHaptic, fakeCamera, fakeStore);
+            _controller.SettingsOverlay = settingsView;
+
+            var onDisable = typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            onDisable?.Invoke(_controller, null);
+            onEnable?.Invoke(_controller, null);
+
+            vibToggle.isOn = false;
+            Assert.AreEqual(0, fakeStore.FlushCount);
+
+            _controller.CloseOverlay();
+            Assert.AreEqual(1, fakeStore.FlushCount, "Closing overlay must flush dirty preferences.");
+        }
+
+        [Test]
+        public void SettingsOverlay_MissingOneService_DisablesOnlyCorrespondingToggle()
+        {
+            var fakeHaptic = new FakeHapticService { Enabled = true };
+            var fakeStore = new FakeFeedbackSettingsStore();
+
+            var settingsView = CreateSettingsOverlayView(out _, out _, out var vibToggle, out var shakeToggle);
+            _controller.SetFeedbackSettingsForTest(fakeHaptic, null, fakeStore);
+            _controller.SettingsOverlay = settingsView;
+
+            var onDisable = typeof(LobbyController).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var onEnable = typeof(LobbyController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+            Assert.DoesNotThrow(() =>
+            {
+                onDisable?.Invoke(_controller, null);
+                onEnable?.Invoke(_controller, null);
+            });
+
+            Assert.IsTrue(vibToggle.interactable, "Vibration toggle should be interactable when haptic service is present.");
+            Assert.IsFalse(shakeToggle.interactable, "Camera shake toggle should be disabled when camera shake service is missing.");
         }
     }
 }
