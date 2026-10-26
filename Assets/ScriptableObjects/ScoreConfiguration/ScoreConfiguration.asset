@@ -23,4 +23,3 @@ MonoBehaviour:
   prewarmWindowTurns: 3
   comboGraceTurns: 3
   allClearBonus: 0
-  highScoreSaveKey: BLOCK_BLAST_HIGH_SCORE

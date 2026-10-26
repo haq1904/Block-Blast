@@ -40,9 +40,6 @@ public class ScoreConfiguration : ScriptableObject
     [Tooltip("Extra bonus points awarded when the board is completely emptied")]
     public int allClearBonus = 300;
 
-    [Header("Persistence")]
-    [Tooltip("PlayerPrefs key used to persist high score")]
-    public string highScoreSaveKey = "BLOCK_BLAST_HIGH_SCORE";
 
     public int CalculateLineClearScore(int linesCount)
     {

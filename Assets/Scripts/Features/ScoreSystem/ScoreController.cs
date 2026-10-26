@@ -1,4 +1,5 @@
 using System;
+using BlockBlast.Features.PlayerData;
 using UnityEngine;
 
 public class ScoreController : MonoBehaviour, IScoreService
@@ -7,6 +8,7 @@ public class ScoreController : MonoBehaviour, IScoreService
 
     private ScoreModel model;
     private IGridService gridService;
+    private ILocalPlayerDataStore playerDataStore;
 
     public int CurrentScore => model != null ? model.CurrentScore : 0;
     public int HighScore => model != null ? model.HighScore : 0;
@@ -26,7 +28,12 @@ public class ScoreController : MonoBehaviour, IScoreService
             config = ScriptableObject.CreateInstance<ScoreConfiguration>();
         }
 
-        int savedHighScore = PlayerPrefs.GetInt(config.highScoreSaveKey, 0);
+        if (playerDataStore == null)
+        {
+            playerDataStore = PlayerDataLocalStoreFactory.CreateDefault();
+        }
+
+        int savedHighScore = playerDataStore.LoadHighScore();
         model = new ScoreModel(savedHighScore);
 
         ServiceLocator.Register<IScoreService>(this);
@@ -51,11 +58,16 @@ public class ScoreController : MonoBehaviour, IScoreService
         ServiceLocator.Unregister<IScoreService>(this);
     }
 
-    public void Initialize(ScoreConfiguration customConfig, IGridService customGridService = null)
+    public void Initialize(
+        ScoreConfiguration customConfig,
+        IGridService customGridService = null,
+        ILocalPlayerDataStore customPlayerDataStore = null)
     {
         if (customConfig != null) config = customConfig;
+        if (customPlayerDataStore != null) playerDataStore = customPlayerDataStore;
+        else if (playerDataStore == null) playerDataStore = PlayerDataLocalStoreFactory.CreateDefault();
 
-        int savedHighScore = PlayerPrefs.GetInt(config.highScoreSaveKey, 0);
+        int savedHighScore = playerDataStore.LoadHighScore();
         model = new ScoreModel(savedHighScore);
 
         if (customGridService != null)
@@ -118,8 +130,8 @@ public class ScoreController : MonoBehaviour, IScoreService
 
             if (model.HighScore > previousHighScore)
             {
-                PlayerPrefs.SetInt(config.highScoreSaveKey, model.HighScore);
-                PlayerPrefs.Save();
+                if (playerDataStore == null) playerDataStore = PlayerDataLocalStoreFactory.CreateDefault();
+                playerDataStore.SaveHighScore(model.HighScore);
                 OnHighScoreChanged?.Invoke(model.HighScore);
             }
         }
