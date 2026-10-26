@@ -1,0 +1,31 @@
+{
+    "name": "BlockBlast.Features.PlayerCloud.Test",
+    "rootNamespace": "",
+    "references": [
+        "GUID:388217bc777637447858ae8c194fc442",
+        "GUID:478e5cec54e178745b5bd369124d2267",
+        "GUID:f52a21acd3d8e6f40bfff1a12a5b2cba",
+        "Unity.Services.CloudCode",
+        "Unity.Services.CloudSave",
+        "Unity.Services.Core",
+        "Unity.Services.Authentication",
+        "Unity.Services.Core.Environments",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
