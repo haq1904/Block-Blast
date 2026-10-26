@@ -1,0 +1,16 @@
+{
+    "name": "BlockBlast.Integrations.Haptics",
+    "rootNamespace": "BlockBlast.Integrations.Haptics",
+    "references": [
+        "GUID:388217bc777637447858ae8c194fc442"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
