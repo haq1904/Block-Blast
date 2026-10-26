@@ -118,3 +118,10 @@ __pycache__/
 !/[Tt]ools/UIAssets/
 /[Pp]lans/
 
+# Cloud Code server module
+!/CubePuzzle3DPlayerData/**/*.sln
+!/CubePuzzle3DPlayerData/**/*.csproj
+/CubePuzzle3DPlayerData/**/bin/
+/CubePuzzle3DPlayerData/**/obj/
+
+

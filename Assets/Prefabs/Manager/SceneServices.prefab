@@ -325,6 +325,11 @@ GameObject:
   - component: {fileID: 5433016335358944705}
   - component: {fileID: 1704995786263492966}
   - component: {fileID: 3269987017067946802}
+  - component: {fileID: 2106751644020172976}
+  - component: {fileID: 2106751644020172977}
+  - component: {fileID: 2805961287898489023}
+  - component: {fileID: 7535607565911141984}
+  - component: {fileID: 4348596184107234016}
   m_Layer: 0
   m_Name: SceneServices
   m_TagString: Untagged
@@ -387,6 +392,68 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3097831842687504d958f1883cfd035e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.CloudServices.UGSBootstrap
+--- !u!114 &2106751644020172976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81d9f05a10994d5fa369ce579e0a6d21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Integrations.Haptics::BlockBlast.Integrations.Haptics.NativeMobileHapticBackend
+--- !u!114 &2106751644020172977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b2a14e70e0ace8459c53fcaa096000c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Core::BlockBlast.Core.Feedback.HapticServiceHost
+  _settings: {fileID: 11400000, guid: 47d571e60107dd54f907f1762377aa74, type: 2}
+  _customBackend: {fileID: 2106751644020172976}
+--- !u!114 &2805961287898489023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d931e133109825f4183f5307c6d6fdc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.PlayerCloud.PlayerCloudServiceHost
+--- !u!114 &7535607565911141984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55fc27fe841675e45af5d2f7ab56b988, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.PlayerSession.GameResultSubmissionHost
+--- !u!114 &4348596184107234016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c84e3520a1319f498b19e6834dd6ac6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.PlayerIdentity.PlayerIdentityServiceHost
 --- !u!1 &2588700702430483745
 GameObject:
   m_ObjectHideFlags: 0

@@ -40,7 +40,7 @@ namespace BlockBlast.Features.CloudServices
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (success)
             {
-                Debug.Log($"[UGSBootstrap] Initialized environment '{_service.EnvironmentName}' with PlayerId: {_service.PlayerId}", this);
+                Debug.Log($"[UGSBootstrap] Initialized environment '{_service.EnvironmentName}'.", this);
             }
             else
             {

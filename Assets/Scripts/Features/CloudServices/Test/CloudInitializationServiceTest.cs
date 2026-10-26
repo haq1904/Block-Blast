@@ -233,5 +233,53 @@ namespace BlockBlast.Features.CloudServices.Test
                 UnityEngine.Object.DestroyImmediate(hostGo);
             }
         }
+
+        [Test]
+        public async Task PlayerId_ReflectsLiveGatewayIdentity_WhenGatewayIdentityChanges()
+        {
+            var gateway = new FakeUnityServicesGateway { PlayerId = "initial-player" };
+            var service = new CloudInitializationService(gateway, "development");
+
+            await service.InitializeAsync();
+            Assert.AreEqual("initial-player", service.PlayerId);
+
+            gateway.PlayerId = "switched-player";
+            Assert.AreEqual("switched-player", service.PlayerId);
+        }
+
+        [Test]
+        public async Task IsReady_ReturnsFalse_WhenGatewayIsSignedOut()
+        {
+            var gateway = new FakeUnityServicesGateway { PlayerId = "player-1" };
+            var service = new CloudInitializationService(gateway, "development");
+
+            await service.InitializeAsync();
+            Assert.IsTrue(service.IsReady);
+
+            gateway.IsSignedIn = false;
+            Assert.IsFalse(service.IsReady);
+
+            gateway.IsSignedIn = true;
+            Assert.IsTrue(service.IsReady);
+        }
+
+        [Test]
+        public async Task InitializeAsync_Reinitializes_WhenPreviouslyReadyButSignedOut()
+        {
+            var gateway = new FakeUnityServicesGateway { PlayerId = "player-1" };
+            var service = new CloudInitializationService(gateway, "development");
+
+            await service.InitializeAsync();
+            Assert.AreEqual(1, gateway.SignInCallCount);
+
+            gateway.IsSignedIn = false;
+            gateway.PlayerId = "player-2";
+
+            bool reinitSuccess = await service.InitializeAsync();
+            Assert.IsTrue(reinitSuccess);
+            Assert.AreEqual(2, gateway.SignInCallCount);
+            Assert.AreEqual("player-2", service.PlayerId);
+            Assert.IsTrue(service.IsReady);
+        }
     }
 }

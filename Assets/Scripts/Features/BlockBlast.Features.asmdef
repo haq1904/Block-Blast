@@ -9,7 +9,11 @@
         "DOTween.Modules",
         "Unity.Services.Core",
         "Unity.Services.Core.Environments",
-        "Unity.Services.Authentication"
+        "Unity.Services.Authentication",
+        "Unity.Services.CloudCode",
+        "Unity.Services.CloudSave",
+        "GUID:f52a21acd3d8e6f40bfff1a12a5b2cba",
+        "Google.Play.Games"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

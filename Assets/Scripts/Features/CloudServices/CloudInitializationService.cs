@@ -36,6 +36,11 @@ namespace BlockBlast.Features.CloudServices
             {
                 lock (_lock)
                 {
+                    if (_gateway.IsSignedIn && !string.IsNullOrEmpty(_gateway.PlayerId))
+                    {
+                        return _gateway.PlayerId;
+                    }
+
                     return _playerId;
                 }
             }
@@ -47,7 +52,9 @@ namespace BlockBlast.Features.CloudServices
             {
                 lock (_lock)
                 {
-                    return _state == CloudInitializationState.Ready;
+                    return _state == CloudInitializationState.Ready
+                        && _gateway.IsSignedIn
+                        && !string.IsNullOrEmpty(_gateway.PlayerId);
                 }
             }
         }
@@ -64,7 +71,9 @@ namespace BlockBlast.Features.CloudServices
         {
             lock (_lock)
             {
-                if (_state == CloudInitializationState.Ready)
+                if (_state == CloudInitializationState.Ready
+                    && _gateway.IsSignedIn
+                    && !string.IsNullOrEmpty(_gateway.PlayerId))
                 {
                     return Task.FromResult(true);
                 }

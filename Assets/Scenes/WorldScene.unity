@@ -970,6 +970,8 @@ GameObject:
   - component: {fileID: 397464259}
   - component: {fileID: 397464261}
   - component: {fileID: 397464260}
+  - component: {fileID: 397464262}
+  - component: {fileID: 397464263}
   m_Layer: 0
   m_Name: WorldCameraRig
   m_TagString: Untagged
@@ -1026,6 +1028,33 @@ MonoBehaviour:
   _duration: 3
   _ease: 28
   _backOvershoot: 5
+--- !u!114 &397464262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397464258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06c9e2a13e62b774c8d3c778d8128204, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Integrations.Cinemachine::BlockBlast.Integrations.Cinemachine.CinemachineCameraShakeBackend
+  _defaultEmitterOrigin: {fileID: 2062340884}
+--- !u!114 &397464263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397464258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51e54ff8365683c4b81b0b534396b09f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Core::BlockBlast.Core.Feedback.CameraShakeServiceHost
+  _settings: {fileID: 11400000, guid: a0d94ea300121164f9f88c05454984ed, type: 2}
+  _backendComponent: {fileID: 397464262}
 --- !u!4 &403284917 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 36c5c27154b8aac40b59cd75e8524142, type: 3}
@@ -5468,6 +5497,7 @@ GameObject:
   - component: {fileID: 2062340887}
   - component: {fileID: 2062340886}
   - component: {fileID: 2062340885}
+  - component: {fileID: 2062340889}
   m_Layer: 0
   m_Name: WorldCamera
   m_TagString: MainCamera
@@ -5609,6 +5639,28 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!114 &2062340889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2062340883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c11265b855408d42af33d62691f5194, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ChannelMask: 1
+  Gain: 1
+  Use2DDistance: 0
+  UseLocalSpace: 1
+  ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    Duration: 0
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1001 &2063331921
 PrefabInstance:
   m_ObjectHideFlags: 0
