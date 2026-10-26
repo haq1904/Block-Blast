@@ -536,6 +536,7 @@ GameObject:
   - component: {fileID: 476233553}
   - component: {fileID: 476233552}
   - component: {fileID: 476233551}
+  - component: {fileID: 476233554}
   m_Layer: 0
   m_Name: SpawnSystem
   m_TagString: Untagged
@@ -583,6 +584,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1007710620}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &476233554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476233550}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f0a3ab8258e3bd4cbb479cdc55180a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.PlayerSession.GameSessionController
 --- !u!4 &528053383 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ca1772808284d0a4ba69c30e1cf60c7b, type: 3}
