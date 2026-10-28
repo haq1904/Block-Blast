@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c86d800217f41d44bb9bfc4e9d2a3c0, type: 3}
+  m_Name: WorldCatalog
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.WorldCustomization.WorldCatalogSO
+  _defaultWorldId: default
+  _worlds:
+  - _id: default
+    _displayName: Default World
+    _thumbnail: {fileID: 0}
+    _worldScene:
+      _ground: {fileID: 6744381047157538185, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+    _lobbyScene:
+      _controllerTab: {fileID: 5855674022224934377, guid: d9788541b4d37ba43b1afd39f0d61675, type: 3}
+      _namePanel: {fileID: 8008366787898039809, guid: dce8e0c824ab4254cb760ee55a1e9626, type: 3}
+    _playScene:
+      _scorePanel: {fileID: 5470474780740522514, guid: 64ebbc51b08095247ae651bdc62834e0, type: 3}
+      _ground: {fileID: 2455131168821116740, guid: c7e7b95f671e85a4cb425eebdcdc19c1, type: 3}

@@ -198,7 +198,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d2d0173c3b009704c9890a6c0056f293, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.GameFlow.Camera.WorldCameraController
   _transitionView: {fileID: 397464261}
 --- !u!114 &397464261
@@ -211,7 +211,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1b91cb18c281eb4f8e104252fb5f03d, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.GameFlow.Camera.WorldCameraTransitionView
   _cameraTransform: {fileID: 2062340884}
   _lobbyPose: {fileID: 894014977}
@@ -229,7 +229,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 06c9e2a13e62b774c8d3c778d8128204, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: BlockBlast.Integrations.Cinemachine::BlockBlast.Integrations.Cinemachine.CinemachineCameraShakeBackend
   _defaultEmitterOrigin: {fileID: 2062340884}
 --- !u!114 &397464263
@@ -242,7 +242,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 51e54ff8365683c4b81b0b534396b09f, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: BlockBlast.Core::BlockBlast.Core.Feedback.CameraShakeServiceHost
   _settings: {fileID: 11400000, guid: a0d94ea300121164f9f88c05454984ed, type: 2}
   _backendComponent: {fileID: 397464262}
@@ -355,8 +355,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
   m_CustomShadowLayers: 0
@@ -384,7 +384,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e67a90c2efc0b7740bdf8fdcc6a6a612, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.WorldLighting.DirectionalSunCycleView
   _fullCycleDuration: 180
   _useUnscaledTime: 1
@@ -454,8 +454,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_IsGlobal: 1
   priority: 0
   blendDistance: 0
@@ -592,7 +592,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c49b4cc203aa6414fae5c798d1d0e7d6, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.PhysicsRaycaster
   m_EventMask:
     serializedVersion: 2
@@ -608,8 +608,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
@@ -711,8 +711,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0c11265b855408d42af33d62691f5194, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   ChannelMask: 1
   Gain: 1
   Use2DDistance: 0
@@ -723,6 +723,37 @@ MonoBehaviour:
     FrequencyGain: 1
     Duration: 0
     m_NoiseOffsets: {x: 0, y: 0, z: 0}
+--- !u!1 &2064198054
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2064198055}
+  m_Layer: 0
+  m_Name: GroundAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2064198055
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2064198054}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1494746612}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &4793278862379208287
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -792,10 +823,38 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_RemovedGameObjects:
+    - {fileID: 1074266148547798271, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3094229061858081095, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2064198055}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6744381047157538185, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4793278862379208289}
   m_SourcePrefab: {fileID: 100100000, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+--- !u!1 &4793278862379208288 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6744381047157538185, guid: 9c2724b37eaee2942b6627ae1f10c5af, type: 3}
+  m_PrefabInstance: {fileID: 4793278862379208287}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4793278862379208289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4793278862379208288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998fce1089b510346a014a0501e673b4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.WorldCustomization.WorldEnvironmentHost
+  _slot: 0
+  _mounts:
+  - _part: 0
+    _anchor: {fileID: 2064198055}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

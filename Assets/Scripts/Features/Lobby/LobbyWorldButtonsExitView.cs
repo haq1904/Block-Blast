@@ -63,6 +63,27 @@ namespace BlockBlast.Features.Lobby
             }
         }
 
+        public void SetFeedbackViews(IReadOnlyList<LobbyWorldButtonFeedbackView> views)
+        {
+            ResetImmediate();
+            if (views == null || views.Count == 0)
+            {
+                _feedbackViews = Array.Empty<LobbyWorldButtonFeedbackView>();
+                _cachedRoots = null;
+                _rootsCaptured = false;
+                return;
+            }
+
+            _feedbackViews = new LobbyWorldButtonFeedbackView[views.Count];
+            for (int i = 0; i < views.Count; i++)
+            {
+                _feedbackViews[i] = views[i];
+            }
+            _cachedRoots = null;
+            _rootsCaptured = false;
+            CaptureRootsIfNeeded();
+        }
+
         public Vector3 PreShrinkScale
         {
             get => _preShrinkScale;
@@ -118,7 +139,17 @@ namespace BlockBlast.Features.Lobby
 
         public bool ValidateFeedbackViews(bool isEditorValidation = false)
         {
-            if (_feedbackViews == null || _feedbackViews.Length != 4)
+            if (_feedbackViews == null || _feedbackViews.Length == 0)
+            {
+                if (isEditorValidation)
+                {
+                    return true;
+                }
+                LogValidation("[LobbyWorldButtonsExitView] _feedbackViews must contain exactly 4 references.", isEditorValidation: false);
+                return false;
+            }
+
+            if (_feedbackViews.Length != 4)
             {
                 LogValidation("[LobbyWorldButtonsExitView] _feedbackViews must contain exactly 4 references.", isEditorValidation);
                 return false;

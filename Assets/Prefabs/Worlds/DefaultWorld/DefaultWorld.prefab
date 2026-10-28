@@ -123,6 +123,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3094229061858081095}
+  - component: {fileID: 4987831269343304253}
   m_Layer: 0
   m_Name: DefaultWorld
   m_TagString: Untagged
@@ -146,6 +147,18 @@ Transform:
   - {fileID: 9219397482834692114}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4987831269343304253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6744381047157538185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fd27c9e4eff6a64aa40b8e55913b4cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.WorldCustomization.DefaultWorldReactionView
 --- !u!1 &9197536914575519288
 GameObject:
   m_ObjectHideFlags: 0
