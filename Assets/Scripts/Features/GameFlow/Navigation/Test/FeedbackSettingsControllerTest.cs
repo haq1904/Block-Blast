@@ -207,5 +207,179 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
                 PlayerPrefs.Save();
             }
         }
+
+        // =========================================================================
+        // FeedbackSettingsService (Combined Service) Tests
+        // =========================================================================
+
+        [Test]
+        public void FeedbackSettingsService_WhenKeysMissing_DefaultsToEnabledWithoutSaving()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var camera = new FakeCameraShakeService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+            service.TryBindAvailableServices();
+
+            Assert.IsTrue(service.IsHapticAvailable);
+            Assert.IsTrue(service.IsHapticEnabled);
+            Assert.IsTrue(service.IsCameraShakeAvailable);
+            Assert.IsTrue(service.IsCameraShakeEnabled);
+            Assert.IsFalse(store.HasKey(HapticSettingsController.PreferenceKey));
+            Assert.IsFalse(store.HasKey(CameraShakeSettingsController.PreferenceKey));
+            Assert.AreEqual(0, store.FlushCount);
+        }
+
+        [Test]
+        public void FeedbackSettingsService_WhenKeysPresent_RestoresAndAppliesToServices()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var camera = new FakeCameraShakeService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+            store.SetBool(HapticSettingsController.PreferenceKey, false);
+            store.SetBool(CameraShakeSettingsController.PreferenceKey, true);
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+            service.TryBindAvailableServices();
+
+            Assert.IsFalse(haptic.Enabled, "Stored false must be applied to haptic service.");
+            Assert.IsTrue(camera.Enabled, "Stored true must be applied to camera shake service.");
+            Assert.IsFalse(service.IsHapticEnabled);
+            Assert.IsTrue(service.IsCameraShakeEnabled);
+        }
+
+        [Test]
+        public void FeedbackSettingsService_HapticEarlyBind_AppliesWithoutCameraService()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+            store.SetBool(HapticSettingsController.PreferenceKey, false);
+
+            // Camera service is not available initially
+            var service = new FeedbackSettingsService(store, () => haptic, () => null);
+            service.TryBindAvailableServices();
+
+            Assert.IsTrue(service.IsHapticAvailable);
+            Assert.IsFalse(service.IsHapticEnabled);
+            Assert.IsFalse(haptic.Enabled);
+
+            Assert.IsFalse(service.IsCameraShakeAvailable);
+            Assert.IsFalse(service.AllServicesBound);
+        }
+
+        [Test]
+        public void FeedbackSettingsService_CameraLateBind_AppliesStoredValueWhenServiceBecomesAvailable()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            FakeCameraShakeService camera = null;
+            var store = new FakeFeedbackSettingsStore();
+            store.SetBool(CameraShakeSettingsController.PreferenceKey, false);
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+
+            // First bind: only haptic available
+            service.TryBindAvailableServices();
+            Assert.IsFalse(service.IsCameraShakeAvailable);
+
+            // Camera service appears later (e.g. WorldScene loaded)
+            camera = new FakeCameraShakeService { Enabled = true };
+            service.TryBindAvailableServices();
+
+            Assert.IsTrue(service.IsCameraShakeAvailable);
+            Assert.IsFalse(camera.Enabled, "Camera service must receive stored false preference upon late binding.");
+            Assert.IsFalse(service.IsCameraShakeEnabled);
+            Assert.IsTrue(service.AllServicesBound);
+        }
+
+        [Test]
+        public void FeedbackSettingsService_SetBeforeBind_SavesPreferenceAndAppliesUponLaterBind()
+        {
+            FakeHapticService haptic = null;
+            FakeCameraShakeService camera = null;
+            var store = new FakeFeedbackSettingsStore();
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+
+            // Consumer sets preference before services exist
+            service.SetHapticEnabled(false);
+            service.SetCameraShakeEnabled(false);
+
+            Assert.IsTrue(store.HasKey(HapticSettingsController.PreferenceKey));
+            Assert.IsFalse(store.GetBool(HapticSettingsController.PreferenceKey));
+            Assert.IsTrue(store.HasKey(CameraShakeSettingsController.PreferenceKey));
+            Assert.IsFalse(store.GetBool(CameraShakeSettingsController.PreferenceKey));
+
+            // Services become available
+            haptic = new FakeHapticService { Enabled = true };
+            camera = new FakeCameraShakeService { Enabled = true };
+            service.TryBindAvailableServices();
+
+            Assert.IsFalse(haptic.Enabled, "Haptic service must receive preference recorded before bind.");
+            Assert.IsFalse(camera.Enabled, "Camera service must receive preference recorded before bind.");
+        }
+
+        [Test]
+        public void FeedbackSettingsService_RepeatedBind_IsIdempotent()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var camera = new FakeCameraShakeService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+            service.TryBindAvailableServices();
+
+            // Toggle haptic off
+            service.SetHapticEnabled(false);
+            Assert.IsFalse(haptic.Enabled);
+
+            // Repeated bind calls must not reset state to service defaults
+            service.TryBindAvailableServices();
+            service.TryBindAvailableServices();
+
+            Assert.IsFalse(haptic.Enabled, "Repeated binding must not overwrite current settings.");
+            Assert.IsTrue(service.AllServicesBound);
+        }
+
+        [Test]
+        public void FeedbackSettingsService_FeatureIndependence_TogglesDoNotMutateUnrelatedFeature()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var camera = new FakeCameraShakeService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => camera);
+            service.TryBindAvailableServices();
+
+            service.SetHapticEnabled(false);
+            Assert.IsFalse(haptic.Enabled);
+            Assert.IsTrue(camera.Enabled, "Changing haptic must not affect camera shake.");
+
+            service.SetCameraShakeEnabled(false);
+            Assert.IsFalse(camera.Enabled);
+            Assert.IsFalse(haptic.Enabled, "Changing camera shake must not affect haptic.");
+        }
+
+        [Test]
+        public void FeedbackSettingsService_DeferredFlush_OnlyFlushesWhenDirty()
+        {
+            var haptic = new FakeHapticService { Enabled = true };
+            var store = new FakeFeedbackSettingsStore();
+
+            var service = new FeedbackSettingsService(store, () => haptic, () => null);
+            service.TryBindAvailableServices();
+
+            Assert.AreEqual(0, store.FlushCount);
+
+            service.SetHapticEnabled(false);
+            Assert.AreEqual(0, store.FlushCount, "Setting preference must not flush immediately.");
+
+            service.Flush();
+            Assert.AreEqual(1, store.FlushCount);
+
+            // Subsequent flush when clean is no-op
+            service.Flush();
+            Assert.AreEqual(1, store.FlushCount);
+        }
     }
 }

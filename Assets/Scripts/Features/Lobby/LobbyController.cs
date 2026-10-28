@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BlockBlast.Core.Feedback;
 using BlockBlast.Features.Feedback;
+using BlockBlast.Features.Feedback.Audio;
 using BlockBlast.Features.GameFlow.Audio;
 using BlockBlast.Features.GameFlow.Camera;
 using BlockBlast.Features.GameFlow.Navigation;
@@ -28,12 +30,8 @@ namespace BlockBlast.Features.Lobby
         [SerializeField] private LobbyWorldButtonView[] _worldButtons;
 
         private IGameSceneNavigator _navigator;
-        private IAudioMixerService _audioMixerService;
-        private IHapticService _hapticService;
-        private ICameraShakeService _cameraShakeService;
-        private IFeedbackSettingsStore _feedbackSettingsStore;
-        private HapticSettingsController _hapticSettingsController;
-        private CameraShakeSettingsController _cameraShakeSettingsController;
+        private IAudioVolumeSettingsService _audioVolumeSettingsService;
+        private IFeedbackSettingsService _feedbackSettingsService;
         private LobbyTabId _currentTab = LobbyTabId.Home;
         private bool _playRequested;
         private bool _isBound;
@@ -64,74 +62,102 @@ namespace BlockBlast.Features.Lobby
         private void Awake()
         {
             ServiceLocator.TryGet<IGameSceneNavigator>(out _navigator);
-            ServiceLocator.TryGet<IAudioMixerService>(out _audioMixerService);
-            InitializeFeedbackSettingsControllers();
+            ServiceLocator.TryGet<IAudioVolumeSettingsService>(out _audioVolumeSettingsService);
+            ServiceLocator.TryGet<IFeedbackSettingsService>(out _feedbackSettingsService);
             if (_transitionView != null)
             {
                 _transitionView.InitializePanels();
             }
-            ValidateWorldButtons();
+            if (_worldButtons != null && _worldButtons.Length > 0)
+            {
+                ValidateWorldButtons();
+            }
         }
 
-        public bool ValidateWorldButtons(bool isEditorValidation = false, bool requireEnabled = true)
+        public bool ValidateWorldButtons(bool isEditorValidation = false, bool requireEnabled = true, bool logFailure = true)
         {
-            if (_worldButtons == null || _worldButtons.Length != 4)
+            return ValidateWorldButtons(_worldButtons, requireEnabled, logFailure, isEditorValidation);
+        }
+
+        public bool ValidateWorldButtons(IReadOnlyList<LobbyWorldButtonView> buttons, bool requireEnabled = true, bool logFailure = true, bool isEditorValidation = false)
+        {
+            if (buttons == null || buttons.Count == 0)
             {
-                LogValidation("[LobbyController] _worldButtons must contain exactly 4 prop buttons.", isEditorValidation);
+                if (isEditorValidation)
+                {
+                    return true;
+                }
+
+                if (logFailure)
+                {
+                    LogValidation("[LobbyController] _worldButtons must contain exactly 4 prop buttons.", isEditorValidation);
+                }
                 return false;
             }
 
-            var uniqueViews = new System.Collections.Generic.HashSet<LobbyWorldButtonView>();
-            var uniqueActions = new System.Collections.Generic.HashSet<LobbyWorldButtonAction>();
+            if (buttons.Count != 4)
+            {
+                if (logFailure)
+                {
+                    LogValidation("[LobbyController] _worldButtons must contain exactly 4 prop buttons.", isEditorValidation);
+                }
+                return false;
+            }
+
+            var uniqueViews = new HashSet<LobbyWorldButtonView>();
+            var uniqueActions = new HashSet<LobbyWorldButtonAction>();
             int expectedLayer = LayerMask.NameToLayer("LobbyInteractable");
             if (expectedLayer < 0)
             {
-                LogValidation("[LobbyController] Required layer 'LobbyInteractable' is missing.", isEditorValidation);
+                if (logFailure)
+                {
+                    LogValidation("[LobbyController] Required layer 'LobbyInteractable' is missing.", isEditorValidation);
+                }
                 return false;
             }
 
-            for (int i = 0; i < _worldButtons.Length; i++)
+            for (int i = 0; i < buttons.Count; i++)
             {
-                var btn = _worldButtons[i];
+                var btn = buttons[i];
                 if (btn == null)
                 {
-                    LogValidation($"[LobbyController] World button at index {i} is null.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] World button at index {i} is null.", isEditorValidation);
                     return false;
                 }
 
                 if (!uniqueViews.Add(btn))
                 {
-                    LogValidation($"[LobbyController] Duplicate button view reference '{btn.name}' at index {i}.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] Duplicate button view reference '{btn.name}' at index {i}.", isEditorValidation);
                     return false;
                 }
 
                 if (!uniqueActions.Add(btn.Action))
                 {
-                    LogValidation($"[LobbyController] Duplicate action '{btn.Action}' found on world button '{btn.name}'.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] Duplicate action '{btn.Action}' found on world button '{btn.name}'.", isEditorValidation);
                     return false;
                 }
 
                 if (btn.HitCollider == null)
                 {
-                    LogValidation($"[LobbyController] World button '{btn.name}' is missing a Collider.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] World button '{btn.name}' is missing a Collider.", isEditorValidation);
                     return false;
                 }
 
                 if (btn.HitCollider.gameObject != btn.gameObject)
                 {
-                    LogValidation($"[LobbyController] World button '{btn.name}' collider belongs to another GameObject ('{btn.HitCollider.gameObject.name}').", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] World button '{btn.name}' collider belongs to another GameObject ('{btn.HitCollider.gameObject.name}').", isEditorValidation);
                     return false;
                 }
 
                 if (requireEnabled && !btn.HitCollider.enabled)
                 {
-                    LogValidation($"[LobbyController] World button '{btn.name}' collider is disabled.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] World button '{btn.name}' collider is disabled.", isEditorValidation);
                     return false;
                 }
 
                 if (btn.gameObject.layer != expectedLayer)
                 {
-                    LogValidation($"[LobbyController] World button '{btn.name}' is on layer '{LayerMask.LayerToName(btn.gameObject.layer)}', expected 'LobbyInteractable'.", isEditorValidation);
+                    if (logFailure) LogValidation($"[LobbyController] World button '{btn.name}' is on layer '{LayerMask.LayerToName(btn.gameObject.layer)}', expected 'LobbyInteractable'.", isEditorValidation);
                     return false;
                 }
             }
@@ -141,11 +167,41 @@ namespace BlockBlast.Features.Lobby
                 !uniqueActions.Contains(LobbyWorldButtonAction.GameCenter) ||
                 !uniqueActions.Contains(LobbyWorldButtonAction.Settings))
             {
-                LogValidation("[LobbyController] _worldButtons must contain actions: Play, Customization, GameCenter, and Settings.", isEditorValidation);
+                if (logFailure) LogValidation("[LobbyController] _worldButtons must contain actions: Play, Customization, GameCenter, and Settings.", isEditorValidation);
                 return false;
             }
 
             return true;
+        }
+
+        public bool ValidateButtonsList(IReadOnlyList<LobbyWorldButtonView> buttons, bool isEditorValidation = false, bool requireEnabled = true, bool logFailure = true)
+        {
+            return ValidateWorldButtons(buttons, requireEnabled, logFailure, isEditorValidation);
+        }
+
+        public void BindWorldButtonClicks(IReadOnlyList<LobbyWorldButtonView> buttons)
+        {
+            if (buttons == null) return;
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                if (buttons[i] != null)
+                {
+                    buttons[i].Clicked -= OnWorldButtonClicked;
+                    buttons[i].Clicked += OnWorldButtonClicked;
+                }
+            }
+        }
+
+        public void UnbindWorldButtonClicks(IReadOnlyList<LobbyWorldButtonView> buttons)
+        {
+            if (buttons == null) return;
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                if (buttons[i] != null)
+                {
+                    buttons[i].Clicked -= OnWorldButtonClicked;
+                }
+            }
         }
 
         private void LogValidation(string message, bool isEditorValidation)
@@ -177,14 +233,12 @@ namespace BlockBlast.Features.Lobby
                 _worldButtonsExitView.ResetImmediate();
             }
 
-            if (!ValidateWorldButtons(requireEnabled: !_hasBoundValidButtons))
-            {
-                return;
-            }
-
             BindViews();
-            _hasBoundValidButtons = true;
-            _ = GateWorldButtonsUntilNavigationIdleAsync(_destroyCts.Token);
+
+            if (_hasBoundValidButtons && _destroyCts != null)
+            {
+                _ = GateWorldButtonsUntilNavigationIdleAsync(_destroyCts.Token);
+            }
         }
 
         private void Start()
@@ -207,40 +261,52 @@ namespace BlockBlast.Features.Lobby
             if (_isBound) return;
             _isBound = true;
 
-            if (_worldButtons != null)
+            BindStaticViews();
+            BindWorldCustomization();
+
+            if (_worldButtons != null && _worldButtons.Length > 0)
             {
-                for (int i = 0; i < _worldButtons.Length; i++)
+                if (ValidateWorldButtons(requireEnabled: !_hasBoundValidButtons, logFailure: true))
                 {
-                    if (_worldButtons[i] != null)
-                    {
-                        _worldButtons[i].Clicked += OnWorldButtonClicked;
-                    }
+                    BindWorldButtonClicks(_worldButtons);
+                    _hasBoundValidButtons = true;
                 }
             }
+        }
 
+        private void BindStaticViews()
+        {
             if (_transitionView != null && _transitionView.HomeView != null)
             {
+                _transitionView.HomeView.PlayRequested -= OnPlayRequested;
                 _transitionView.HomeView.PlayRequested += OnPlayRequested;
             }
 
             if (_navigationView != null)
             {
+                _navigationView.TabSelected -= OnTabSelected;
                 _navigationView.TabSelected += OnTabSelected;
             }
 
             var settings = SettingsOverlay;
             if (settings != null)
             {
+                settings.CloseRequested -= CloseOverlay;
                 settings.CloseRequested += CloseOverlay;
+                settings.MusicVolumeChanged -= HandleMusicVolumeChanged;
                 settings.MusicVolumeChanged += HandleMusicVolumeChanged;
+                settings.SfxVolumeChanged -= HandleSfxVolumeChanged;
                 settings.SfxVolumeChanged += HandleSfxVolumeChanged;
+                settings.HapticEnabledChanged -= HandleHapticEnabledChanged;
                 settings.HapticEnabledChanged += HandleHapticEnabledChanged;
+                settings.CameraShakeEnabledChanged -= HandleCameraShakeEnabledChanged;
                 settings.CameraShakeEnabledChanged += HandleCameraShakeEnabledChanged;
             }
 
             var customization = WorldCustomizationOverlay;
             if (customization != null)
             {
+                customization.CloseRequested -= CloseOverlay;
                 customization.CloseRequested += CloseOverlay;
             }
 
@@ -268,6 +334,7 @@ namespace BlockBlast.Features.Lobby
             {
                 customization.CloseRequested -= CloseOverlay;
             }
+            UnbindWorldCustomization();
 
             if (_transitionView != null && _transitionView.HomeView != null)
             {
@@ -279,16 +346,7 @@ namespace BlockBlast.Features.Lobby
                 _navigationView.TabSelected -= OnTabSelected;
             }
 
-            if (_worldButtons != null)
-            {
-                for (int i = 0; i < _worldButtons.Length; i++)
-                {
-                    if (_worldButtons[i] != null)
-                    {
-                        _worldButtons[i].Clicked -= OnWorldButtonClicked;
-                    }
-                }
-            }
+            UnbindWorldButtonClicks(_worldButtons);
         }
 
         private void UpdateHighScoreDisplay()
@@ -361,7 +419,8 @@ namespace BlockBlast.Features.Lobby
 
         public void CloseOverlay()
         {
-            _feedbackSettingsStore?.Flush();
+            FlushAudioSettings();
+            FlushFeedbackSettings();
 
             if (_transitionView != null)
             {
@@ -372,124 +431,6 @@ namespace BlockBlast.Features.Lobby
             {
                 SetWorldButtonsInteractable(true);
             }
-        }
-
-        public void SyncAudioSettingsFromService()
-        {
-            var settings = SettingsOverlay;
-            if (settings == null) return;
-
-            var audioService = GetAudioMixerService();
-            if (audioService == null) return;
-
-            float music = audioService.GetChannelVolume(AudioChannels.BGMusicVolume);
-            float sfx = audioService.GetChannelVolume(AudioChannels.SoundFXVolume);
-            settings.SetAudioSliderValues(music, sfx);
-        }
-
-        private IAudioMixerService GetAudioMixerService()
-        {
-            if (_audioMixerService == null)
-            {
-                ServiceLocator.TryGet<IAudioMixerService>(out _audioMixerService);
-            }
-            return _audioMixerService;
-        }
-
-        public void SetAudioMixerServiceForTest(IAudioMixerService audioMixerService)
-        {
-            _audioMixerService = audioMixerService;
-        }
-
-        private void TrySetAudioVolume(AudioChannels channel, float value)
-        {
-            var audioService = GetAudioMixerService();
-            if (audioService != null)
-            {
-                audioService.SetChannelVolume(channel, value);
-            }
-        }
-
-        private void HandleMusicVolumeChanged(float value) =>
-            TrySetAudioVolume(AudioChannels.BGMusicVolume, value);
-
-        private void HandleSfxVolumeChanged(float value) =>
-            TrySetAudioVolume(AudioChannels.SoundFXVolume, value);
-
-        private void HandleHapticEnabledChanged(bool enabled) =>
-            _hapticSettingsController?.SetEnabled(enabled);
-
-        private void HandleCameraShakeEnabledChanged(bool enabled) =>
-            _cameraShakeSettingsController?.SetEnabled(enabled);
-
-        private void InitializeFeedbackSettingsControllers()
-        {
-            if (_feedbackSettingsStore == null)
-            {
-                _feedbackSettingsStore = new PlayerPrefsFeedbackSettingsStore();
-            }
-
-            if (_hapticService == null)
-            {
-                if (!ServiceLocator.TryGet<IHapticService>(out _hapticService))
-                {
-                    Debug.LogWarning("[LobbyController] IHapticService not registered in ServiceLocator. Haptic settings will be disabled.", this);
-                }
-            }
-
-            if (_cameraShakeService == null)
-            {
-                if (!ServiceLocator.TryGet<ICameraShakeService>(out _cameraShakeService))
-                {
-                    Debug.LogWarning("[LobbyController] ICameraShakeService not registered in ServiceLocator. Camera shake settings will be disabled.", this);
-                }
-            }
-
-            if (_hapticSettingsController == null)
-            {
-                _hapticSettingsController = new HapticSettingsController(_hapticService, _feedbackSettingsStore);
-                _hapticSettingsController.LoadAndApply();
-            }
-
-            if (_cameraShakeSettingsController == null)
-            {
-                _cameraShakeSettingsController = new CameraShakeSettingsController(_cameraShakeService, _feedbackSettingsStore);
-                _cameraShakeSettingsController.LoadAndApply();
-            }
-        }
-
-        public void SetFeedbackSettingsForTest(
-            IHapticService hapticService,
-            ICameraShakeService cameraShakeService,
-            IFeedbackSettingsStore store)
-        {
-            _hapticService = hapticService;
-            _cameraShakeService = cameraShakeService;
-            _feedbackSettingsStore = store;
-            _hapticSettingsController = new HapticSettingsController(_hapticService, _feedbackSettingsStore);
-            _cameraShakeSettingsController = new CameraShakeSettingsController(_cameraShakeService, _feedbackSettingsStore);
-            _hapticSettingsController.LoadAndApply();
-            _cameraShakeSettingsController.LoadAndApply();
-            SyncFeedbackSettingsToView();
-        }
-
-        public void SyncFeedbackSettingsToView()
-        {
-            var settings = SettingsOverlay;
-            if (settings == null) return;
-
-            if (_hapticSettingsController == null || _cameraShakeSettingsController == null)
-            {
-                InitializeFeedbackSettingsControllers();
-            }
-
-            bool hapticAvailable = _hapticService != null;
-            bool hapticEnabled = _hapticSettingsController != null && _hapticSettingsController.IsEnabled;
-            settings.SetHapticEnabled(hapticEnabled, hapticAvailable);
-
-            bool cameraAvailable = _cameraShakeService != null;
-            bool cameraEnabled = _cameraShakeSettingsController != null && _cameraShakeSettingsController.IsEnabled;
-            settings.SetCameraShakeEnabled(cameraEnabled, cameraAvailable);
         }
 
         private void SetWorldButtonsInteractable(bool interactable)
@@ -551,7 +492,8 @@ namespace BlockBlast.Features.Lobby
 
         private void OnDisable()
         {
-            _feedbackSettingsStore?.Flush();
+            FlushAudioSettings();
+            FlushFeedbackSettings();
 
             _destroyCts?.Cancel();
             _destroyCts?.Dispose();
@@ -571,7 +513,8 @@ namespace BlockBlast.Features.Lobby
 
         private void OnDestroy()
         {
-            _feedbackSettingsStore?.Flush();
+            FlushAudioSettings();
+            FlushFeedbackSettings();
 
             _destroyCts?.Cancel();
             _destroyCts?.Dispose();

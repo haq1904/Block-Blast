@@ -330,6 +330,8 @@ GameObject:
   - component: {fileID: 2805961287898489023}
   - component: {fileID: 7535607565911141984}
   - component: {fileID: 4348596184107234016}
+  - component: {fileID: 7247432777311062283}
+  - component: {fileID: 6659835173837930975}
   m_Layer: 0
   m_Name: SceneServices
   m_TagString: Untagged
@@ -454,6 +456,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c84e3520a1319f498b19e6834dd6ac6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.PlayerIdentity.PlayerIdentityServiceHost
+--- !u!114 &7247432777311062283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8deeefb947e9cd418b06d46e6a8032b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.WorldCustomization.WorldManager
+  _catalog: {fileID: 11400000, guid: cab3ee3d502daec41815621c8e52a521, type: 2}
+--- !u!114 &6659835173837930975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106751644020172975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 273d6fa14a6f92545bce35feb59c4136, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BlockBlast.Feature::BlockBlast.Features.Feedback.FeedbackSettingsServiceHost
 --- !u!1 &2588700702430483745
 GameObject:
   m_ObjectHideFlags: 0
