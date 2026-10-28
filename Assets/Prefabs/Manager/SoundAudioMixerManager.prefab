@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6578632564874468349}
   - component: {fileID: 3643189350302760155}
+  - component: {fileID: 4819273516482910542}
   m_Layer: 0
   m_Name: SoundAudioMixerManager
   m_TagString: Untagged
@@ -45,3 +46,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Core::SoundAudioMixerManager
   audioMixer: {fileID: 24100000, guid: db374742bee39934e87c64b35753619b, type: 2}
+--- !u!114 &4819273516482910542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7639560950433992939}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29c13dc4309b4d3194100d33404373c5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BlockBlast.Features::BlockBlast.Features.Feedback.Audio.AudioVolumeSettingsServiceHost
