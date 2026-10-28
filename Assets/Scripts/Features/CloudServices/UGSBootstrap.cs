@@ -6,6 +6,7 @@ namespace BlockBlast.Features.CloudServices
     /// Persistent bootstrap host for Unity Gaming Services and anonymous authentication.
     /// Resides on SceneServices composition root and manages ICloudInitializationService registration.
     /// </summary>
+    [DefaultExecutionOrder(-200)]
     public sealed class UGSBootstrap : MonoBehaviour
     {
         private ICloudInitializationService _service;

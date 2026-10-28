@@ -1,49 +1,76 @@
 using System;
 using System.IO;
 using BlockBlast.Features.PlayerData;
-using BlockBlast.Features.PlayerCloud.Time;
 
 namespace BlockBlast.Features.PlayerCloud.Persistence
 {
+    /// <summary>
+    /// Scoped file-based cache for GameCenterSnapshot, isolated per environment and player.
+    /// Provides atomic writes, backup recovery, and monotonic per-scope revision guards.
+    /// </summary>
     public sealed class FilePlayerCloudSnapshotCache : IPlayerCloudSnapshotCache
     {
-        private readonly string _filePath;
-        private readonly string _tmpPath;
-        private readonly string _bakPath;
+        public const string SnapshotFileName = "game_center_snapshot_v1.json";
+
+        private readonly string _rootDirectory;
         private readonly IPlayerDataSerializer _serializer;
-        private readonly ILocalPlayerDataStore _localStore;
-        private readonly IPlayerCloudClock _clock;
 
         public FilePlayerCloudSnapshotCache(
-            string filePath,
-            IPlayerDataSerializer serializer,
-            ILocalPlayerDataStore localStore = null,
-            IPlayerCloudClock clock = null)
+            string rootDirectory,
+            IPlayerDataSerializer serializer)
         {
-            if (string.IsNullOrEmpty(filePath))
+            if (string.IsNullOrWhiteSpace(rootDirectory))
             {
-                throw new ArgumentException("Cache file path cannot be null or empty.", nameof(filePath));
+                throw new ArgumentException("Root directory cannot be null or empty.", nameof(rootDirectory));
             }
 
-            _filePath = filePath;
-            _tmpPath = filePath + ".tmp";
-            _bakPath = filePath + ".bak";
+            _rootDirectory = rootDirectory;
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-            _localStore = localStore;
-            _clock = clock;
+
+            CleanUpLegacyUnscopedFiles();
         }
 
-        public bool TryLoad(out GameCenterSnapshot snapshot)
+        private void CleanUpLegacyUnscopedFiles()
+        {
+            try
+            {
+                if (Directory.Exists(_rootDirectory))
+                {
+                    string legacyJson = Path.Combine(_rootDirectory, SnapshotFileName);
+                    string legacyTmp = Path.Combine(_rootDirectory, SnapshotFileName + ".tmp");
+                    string legacyBak = Path.Combine(_rootDirectory, SnapshotFileName + ".bak");
+
+                    if (File.Exists(legacyJson)) File.Delete(legacyJson);
+                    if (File.Exists(legacyTmp)) File.Delete(legacyTmp);
+                    if (File.Exists(legacyBak)) File.Delete(legacyBak);
+                }
+            }
+            catch
+            {
+                // Suppress legacy cleanup errors to prevent startup blocking
+            }
+        }
+
+        public string GetScopedFilePath(PlayerCloudCacheScope scope)
+        {
+            string scopeDir = Path.Combine(_rootDirectory, scope.GetRelativeDirectoryPath());
+            return Path.Combine(scopeDir, SnapshotFileName);
+        }
+
+        public bool TryLoad(PlayerCloudCacheScope scope, out GameCenterSnapshot snapshot)
         {
             snapshot = null;
 
             try
             {
-                if (File.Exists(_filePath))
+                string filePath = GetScopedFilePath(scope);
+                string bakPath = filePath + ".bak";
+
+                if (File.Exists(filePath))
                 {
                     try
                     {
-                        string json = File.ReadAllText(_filePath);
+                        string json = File.ReadAllText(filePath);
                         var loaded = _serializer.DeserializeSnapshot(json);
                         if (loaded != null && loaded.SchemaVersion == PlayerDataSchema.CurrentVersion)
                         {
@@ -53,26 +80,26 @@ namespace BlockBlast.Features.PlayerCloud.Persistence
                     }
                     catch
                     {
-                        // File corrupted or bad schema, attempt recovery from backup.
+                        // File corrupted or bad schema, fall back to backup.
                     }
                 }
 
-                if (File.Exists(_bakPath))
+                if (File.Exists(bakPath))
                 {
                     try
                     {
-                        string bakJson = File.ReadAllText(_bakPath);
+                        string bakJson = File.ReadAllText(bakPath);
                         var loadedBak = _serializer.DeserializeSnapshot(bakJson);
                         if (loadedBak != null && loadedBak.SchemaVersion == PlayerDataSchema.CurrentVersion)
                         {
                             snapshot = loadedBak;
                             try
                             {
-                                File.Copy(_bakPath, _filePath, true);
+                                File.Copy(bakPath, filePath, true);
                             }
                             catch
                             {
-                                // Recovery copy failed, but memory snapshot is valid.
+                                // Recovery copy failed, but in-memory snapshot is valid.
                             }
 
                             return true;
@@ -92,63 +119,58 @@ namespace BlockBlast.Features.PlayerCloud.Persistence
             return false;
         }
 
-        public bool Save(GameCenterSnapshot snapshot)
+        public bool Save(PlayerCloudCacheScope scope, GameCenterSnapshot snapshot)
         {
             if (snapshot == null || snapshot.SchemaVersion != PlayerDataSchema.CurrentVersion)
             {
                 return false;
             }
 
+            string filePath = GetScopedFilePath(scope);
+            string tmpPath = filePath + ".tmp";
+            string bakPath = filePath + ".bak";
+
             try
             {
-                if (_localStore != null)
+                // Monotonic revision check within this isolated scope
+                if (TryLoad(scope, out var currentSnapshot) && currentSnapshot != null)
                 {
-                    long currentRevision = _localStore.LoadCachedSnapshotRevision();
-                    if (snapshot.Revision < currentRevision)
+                    if (snapshot.Revision < currentSnapshot.Revision)
                     {
                         return false;
                     }
 
-                    if (snapshot.Revision == currentRevision && File.Exists(_filePath))
+                    if (snapshot.Revision == currentSnapshot.Revision && File.Exists(filePath))
                     {
                         return true;
                     }
                 }
 
-                string directory = Path.GetDirectoryName(_filePath);
+                string directory = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
 
                 string json = _serializer.SerializeSnapshot(snapshot);
-                File.WriteAllText(_tmpPath, json);
+                File.WriteAllText(tmpPath, json);
 
-                if (File.Exists(_filePath))
+                if (File.Exists(filePath))
                 {
-                    File.Copy(_filePath, _bakPath, true);
-                    File.Delete(_filePath);
+                    File.Copy(filePath, bakPath, true);
+                    File.Delete(filePath);
                 }
 
-                File.Move(_tmpPath, _filePath);
+                File.Move(tmpPath, filePath);
 
-                if (File.Exists(_tmpPath))
+                if (File.Exists(tmpPath))
                 {
                     try
                     {
-                        File.Delete(_tmpPath);
+                        File.Delete(tmpPath);
                     }
                     catch
                     {
-                    }
-                }
-
-                if (_localStore != null)
-                {
-                    _localStore.SaveCachedSnapshotRevision(snapshot.Revision);
-                    if (_clock != null)
-                    {
-                        _localStore.SaveLastCloudSyncUnixSeconds(_clock.NowUnixSeconds);
                     }
                 }
 
@@ -156,11 +178,11 @@ namespace BlockBlast.Features.PlayerCloud.Persistence
             }
             catch
             {
-                if (File.Exists(_tmpPath))
+                if (File.Exists(tmpPath))
                 {
                     try
                     {
-                        File.Delete(_tmpPath);
+                        File.Delete(tmpPath);
                     }
                     catch
                     {
@@ -171,33 +193,17 @@ namespace BlockBlast.Features.PlayerCloud.Persistence
             }
         }
 
-        public void Clear()
+        public void Clear(PlayerCloudCacheScope scope)
         {
             try
             {
-                if (File.Exists(_filePath))
-                {
-                    File.Delete(_filePath);
-                }
+                string filePath = GetScopedFilePath(scope);
+                string tmpPath = filePath + ".tmp";
+                string bakPath = filePath + ".bak";
 
-                if (File.Exists(_tmpPath))
-                {
-                    File.Delete(_tmpPath);
-                }
-
-                if (File.Exists(_bakPath))
-                {
-                    File.Delete(_bakPath);
-                }
-
-                if (_localStore != null)
-                {
-                    _localStore.SaveCachedSnapshotRevision(0);
-                    if (_clock != null)
-                    {
-                        _localStore.SaveLastCloudSyncUnixSeconds(0);
-                    }
-                }
+                if (File.Exists(filePath)) File.Delete(filePath);
+                if (File.Exists(tmpPath)) File.Delete(tmpPath);
+                if (File.Exists(bakPath)) File.Delete(bakPath);
             }
             catch
             {

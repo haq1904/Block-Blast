@@ -86,33 +86,5 @@ namespace BlockBlast.Features.PlayerData
             _store.Save();
             return true;
         }
-
-        public long LoadLastCloudSyncUnixSeconds()
-        {
-            EnsureMigrated();
-            string val = _store.GetString(PlayerDataKeys.LastCloudSyncUnixSecondsV1, "0");
-            return long.TryParse(val, out long result) ? Math.Max(0L, result) : 0L;
-        }
-
-        public void SaveLastCloudSyncUnixSeconds(long unixSeconds)
-        {
-            EnsureMigrated();
-            _store.SetString(PlayerDataKeys.LastCloudSyncUnixSecondsV1, Math.Max(0L, unixSeconds).ToString());
-            _store.Save();
-        }
-
-        public long LoadCachedSnapshotRevision()
-        {
-            EnsureMigrated();
-            string val = _store.GetString(PlayerDataKeys.CachedSnapshotRevisionV1, "0");
-            return long.TryParse(val, out long result) ? Math.Max(0L, result) : 0L;
-        }
-
-        public void SaveCachedSnapshotRevision(long revision)
-        {
-            EnsureMigrated();
-            _store.SetString(PlayerDataKeys.CachedSnapshotRevisionV1, Math.Max(0L, revision).ToString());
-            _store.Save();
-        }
     }
 }

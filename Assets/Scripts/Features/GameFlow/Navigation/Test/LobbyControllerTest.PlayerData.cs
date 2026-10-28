@@ -39,10 +39,6 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             }
 
             public bool SaveHighScore(int newScore) => true;
-            public long LoadLastCloudSyncUnixSeconds() => 0;
-            public void SaveLastCloudSyncUnixSeconds(long unixSeconds) { }
-            public long LoadCachedSnapshotRevision() => 0;
-            public void SaveCachedSnapshotRevision(long revision) { }
         }
 
         [Test]

@@ -106,15 +106,5 @@ namespace BlockBlast.Features.PlayerData.Test
             Assert.AreEqual(8888, _fakeStore.GetInt(PlayerDataKeys.HighScoreV1));
             Assert.IsTrue(_fakeStore.HasKey(PlayerDataKeys.LegacyScoreControllerHighScore), "Legacy keys must not be deleted on future version.");
         }
-
-        [Test]
-        public void Metadata_RoundTripsAccurately()
-        {
-            _store.SaveLastCloudSyncUnixSeconds(1715000000L);
-            _store.SaveCachedSnapshotRevision(105L);
-
-            Assert.AreEqual(1715000000L, _store.LoadLastCloudSyncUnixSeconds());
-            Assert.AreEqual(105L, _store.LoadCachedSnapshotRevision());
-        }
     }
 }

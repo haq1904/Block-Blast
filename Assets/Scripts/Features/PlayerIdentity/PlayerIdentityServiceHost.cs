@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace BlockBlast.Features.PlayerIdentity
 {
+    [DefaultExecutionOrder(-80)]
     public sealed class PlayerIdentityServiceHost : MonoBehaviour
     {
         private PlayerIdentityService _service;
@@ -13,7 +14,7 @@ namespace BlockBlast.Features.PlayerIdentity
 
         public bool OwnsRegistration => _ownsRegistration;
 
-        private void Awake()
+        private void Start()
         {
             if (ServiceLocator.TryGet<IPlayerIdentityService>(out _))
             {

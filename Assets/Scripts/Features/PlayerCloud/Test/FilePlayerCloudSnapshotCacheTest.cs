@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using BlockBlast.Features.PlayerData;
 using BlockBlast.Features.PlayerCloud.Persistence;
-using BlockBlast.Features.PlayerCloud.Time;
 using NUnit.Framework;
 
 namespace BlockBlast.Features.PlayerCloud.Test
@@ -11,20 +10,14 @@ namespace BlockBlast.Features.PlayerCloud.Test
     public sealed class FilePlayerCloudSnapshotCacheTest
     {
         private string _tempDir;
-        private string _cachePath;
         private UnityJsonPlayerDataSerializer _serializer;
-        private FakeLocalStore _localStore;
-        private FakeClock _clock;
 
         [SetUp]
         public void SetUp()
         {
             _tempDir = Path.Combine(Path.GetTempPath(), "PlayerCloudTest_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_tempDir);
-            _cachePath = Path.Combine(_tempDir, "game_center_snapshot_v1.json");
             _serializer = new UnityJsonPlayerDataSerializer();
-            _localStore = new FakeLocalStore();
-            _clock = new FakeClock(1700000000L);
         }
 
         [TearDown]
@@ -43,55 +36,77 @@ namespace BlockBlast.Features.PlayerCloud.Test
         }
 
         [Test]
-        public void SaveAndLoad_RoundTripsValidSnapshot()
+        public void SaveAndLoad_RoundTripsValidSnapshot_UnderScope()
         {
-            var cache = new FilePlayerCloudSnapshotCache(_cachePath, _serializer, _localStore, _clock);
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scope = new PlayerCloudCacheScope("production", "player_123");
             var snapshot = CreateSnapshotWithRevision(1L);
 
-            bool saved = cache.Save(snapshot);
+            bool saved = cache.Save(scope, snapshot);
             Assert.IsTrue(saved);
-            Assert.IsTrue(File.Exists(_cachePath));
-            Assert.AreEqual(1L, _localStore.CachedRevision);
-            Assert.AreEqual(1700000000L, _localStore.LastSyncUnix);
 
-            bool loaded = cache.TryLoad(out var loadedSnapshot);
+            string expectedFilePath = Path.Combine(_tempDir, "production", "player_123", "game_center_snapshot_v1.json");
+            Assert.IsTrue(File.Exists(expectedFilePath));
+
+            bool loaded = cache.TryLoad(scope, out var loadedSnapshot);
             Assert.IsTrue(loaded);
             Assert.IsNotNull(loadedSnapshot);
             Assert.AreEqual(1L, loadedSnapshot.Revision);
         }
 
         [Test]
-        public void Save_OlderRevision_DoesNotRegressOrOverwrite()
+        public void Save_OlderRevision_DoesNotRegressOrOverwrite_PerScope()
         {
-            var cache = new FilePlayerCloudSnapshotCache(_cachePath, _serializer, _localStore, _clock);
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scope = new PlayerCloudCacheScope("production", "player_123");
             var snapshot1 = CreateSnapshotWithRevision(5L);
-            cache.Save(snapshot1);
+            cache.Save(scope, snapshot1);
 
             var olderSnapshot = CreateSnapshotWithRevision(3L);
-            bool saved = cache.Save(olderSnapshot);
+            bool saved = cache.Save(scope, olderSnapshot);
 
             Assert.IsFalse(saved);
-            Assert.AreEqual(5L, _localStore.CachedRevision);
 
-            cache.TryLoad(out var current);
+            cache.TryLoad(scope, out var current);
             Assert.AreEqual(5L, current.Revision);
+        }
+
+        [Test]
+        public void DifferentScopes_AreIsolated_AndDoNotCollide()
+        {
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scopeA = new PlayerCloudCacheScope("production", "player_a");
+            var scopeB = new PlayerCloudCacheScope("production", "player_b");
+            var scopeC = new PlayerCloudCacheScope("development", "player_a");
+
+            cache.Save(scopeA, CreateSnapshotWithRevision(10L));
+            cache.Save(scopeB, CreateSnapshotWithRevision(20L));
+            cache.Save(scopeC, CreateSnapshotWithRevision(30L));
+
+            Assert.IsTrue(cache.TryLoad(scopeA, out var snapA));
+            Assert.IsTrue(cache.TryLoad(scopeB, out var snapB));
+            Assert.IsTrue(cache.TryLoad(scopeC, out var snapC));
+
+            Assert.AreEqual(10L, snapA.Revision);
+            Assert.AreEqual(20L, snapB.Revision);
+            Assert.AreEqual(30L, snapC.Revision);
         }
 
         [Test]
         public void TryLoad_RecoversFromBackup_WhenTargetIsCorrupted()
         {
-            var cache = new FilePlayerCloudSnapshotCache(_cachePath, _serializer, _localStore, _clock);
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scope = new PlayerCloudCacheScope("production", "player_123");
             var snapshot1 = CreateSnapshotWithRevision(1L);
-            cache.Save(snapshot1);
+            cache.Save(scope, snapshot1);
 
             var snapshot2 = CreateSnapshotWithRevision(2L);
-            cache.Save(snapshot2);
+            cache.Save(scope, snapshot2);
 
-            // Now _cachePath has rev 2 and _cachePath.bak has rev 1.
-            // Corrupt the target file:
-            File.WriteAllText(_cachePath, "{ corrupt invalid json !!!");
+            string targetFile = Path.Combine(_tempDir, "production", "player_123", "game_center_snapshot_v1.json");
+            File.WriteAllText(targetFile, "{ corrupt invalid json !!!");
 
-            bool loaded = cache.TryLoad(out var recoveredSnapshot);
+            bool loaded = cache.TryLoad(scope, out var recoveredSnapshot);
 
             Assert.IsTrue(loaded);
             Assert.IsNotNull(recoveredSnapshot);
@@ -101,36 +116,47 @@ namespace BlockBlast.Features.PlayerCloud.Test
         [Test]
         public void TryLoad_ReturnsFalse_WhenNoValidCacheExists()
         {
-            var cache = new FilePlayerCloudSnapshotCache(_cachePath, _serializer, _localStore, _clock);
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scope = new PlayerCloudCacheScope("production", "player_nonexistent");
 
-            bool loaded = cache.TryLoad(out var snapshot);
+            bool loaded = cache.TryLoad(scope, out var snapshot);
 
             Assert.IsFalse(loaded);
             Assert.IsNull(snapshot);
         }
 
         [Test]
-        public void Clear_DeletesCacheFiles_AndResetsRevisionMetadata()
+        public void Clear_DeletesCacheFiles_ForSpecificScopeOnly()
         {
-            var cache = new FilePlayerCloudSnapshotCache(_cachePath, _serializer, _localStore, _clock);
-            var snapshot = CreateSnapshotWithRevision(10L);
+            var cache = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+            var scope1 = new PlayerCloudCacheScope("production", "player_1");
+            var scope2 = new PlayerCloudCacheScope("production", "player_2");
 
-            cache.Save(snapshot);
-            Assert.IsTrue(File.Exists(_cachePath));
-            Assert.AreEqual(10L, _localStore.CachedRevision);
-            Assert.AreEqual(1700000000L, _localStore.LastSyncUnix);
+            cache.Save(scope1, CreateSnapshotWithRevision(10L));
+            cache.Save(scope2, CreateSnapshotWithRevision(20L));
 
-            cache.Clear();
+            cache.Clear(scope1);
 
-            Assert.IsFalse(File.Exists(_cachePath));
-            Assert.IsFalse(File.Exists(_cachePath + ".tmp"));
-            Assert.IsFalse(File.Exists(_cachePath + ".bak"));
-            Assert.AreEqual(0L, _localStore.CachedRevision);
-            Assert.AreEqual(0L, _localStore.LastSyncUnix);
+            Assert.IsFalse(cache.TryLoad(scope1, out _));
+            Assert.IsTrue(cache.TryLoad(scope2, out var snap2));
+            Assert.AreEqual(20L, snap2.Revision);
+        }
 
-            bool loadedAfterClear = cache.TryLoad(out var loadedSnapshot);
-            Assert.IsFalse(loadedAfterClear);
-            Assert.IsNull(loadedSnapshot);
+        [Test]
+        public void LegacyUnscopedFile_CleanedUp_OnConstruction()
+        {
+            string legacyFile = Path.Combine(_tempDir, "game_center_snapshot_v1.json");
+            string legacyTmp = Path.Combine(_tempDir, "game_center_snapshot_v1.json.tmp");
+            string legacyBak = Path.Combine(_tempDir, "game_center_snapshot_v1.json.bak");
+            File.WriteAllText(legacyFile, "{}");
+            File.WriteAllText(legacyTmp, "{}");
+            File.WriteAllText(legacyBak, "{}");
+
+            _ = new FilePlayerCloudSnapshotCache(_tempDir, _serializer);
+
+            Assert.IsFalse(File.Exists(legacyFile));
+            Assert.IsFalse(File.Exists(legacyTmp));
+            Assert.IsFalse(File.Exists(legacyBak));
         }
 
         private static GameCenterSnapshot CreateSnapshotWithRevision(long revision)
@@ -147,29 +173,6 @@ namespace BlockBlast.Features.PlayerCloud.Test
                 Array.Empty<AchievementProgress>(),
                 Array.Empty<PlayerInsight>(),
                 PlayerDataSchema.CurrentVersion);
-        }
-
-        private sealed class FakeLocalStore : ILocalPlayerDataStore
-        {
-            public long CachedRevision { get; set; } = 0L;
-            public long LastSyncUnix { get; set; } = 0L;
-
-            public int LoadHighScore() => 0;
-            public bool SaveHighScore(int newScore) => true;
-            public long LoadLastCloudSyncUnixSeconds() => LastSyncUnix;
-            public void SaveLastCloudSyncUnixSeconds(long unixSeconds) => LastSyncUnix = unixSeconds;
-            public long LoadCachedSnapshotRevision() => CachedRevision;
-            public void SaveCachedSnapshotRevision(long revision) => CachedRevision = revision;
-        }
-
-        private sealed class FakeClock : IPlayerCloudClock
-        {
-            public long NowUnixSeconds { get; set; }
-
-            public FakeClock(long now)
-            {
-                NowUnixSeconds = now;
-            }
         }
     }
 }

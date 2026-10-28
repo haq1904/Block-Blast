@@ -7,18 +7,15 @@ using BlockBlast.Features.PlayerCloud.Gateway;
 using BlockBlast.Features.PlayerCloud.Mapping;
 using BlockBlast.Features.PlayerCloud.Persistence;
 using BlockBlast.Features.PlayerCloud.Retry;
-using BlockBlast.Features.PlayerCloud.Time;
-
 namespace BlockBlast.Features.PlayerCloud
 {
-    public sealed class PlayerCloudService : IPlayerCloudService, IDisposable
+    public sealed partial class PlayerCloudService : IPlayerCloudService, IDisposable
     {
         private readonly ICloudInitializationService _initService;
         private readonly IProtectedPlayerDataGateway _protectedGateway;
         private readonly IPlayerCloudCodeGateway _cloudCodeGateway;
         private readonly IPlayerCloudSnapshotCache _cache;
         private readonly IPlayerCloudRetryDelay _retryDelay;
-        private readonly IPlayerCloudClock _clock;
         private readonly IPlayerDataSerializer _serializer;
 
         private readonly SemaphoreSlim _operationGate = new SemaphoreSlim(1, 1);
@@ -36,7 +33,6 @@ namespace BlockBlast.Features.PlayerCloud
             IPlayerCloudCodeGateway cloudCodeGateway,
             IPlayerCloudSnapshotCache cache,
             IPlayerCloudRetryDelay retryDelay,
-            IPlayerCloudClock clock,
             IPlayerDataSerializer serializer)
         {
             _initService = initService ?? throw new ArgumentNullException(nameof(initService));
@@ -44,7 +40,6 @@ namespace BlockBlast.Features.PlayerCloud
             _cloudCodeGateway = cloudCodeGateway ?? throw new ArgumentNullException(nameof(cloudCodeGateway));
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _retryDelay = retryDelay ?? throw new ArgumentNullException(nameof(retryDelay));
-            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 
             CachedSnapshot = PlayerCloudContractMapper.CreateEmptySnapshot();
@@ -53,7 +48,6 @@ namespace BlockBlast.Features.PlayerCloud
         public async Task<CloudOperationResult<GameCenterSnapshot>> LoadSnapshotAsync(
             CancellationToken cancellationToken = default)
         {
-            EnsureHydrated();
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -110,8 +104,6 @@ namespace BlockBlast.Features.PlayerCloud
             GameResult result,
             CancellationToken cancellationToken = default)
         {
-            EnsureHydrated();
-
             if (result == null)
             {
                 return CloudOperationResult<SubmitGameResultResponse>.Failure(
@@ -160,6 +152,21 @@ namespace BlockBlast.Features.PlayerCloud
                     false,
                     PlayerCloudConstants.ErrorCodes.Unauthenticated);
             }
+
+            if (!TryResolveActiveScope(out var scope))
+            {
+                lock (_syncRoot)
+                {
+                    State = CloudSyncState.Offline;
+                }
+
+                return CloudOperationResult<SubmitGameResultResponse>.Failure(
+                    CloudFailureKind.AuthenticationUnavailable,
+                    false,
+                    PlayerCloudConstants.ErrorCodes.Unauthenticated);
+            }
+
+            EnsureHydratedForScope(scope);
 
             try
             {
@@ -286,7 +293,7 @@ namespace BlockBlast.Features.PlayerCloud
                             if (updated.Revision >= CachedSnapshot.Revision)
                             {
                                 CachedSnapshot = updated;
-                                _cache.Save(updated);
+                                SaveToActiveScopeCache(scope, updated);
                             }
 
                             State = CloudSyncState.Ready;
@@ -342,30 +349,6 @@ namespace BlockBlast.Features.PlayerCloud
             _operationGate?.Dispose();
         }
 
-        private void EnsureHydrated()
-        {
-            lock (_syncRoot)
-            {
-                if (_isHydrated)
-                {
-                    return;
-                }
-
-                _isHydrated = true;
-
-                if (_cache != null && _cache.TryLoad(out var snapshot) && snapshot != null)
-                {
-                    CachedSnapshot = snapshot;
-                    State = CloudSyncState.Ready;
-                }
-                else
-                {
-                    CachedSnapshot = PlayerCloudContractMapper.CreateEmptySnapshot();
-                    State = CloudSyncState.Uninitialized;
-                }
-            }
-        }
-
         private async Task<CloudOperationResult<GameCenterSnapshot>> ExecuteLoadSnapshotAsync()
         {
             bool initReady;
@@ -400,6 +383,21 @@ namespace BlockBlast.Features.PlayerCloud
                     false,
                     PlayerCloudConstants.ErrorCodes.Unauthenticated);
             }
+
+            if (!TryResolveActiveScope(out var scope))
+            {
+                lock (_syncRoot)
+                {
+                    State = CloudSyncState.Offline;
+                }
+
+                return CloudOperationResult<GameCenterSnapshot>.Failure(
+                    CloudFailureKind.AuthenticationUnavailable,
+                    false,
+                    PlayerCloudConstants.ErrorCodes.Unauthenticated);
+            }
+
+            EnsureHydratedForScope(scope);
 
             await _operationGate.WaitAsync();
             try
@@ -442,7 +440,7 @@ namespace BlockBlast.Features.PlayerCloud
                             if (snapshot.Revision >= CachedSnapshot.Revision)
                             {
                                 CachedSnapshot = snapshot;
-                                _cache.Save(snapshot);
+                                SaveToActiveScopeCache(scope, snapshot);
                             }
 
                             State = CloudSyncState.Ready;
@@ -500,66 +498,6 @@ namespace BlockBlast.Features.PlayerCloud
             return attempt == 1
                 ? PlayerCloudConstants.DefaultRetryDelay1Ms
                 : PlayerCloudConstants.DefaultRetryDelay2Ms;
-        }
-
-        public async Task<CloudOperationResult<GameCenterSnapshot>> ResetForIdentityChangeAsync(
-            CancellationToken cancellationToken = default)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return CloudOperationResult<GameCenterSnapshot>.Failure(
-                    CloudFailureKind.Cancelled,
-                    false,
-                    PlayerCloudConstants.ErrorCodes.Cancelled);
-            }
-
-            Task<CloudOperationResult<GameCenterSnapshot>> runningLoadTask = null;
-            lock (_syncRoot)
-            {
-                if (_currentLoadTask != null && !_currentLoadTask.IsCompleted)
-                {
-                    runningLoadTask = _currentLoadTask;
-                }
-            }
-
-            if (runningLoadTask != null)
-            {
-                try
-                {
-                    await runningLoadTask;
-                }
-                catch
-                {
-                    // Ignore fault from in-flight load task while draining before reset
-                }
-            }
-
-            await _operationGate.WaitAsync(cancellationToken);
-            try
-            {
-                lock (_syncRoot)
-                {
-                    _currentLoadTask = null;
-                    _isHydrated = false;
-                    CachedSnapshot = PlayerCloudContractMapper.CreateEmptySnapshot();
-                    State = CloudSyncState.Uninitialized;
-                }
-
-                _cache.Clear();
-                return CloudOperationResult<GameCenterSnapshot>.Success(CachedSnapshot);
-            }
-            catch (Exception ex)
-            {
-                var failure = UnityCloudFailureClassifier.Classify(ex);
-                return CloudOperationResult<GameCenterSnapshot>.Failure(
-                    failure.Kind,
-                    failure.IsRetryable,
-                    failure.ErrorCode);
-            }
-            finally
-            {
-                _operationGate.Release();
-            }
         }
     }
 }

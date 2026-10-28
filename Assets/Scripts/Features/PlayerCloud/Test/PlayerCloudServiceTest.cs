@@ -8,7 +8,6 @@ using BlockBlast.Features.PlayerCloud.Gateway;
 using BlockBlast.Features.PlayerCloud.Mapping;
 using BlockBlast.Features.PlayerCloud.Persistence;
 using BlockBlast.Features.PlayerCloud.Retry;
-using BlockBlast.Features.PlayerCloud.Time;
 using NUnit.Framework;
 using Generated = Unity.Services.CloudCode.GeneratedBindings.CubePuzzle3DPlayerData.Contracts;
 
@@ -22,7 +21,6 @@ namespace BlockBlast.Features.PlayerCloud.Test
         private FakeCloudCodeGateway _cloudCodeGateway;
         private FakeSnapshotCache _cache;
         private FakeRetryDelay _retryDelay;
-        private FakeClock _clock;
         private UnityJsonPlayerDataSerializer _serializer;
 
         [SetUp]
@@ -33,8 +31,21 @@ namespace BlockBlast.Features.PlayerCloud.Test
             _cloudCodeGateway = new FakeCloudCodeGateway();
             _cache = new FakeSnapshotCache();
             _retryDelay = new FakeRetryDelay();
-            _clock = new FakeClock(1700000000L);
             _serializer = new UnityJsonPlayerDataSerializer();
+        }
+
+        [Test]
+        public void Constructor_DoesNotLoadCache_BeforeAuth()
+        {
+            var scope = new PlayerCloudCacheScope("development", "test_player");
+            _cache.Storage[scope] = CreateSnapshotWithRevision(99L);
+
+            using var service = CreateService();
+
+            Assert.AreEqual(0, _cache.TryLoadCallCount);
+            Assert.AreEqual(0L, service.CachedSnapshot.Revision);
+            Assert.AreEqual(CloudSyncState.Uninitialized, service.State);
+            Assert.IsNull(service.ActiveScope);
         }
 
         [Test]
@@ -132,6 +143,8 @@ namespace BlockBlast.Features.PlayerCloud.Test
             Assert.AreEqual(1L, service.CachedSnapshot.Revision);
             Assert.AreEqual(CloudSyncState.Ready, service.State);
             Assert.AreEqual(1L, _cache.SavedSnapshot?.Revision);
+            Assert.IsTrue(_cache.LastSavedScope.HasValue);
+            Assert.AreEqual("test_player", _cache.LastSavedScope.Value.PlayerId);
         }
 
         [Test]
@@ -152,7 +165,6 @@ namespace BlockBlast.Features.PlayerCloud.Test
             await service.SubmitGameResultAsync(gameResult);
             Assert.AreEqual(5L, service.CachedSnapshot.Revision);
 
-            // Resubmit duplicate session returning same revision
             _cloudCodeGateway.ResponseToReturn = new Generated.SubmitGameResultResponse
             {
                 Status = Generated.SubmitGameResultStatus.Duplicate,
@@ -219,6 +231,7 @@ namespace BlockBlast.Features.PlayerCloud.Test
             Assert.AreEqual(0L, service.CachedSnapshot.Revision);
             Assert.AreEqual(CloudSyncState.Uninitialized, service.State);
             Assert.AreEqual(1, _cache.ClearCallCount);
+            Assert.IsNull(service.ActiveScope);
         }
 
         [Test]
@@ -234,6 +247,37 @@ namespace BlockBlast.Features.PlayerCloud.Test
             Assert.AreEqual(0, _cache.ClearCallCount);
         }
 
+        [Test]
+        public async Task IdentityChange_IsolatesCachePerPlayer()
+        {
+            var service = CreateService();
+            var contractA = CreateValidContract(10L);
+            var jsonA = _serializer.SerializeSnapshot(PlayerCloudContractMapper.ToDomainSnapshot(contractA));
+            _protectedGateway.ResultToReturn = ProtectedPlayerDataReadResult.FoundResult(jsonA);
+
+            var resultA = await service.LoadSnapshotAsync();
+            Assert.IsTrue(resultA.IsSuccess);
+            Assert.AreEqual(10L, service.CachedSnapshot.Revision);
+
+            // Switch player identity to player_B
+            _initService.PlayerId = "player_b";
+            var contractB = CreateValidContract(20L);
+            var jsonB = _serializer.SerializeSnapshot(PlayerCloudContractMapper.ToDomainSnapshot(contractB));
+            _protectedGateway.ResultToReturn = ProtectedPlayerDataReadResult.FoundResult(jsonB);
+
+            var resultB = await service.LoadSnapshotAsync();
+            Assert.IsTrue(resultB.IsSuccess);
+            Assert.AreEqual(20L, service.CachedSnapshot.Revision);
+
+            var scopeA = new PlayerCloudCacheScope("development", "test_player");
+            var scopeB = new PlayerCloudCacheScope("development", "player_b");
+
+            Assert.IsTrue(_cache.Storage.ContainsKey(scopeA));
+            Assert.IsTrue(_cache.Storage.ContainsKey(scopeB));
+            Assert.AreEqual(10L, _cache.Storage[scopeA].Revision);
+            Assert.AreEqual(20L, _cache.Storage[scopeB].Revision);
+        }
+
         private PlayerCloudService CreateService()
         {
             return new PlayerCloudService(
@@ -242,8 +286,23 @@ namespace BlockBlast.Features.PlayerCloud.Test
                 _cloudCodeGateway,
                 _cache,
                 _retryDelay,
-                _clock,
                 _serializer);
+        }
+
+        private static GameCenterSnapshot CreateSnapshotWithRevision(long revision)
+        {
+            return new GameCenterSnapshot(
+                revision,
+                1000L,
+                1000L,
+                new PlayerStats(1, 100, 100, 2, 5, 1, 1),
+                new WeeklyPlayerStats(1000L, 1, 100, 100, 2, 5, 1),
+                new WeeklyPlayerStats(500L, 0, 0, 0, 0, 0, 0),
+                2L,
+                Array.Empty<RecentGameResult>(),
+                Array.Empty<AchievementProgress>(),
+                Array.Empty<PlayerInsight>(),
+                PlayerDataSchema.CurrentVersion);
         }
 
         private static Generated.GameCenterSnapshotContract CreateValidContract(long revision)
@@ -294,10 +353,9 @@ namespace BlockBlast.Features.PlayerCloud.Test
         private sealed class FakeInitService : ICloudInitializationService
         {
             public CloudInitializationState State => InitResult ? CloudInitializationState.Ready : CloudInitializationState.Unavailable;
-            public string EnvironmentName => "development";
-            public string PlayerId => "test_player";
+            public string EnvironmentName { get; set; } = "development";
+            public string PlayerId { get; set; } = "test_player";
             public bool IsReady => InitResult;
-
             public bool InitResult { get; set; }
 
             public FakeInitService(bool initResult)
@@ -352,27 +410,34 @@ namespace BlockBlast.Features.PlayerCloud.Test
 
         private sealed class FakeSnapshotCache : IPlayerCloudSnapshotCache
         {
+            public Dictionary<PlayerCloudCacheScope, GameCenterSnapshot> Storage { get; } = new Dictionary<PlayerCloudCacheScope, GameCenterSnapshot>();
+            public PlayerCloudCacheScope? LastSavedScope { get; private set; }
             public GameCenterSnapshot SavedSnapshot { get; private set; }
-            public GameCenterSnapshot LoadedSnapshot { get; set; }
             public int ClearCallCount { get; private set; }
+            public int TryLoadCallCount { get; private set; }
 
-            public bool TryLoad(out GameCenterSnapshot snapshot)
+            public bool TryLoad(PlayerCloudCacheScope scope, out GameCenterSnapshot snapshot)
             {
-                snapshot = LoadedSnapshot;
-                return LoadedSnapshot != null;
+                TryLoadCallCount++;
+                return Storage.TryGetValue(scope, out snapshot);
             }
 
-            public bool Save(GameCenterSnapshot snapshot)
+            public bool Save(PlayerCloudCacheScope scope, GameCenterSnapshot snapshot)
             {
+                LastSavedScope = scope;
                 SavedSnapshot = snapshot;
+                Storage[scope] = snapshot;
                 return true;
             }
 
-            public void Clear()
+            public void Clear(PlayerCloudCacheScope scope)
             {
                 ClearCallCount++;
-                SavedSnapshot = null;
-                LoadedSnapshot = null;
+                Storage.Remove(scope);
+                if (LastSavedScope.HasValue && LastSavedScope.Value == scope)
+                {
+                    SavedSnapshot = null;
+                }
             }
         }
 
@@ -384,16 +449,6 @@ namespace BlockBlast.Features.PlayerCloud.Test
             {
                 DelayCalls.Add(milliseconds);
                 return Task.CompletedTask;
-            }
-        }
-
-        private sealed class FakeClock : IPlayerCloudClock
-        {
-            public long NowUnixSeconds { get; }
-
-            public FakeClock(long now)
-            {
-                NowUnixSeconds = now;
             }
         }
     }
