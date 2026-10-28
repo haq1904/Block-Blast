@@ -160,6 +160,20 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             Assert.IsFalse(_controller.IsCoverCompleted);
         }
 
+        [Test]
+        public void HandleActiveSceneChanged_AfterDestroy_DoesNotThrow()
+        {
+            var targetController = _controller;
+            Object.DestroyImmediate(_controllerObject);
+            _controllerObject = null;
+            _controller = null;
+
+            Assert.DoesNotThrow(() =>
+            {
+                targetController.HandleActiveSceneChanged(default, default);
+            });
+        }
+
         private static void InvokeLifecycle(PlaySceneTransitionVfxController controller, string methodName)
         {
             typeof(PlaySceneTransitionVfxController)

@@ -817,6 +817,54 @@ public class SceneTransitionRunnerTest
         Assert.Less(_backend.Events.IndexOf("UnloadStarted:1"), _backend.Events.IndexOf("SceneUnloaded:1"));
     }
 
+    [Test]
+    public async Task RunCoveredOperationAsync_Success_ExecutesStrictSequence()
+    {
+        bool operationRan = false;
+        await _runner.RunCoveredOperationAsync(async ct =>
+        {
+            Assert.Contains("Prepare", _loadingScreen.RecordedEvents);
+            Assert.Contains("ShowAsync", _loadingScreen.RecordedEvents);
+            Assert.IsFalse(_loadingScreen.RecordedEvents.Contains("HideAsync"));
+            operationRan = true;
+            await Task.Yield();
+        });
+
+        Assert.IsTrue(operationRan);
+        var expected = new[] { "Prepare", "ShowAsync", "HideAsync" };
+        CollectionAssert.AreEqual(expected, _loadingScreen.RecordedEvents);
+        Assert.IsFalse(_runner.IsTransitioning);
+        Assert.AreEqual(0, _loadingScreen.ResetImmediateCount);
+    }
+
+    [Test]
+    public void RunCoveredOperationAsync_ThrowsWhenAlreadyTransitioning()
+    {
+        var request = new SceneLoadRequest(1);
+        _loadingScreen.ShowTaskOverride = new TaskCompletionSource<bool>().Task;
+        _ = _runner.RunAsync(request);
+
+        Assert.IsTrue(_runner.IsTransitioning);
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await _runner.RunCoveredOperationAsync(ct => Task.CompletedTask);
+        });
+    }
+
+    [Test]
+    public void RunCoveredOperationAsync_OnError_ResetsScreenAndRethrows()
+    {
+        var expectedEx = new InvalidOperationException("Operation failed");
+        var actualEx = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await _runner.RunCoveredOperationAsync(ct => throw expectedEx);
+        });
+
+        Assert.AreSame(expectedEx, actualEx);
+        Assert.AreEqual(1, _loadingScreen.ResetImmediateCount);
+        Assert.IsFalse(_runner.IsTransitioning);
+    }
+
     // --- Fakes ---
 
     private sealed class FakeLoadingScreen : ILoadingScreen

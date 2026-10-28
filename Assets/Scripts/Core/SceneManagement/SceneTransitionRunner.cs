@@ -469,6 +469,54 @@ public sealed class SceneTransitionRunner
         }
     }
 
+    /// <summary>
+    /// Executes an operation fully covered by the loading screen.
+    /// Follows: Prepare -> ShowAsync -> coveredOperation -> HideAsync.
+    /// Exclusivity is guarded via IsTransitioning.
+    /// On error or cancellation, resets the loading screen immediately.
+    /// </summary>
+    public async Task RunCoveredOperationAsync(
+        Func<CancellationToken, Task> coveredOperation,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsTransitioning)
+        {
+            throw new InvalidOperationException("A scene transition or covered operation is already in progress.");
+        }
+
+        IsTransitioning = true;
+        ILoadingScreen activePresenter = _loadingScreen ?? NullLoadingScreen.Instance;
+        int activeIndex = _backend.ActiveSceneBuildIndex;
+        string activeName = _backend.ActiveSceneName;
+        var context = new SceneTransitionContext(activeIndex, activeName, activeIndex, activeName, LoadSceneMode.Single);
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            activePresenter.Prepare(context);
+            await activePresenter.ShowAsync(context, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (coveredOperation != null)
+            {
+                await coveredOperation(cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            await activePresenter.HideAsync(context, CancellationToken.None);
+        }
+        catch
+        {
+            activePresenter.ResetImmediate();
+            throw;
+        }
+        finally
+        {
+            IsTransitioning = false;
+        }
+    }
+
     private static void TryReleaseActivation(ISceneLoadOperation operation)
     {
         if (operation == null) return;

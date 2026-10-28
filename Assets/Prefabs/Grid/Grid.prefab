@@ -45,6 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd04f4db3451714499acb68d5c76714e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BlockBlast.Feature::GridController
+  _stressEnterRatio: 0.75
+  _stressExitRatio: 0.65
 --- !u!1001 &2193831000919721216
 PrefabInstance:
   m_ObjectHideFlags: 0

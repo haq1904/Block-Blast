@@ -192,4 +192,49 @@ public class GridControllerTest
         Assert.AreEqual(new Vector2Int(3, 0), receivedPos);
         Assert.IsFalse(gridController.IsCellClearing(3, 0));
     }
+
+    [Test]
+    public void StressState_EntersAtOrAboveThreshold_AndExitsWithHysteresis()
+    {
+        gridController.SetStressThresholds(0.75f, 0.65f);
+        var stressEvents = new List<bool>();
+        gridController.OnStressStateChanged += inStress => stressEvents.Add(inStress);
+
+        // 64 cells total. 48 cells is exactly 48 / 64 = 0.75 ratio.
+        // Fill 47 cells without any full row or column (max 6 cells per row/col)
+        var cells47 = new List<CellPlacementData>();
+        for (int r = 0; r < 8 && cells47.Count < 47; r++)
+        {
+            for (int c = 0; c < 6 && cells47.Count < 47; c++)
+            {
+                cells47.Add(new CellPlacementData(new Vector2Int(c, r), "test", 0));
+            }
+        }
+        gridController.TryInitializeBoard(cells47);
+
+        Assert.AreEqual(47, gridController.OccupiedCellCount);
+        Assert.IsFalse(gridController.IsInStress);
+        Assert.AreEqual(0, stressEvents.Count);
+
+        // Place 1 block at (6, 0) -> 48 cells (0.75 occupancy). No row/col completed.
+        gridController.PlaceBlocks(new List<CellPlacementData> { new CellPlacementData(new Vector2Int(6, 0), "test", 0) });
+        Assert.AreEqual(48, gridController.OccupiedCellCount);
+        Assert.IsTrue(gridController.IsInStress);
+        Assert.AreEqual(1, stressEvents.Count);
+        Assert.IsTrue(stressEvents[0]);
+
+        // Place another block at (6, 1) -> 49 cells (0.765 occupancy).
+        // Still in stress, hysteresis prevents duplicate enter event.
+        gridController.PlaceBlocks(new List<CellPlacementData> { new CellPlacementData(new Vector2Int(6, 1), "test", 0) });
+        Assert.IsTrue(gridController.IsInStress);
+        Assert.AreEqual(1, stressEvents.Count);
+    }
+
+    [Test]
+    public void SetStressThresholds_EnforcesExitLessThanOrEqualToEnter()
+    {
+        gridController.SetStressThresholds(0.5f, 0.8f);
+        Assert.AreEqual(0.5f, gridController.StressEnterRatio);
+        Assert.AreEqual(0.5f, gridController.StressExitRatio);
+    }
 }

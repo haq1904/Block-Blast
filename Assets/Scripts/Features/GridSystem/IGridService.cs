@@ -9,6 +9,7 @@ public interface IGridService
     int GridHeight { get; }
     int OccupiedCellCount { get; }
     float OccupancyRatio { get; }
+    bool IsInStress => false;
 
     // --- EVENTS (View listeners) ---
     event Action<bool, List<CellPlacementData>> OnPreviewStateChanged;
@@ -18,6 +19,7 @@ public interface IGridService
     event Action<int, int, bool> OnPlacementResolved; // (tilesPlaced, totalLinesCleared, isAllClear)
     event Action<List<CellPlacementData>> OnBoardInitialized { add { } remove { } }
     event Action<Vector2Int> OnCellReleased { add { } remove { } }
+    event Action<bool> OnStressStateChanged { add { } remove { } }
 
     // --- COMMANDS (Invoked by Block/Input) ---
     Vector2Int GetGridPositionFromWorld(Vector3 worldPos);

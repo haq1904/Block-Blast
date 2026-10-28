@@ -2,7 +2,9 @@
     "name": "BlockBlast.Features.GameFlow.Editor",
     "rootNamespace": "",
     "references": [
-        "BlockBlast.Feature"
+        "BlockBlast.Feature",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

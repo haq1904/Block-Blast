@@ -26,11 +26,6 @@ namespace BlockBlast.Features.ScoreSystem.Test
                 }
                 return false;
             }
-
-            public long LoadLastCloudSyncUnixSeconds() => 0;
-            public void SaveLastCloudSyncUnixSeconds(long unixSeconds) { }
-            public long LoadCachedSnapshotRevision() => 0;
-            public void SaveCachedSnapshotRevision(long revision) { }
         }
 
         private class MockScoreTestGrid : IGridService

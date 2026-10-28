@@ -16,6 +16,19 @@ public class GridController : MonoBehaviour, IGridService
     public event Action<int, int, bool> OnPlacementResolved;
     public event Action<List<CellPlacementData>> OnBoardInitialized;
     public event Action<Vector2Int> OnCellReleased;
+    public event Action<bool> OnStressStateChanged;
+
+    [Header("Stress Configuration")]
+    [Range(0f, 1f)]
+    [SerializeField] private float _stressEnterRatio = 0.75f;
+    [Range(0f, 1f)]
+    [SerializeField] private float _stressExitRatio = 0.65f;
+
+    private bool _isInStress;
+
+    public bool IsInStress => _isInStress;
+    public float StressEnterRatio => _stressEnterRatio;
+    public float StressExitRatio => _stressExitRatio;
 
     public int GridWidth => model != null ? model.Cols : 8;
     public int GridHeight => model != null ? model.Rows : 8;
@@ -37,6 +50,41 @@ public class GridController : MonoBehaviour, IGridService
     private void OnDestroy()
     {
         ServiceLocator.Unregister<IGridService>(this);
+    }
+
+    public void SetStressThresholds(float enterRatio, float exitRatio)
+    {
+        _stressEnterRatio = Mathf.Clamp01(enterRatio);
+        _stressExitRatio = Mathf.Clamp01(exitRatio);
+        if (_stressExitRatio > _stressEnterRatio)
+        {
+            _stressExitRatio = _stressEnterRatio;
+        }
+    }
+
+    private void OnValidate()
+    {
+        _stressExitRatio = Mathf.Clamp01(_stressExitRatio);
+        _stressEnterRatio = Mathf.Clamp01(_stressEnterRatio);
+        if (_stressExitRatio > _stressEnterRatio)
+        {
+            _stressExitRatio = _stressEnterRatio;
+        }
+    }
+
+    private void EvaluateStressState()
+    {
+        float ratio = OccupancyRatio;
+        if (!_isInStress && ratio >= _stressEnterRatio)
+        {
+            _isInStress = true;
+            OnStressStateChanged?.Invoke(true);
+        }
+        else if (_isInStress && ratio <= _stressExitRatio)
+        {
+            _isInStress = false;
+            OnStressStateChanged?.Invoke(false);
+        }
     }
 
     public Vector2Int GetGridPositionFromWorld(Vector3 worldPos)
@@ -203,6 +251,7 @@ public class GridController : MonoBehaviour, IGridService
         int totalLinesCleared = clearedRows.Count + clearedCols.Count;
         bool isAllClear = model.GetOccupiedCount() == 0;
         OnPlacementResolved?.Invoke(cells.Count, totalLinesCleared, isAllClear);
+        EvaluateStressState();
     }
 
     public void PlaceBlocks(List<Vector2Int> gridPositions)
@@ -236,6 +285,7 @@ public class GridController : MonoBehaviour, IGridService
         }
 
         OnBoardInitialized?.Invoke(cells);
+        EvaluateStressState();
         return true;
     }
 

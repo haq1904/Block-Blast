@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Persistent MonoBehaviour managing scene transitions and publishing ISceneService to ServiceLocator.
 /// </summary>
-public sealed class SceneController : MonoBehaviour, ISceneService
+public sealed class SceneController : MonoBehaviour, ISceneService, ILoadingScreenService
 {
     [Tooltip("Optional presentation component for transition animations. If unassigned, transitions operate without visual overlay.")]
     [SerializeField] private BaseLoadingScreen _loadingScreen;
@@ -40,6 +40,7 @@ public sealed class SceneController : MonoBehaviour, ISceneService
         _runner = new SceneTransitionRunner(backend, screen, backend);
 
         ServiceLocator.Register<ISceneService>(this);
+        ServiceLocator.Register<ILoadingScreenService>(this);
         _isRegistered = true;
     }
 
@@ -65,6 +66,17 @@ public sealed class SceneController : MonoBehaviour, ISceneService
         await _runner.RunAdditiveAsync(request, linkedCts.Token);
     }
 
+    public async Task RunCoveredOperationAsync(Func<CancellationToken, Task> coveredOperation, CancellationToken cancellationToken = default)
+    {
+        if (_runner == null)
+        {
+            throw new InvalidOperationException("[SceneController] Runner is not initialized.");
+        }
+
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _destroyCts.Token);
+        await _runner.RunCoveredOperationAsync(coveredOperation, linkedCts.Token);
+    }
+
     private void OnDestroy()
     {
         _destroyCts.Cancel();
@@ -73,6 +85,7 @@ public sealed class SceneController : MonoBehaviour, ISceneService
         if (_isRegistered)
         {
             ServiceLocator.Unregister<ISceneService>(this);
+            ServiceLocator.Unregister<ILoadingScreenService>(this);
             _isRegistered = false;
         }
 

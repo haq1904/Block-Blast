@@ -189,6 +189,11 @@ namespace BlockBlast.Features.GameFlow.Play
         /// </summary>
         public void HandleActiveSceneChanged(Scene previousScene, Scene nextScene)
         {
+            if (this == null || !isActiveAndEnabled)
+            {
+                return;
+            }
+
             if (nextScene == gameObject.scene)
             {
                 if (_coverRequested && _coverCompleted)
