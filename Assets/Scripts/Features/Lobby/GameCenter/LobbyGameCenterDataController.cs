@@ -52,6 +52,8 @@ namespace BlockBlast.Features.Lobby.GameCenter
             {
                 _panelView.Opened -= HandlePanelOpened;
                 _panelView.Opened += HandlePanelOpened;
+                _panelView.Closed -= HandlePanelClosed;
+                _panelView.Closed += HandlePanelClosed;
             }
         }
 
@@ -60,6 +62,7 @@ namespace BlockBlast.Features.Lobby.GameCenter
             if (_panelView != null)
             {
                 _panelView.Opened -= HandlePanelOpened;
+                _panelView.Closed -= HandlePanelClosed;
             }
 
             CancelInFlight();
@@ -75,6 +78,11 @@ namespace BlockBlast.Features.Lobby.GameCenter
             _ = RefreshDataAsync();
         }
 
+        private void HandlePanelClosed()
+        {
+            CancelInFlight();
+        }
+
         public async Task RefreshDataAsync()
         {
             EnsureDependencies();
@@ -86,21 +94,26 @@ namespace BlockBlast.Features.Lobby.GameCenter
             int pendingCount = _submissionService != null ? _submissionService.PendingCount : 0;
 
             if (_cloudService != null && _cloudService.CachedSnapshot != null &&
-                (_cloudService.CachedSnapshot.Revision > 0 || _cloudService.CachedSnapshot.LifetimeStats.GamesPlayed > 0))
+                (_cloudService.CachedSnapshot.Revision > 0 || (_cloudService.CachedSnapshot.LifetimeStats != null && _cloudService.CachedSnapshot.LifetimeStats.GamesPlayed > 0)))
             {
                 _panelView?.Render(GameCenterViewDataMapper.Map(
                     _cloudService.CachedSnapshot,
+                    state: GameCenterPresentationState.Loading,
                     statusOverride: "Syncing...",
                     pendingCount: pendingCount));
             }
             else
             {
-                _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(statusText: "Syncing..."));
+                _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(
+                    state: GameCenterPresentationState.Loading,
+                    statusText: "Syncing..."));
             }
 
             if (_cloudService == null)
             {
-                _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(statusText: "Offline"));
+                _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(
+                    state: GameCenterPresentationState.Error,
+                    statusText: "Offline"));
                 return;
             }
 
@@ -138,24 +151,37 @@ namespace BlockBlast.Features.Lobby.GameCenter
 
                 if (loadResult.IsSuccess && loadResult.Value != null)
                 {
+                    var snapshot = loadResult.Value;
+                    bool hasGames = snapshot.LifetimeStats != null && snapshot.LifetimeStats.GamesPlayed > 0;
+                    var state = hasGames ? GameCenterPresentationState.Ready : GameCenterPresentationState.Empty;
+                    string status = pendingCount > 0 ? $"Offline ({pendingCount} pending)" : "Synced";
+
                     _panelView?.Render(GameCenterViewDataMapper.Map(
-                        loadResult.Value,
-                        statusOverride: "Synced",
+                        snapshot,
+                        state: state,
+                        statusOverride: status,
                         pendingCount: pendingCount));
                 }
                 else
                 {
                     if (_cloudService.CachedSnapshot != null &&
-                        (_cloudService.CachedSnapshot.Revision > 0 || _cloudService.CachedSnapshot.LifetimeStats.GamesPlayed > 0))
+                        (_cloudService.CachedSnapshot.Revision > 0 || (_cloudService.CachedSnapshot.LifetimeStats != null && _cloudService.CachedSnapshot.LifetimeStats.GamesPlayed > 0)))
                     {
+                        string status = pendingCount > 0
+                            ? $"Saved offline ({pendingCount} pending)"
+                            : "Saved offline - will sync when connected";
+
                         _panelView?.Render(GameCenterViewDataMapper.Map(
                             _cloudService.CachedSnapshot,
-                            statusOverride: null,
+                            state: GameCenterPresentationState.OfflineCached,
+                            statusOverride: status,
                             pendingCount: pendingCount));
                     }
                     else
                     {
-                        _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(statusText: "Offline"));
+                        _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(
+                            state: GameCenterPresentationState.Error,
+                            statusText: "Unable to load data. Reopen to retry."));
                     }
                 }
             }
@@ -168,7 +194,9 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 Debug.LogWarning($"[LobbyGameCenterDataController] Failed to refresh GameCenter data: {ex.Message}");
                 if (!token.IsCancellationRequested)
                 {
-                    _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(statusText: "Unavailable"));
+                    _panelView?.Render(GameCenterViewDataMapper.CreateEmptyViewData(
+                        state: GameCenterPresentationState.Error,
+                        statusText: "Unavailable"));
                 }
             }
         }

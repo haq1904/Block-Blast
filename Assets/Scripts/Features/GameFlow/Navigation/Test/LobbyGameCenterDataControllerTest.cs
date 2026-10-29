@@ -74,7 +74,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public void RefreshDataAsync_WhenNoCacheAndCloudFails_DoesNotThrow()
+        public async Task RefreshDataAsync_WhenNoCacheAndCloudFails_DoesNotThrow()
         {
             _cloudService.CachedSnapshot = null;
             _cloudService.LoadResultToReturn = CloudOperationResult<GameCenterSnapshot>.Failure(
@@ -82,7 +82,23 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
                 false,
                 "NETWORK_UNAVAILABLE");
 
-            Assert.DoesNotThrowAsync(async () => await _controller.RefreshDataAsync());
+            await _controller.RefreshDataAsync();
+        }
+
+        [Test]
+        public async Task RefreshDataAsync_WhenPanelHides_CancelsInFlightOperation()
+        {
+            var tcs = new TaskCompletionSource<CloudOperationResult<GameCenterSnapshot>>();
+            _cloudService.LoadOverride = tcs.Task;
+
+            _panelView.Show(0f);
+            var refreshTask = _controller.RefreshDataAsync();
+
+            // Hide panel triggers Closed event which cancels in-flight task
+            _panelView.Hide(0f);
+            tcs.TrySetCanceled();
+
+            await refreshTask;
         }
 
         private static GameCenterSnapshot CreateSnapshot(long revision, int bestScore)
@@ -106,16 +122,35 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             public CloudSyncState State { get; set; } = CloudSyncState.Ready;
             public GameCenterSnapshot CachedSnapshot { get; set; }
             public int LoadCallCount { get; private set; }
+            public int DelayMilliseconds { get; set; }
             public CloudOperationResult<GameCenterSnapshot> LoadResultToReturn { get; set; }
+            public Task<CloudOperationResult<GameCenterSnapshot>> LoadOverride { get; set; }
 
-            public Task<CloudOperationResult<GameCenterSnapshot>> LoadSnapshotAsync(CancellationToken cancellationToken = default)
+            public async Task<CloudOperationResult<GameCenterSnapshot>> LoadSnapshotAsync(CancellationToken cancellationToken = default)
             {
                 LoadCallCount++;
+                if (LoadOverride != null)
+                {
+                    try
+                    {
+                        return await LoadOverride;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return CloudOperationResult<GameCenterSnapshot>.Failure(CloudFailureKind.Cancelled, false, "Cancelled");
+                    }
+                }
+
+                if (DelayMilliseconds > 0)
+                {
+                    await Task.Delay(DelayMilliseconds, cancellationToken);
+                }
+
                 if (LoadResultToReturn.IsSuccess && LoadResultToReturn.Value != null)
                 {
                     CachedSnapshot = LoadResultToReturn.Value;
                 }
-                return Task.FromResult(LoadResultToReturn);
+                return LoadResultToReturn;
             }
 
             public Task<CloudOperationResult<SubmitGameResultResponse>> SubmitGameResultAsync(GameResult result, CancellationToken cancellationToken = default)

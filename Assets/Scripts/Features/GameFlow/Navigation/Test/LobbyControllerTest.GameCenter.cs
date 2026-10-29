@@ -38,7 +38,7 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
         }
 
         [Test]
-        public void GameCenterPanel_Controls_BothEmitBackRequested()
+        public void GameCenterPanel_BackButton_EmitsBackRequested()
         {
             var panelGo = new GameObject("TestGameCenterPanel");
             _createdObjects.Add(panelGo);
@@ -49,57 +49,54 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             _createdObjects.Add(backBtnObj);
             var backBtn = backBtnObj.AddComponent<Button>();
 
-            var dimmerBtnObj = new GameObject("DimmerBtn");
-            _createdObjects.Add(dimmerBtnObj);
-            var dimmerBtn = dimmerBtnObj.AddComponent<Button>();
-
-            panelView.SetReferences(backBtn, dimmerBtn);
+            panelView.SetReferences(backBtn);
 
             int backCount = 0;
             panelView.BackRequested += () => backCount++;
 
             backBtn.onClick.Invoke();
             Assert.AreEqual(1, backCount, "Back button must emit BackRequested.");
-
-            dimmerBtn.onClick.Invoke();
-            Assert.AreEqual(2, backCount, "Dimmer button must emit BackRequested.");
         }
 
         [Test]
-        public void GameCenter_WhenDimmerClicked_ReturnsHomeAndRestoresWorldButtons()
+        public void GameCenter_NavigationController_LocksOnOpened_AndUnlocksOnClosedOrBack()
         {
             var panelGo = new GameObject("TestGameCenterPanel");
             _createdObjects.Add(panelGo);
             panelGo.AddComponent<CanvasGroup>();
             var panelView = panelGo.AddComponent<LobbyGameCenterPanelView>();
 
-            var dimmerBtnObj = new GameObject("DimmerBtn");
-            _createdObjects.Add(dimmerBtnObj);
-            var dimmerBtn = dimmerBtnObj.AddComponent<Button>();
-
-            panelView.DimmerButton = dimmerBtn;
+            var backBtnObj = new GameObject("BackBtn");
+            _createdObjects.Add(backBtnObj);
+            var backBtn = backBtnObj.AddComponent<Button>();
+            panelView.SetReferences(backBtn);
 
             var navCtrl = panelGo.AddComponent<LobbyGameCenterNavigationController>();
             navCtrl.Construct(panelView, _controller);
 
-            var onEnable = typeof(LobbyGameCenterNavigationController).GetMethod("OnEnable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            onEnable?.Invoke(navCtrl, null);
+            // Initially before opening, buttons are enabled
+            for (int i = 0; i < _controller.WorldButtons.Length; i++)
+            {
+                Assert.IsTrue(_controller.WorldButtons[i].HitCollider.enabled);
+            }
 
+            // Show panel -> triggers Opened -> locks interaction
+            panelView.Show(0f);
             for (int i = 0; i < _controller.WorldButtons.Length; i++)
             {
                 Assert.IsFalse(_controller.WorldButtons[i].HitCollider.enabled);
             }
 
-            dimmerBtn.onClick.Invoke();
-
+            // Click back button -> returns home and unlocks interaction
+            backBtn.onClick.Invoke();
             for (int i = 0; i < _controller.WorldButtons.Length; i++)
             {
-                Assert.IsTrue(_controller.WorldButtons[i].HitCollider.enabled, $"Button {i} should be restored after clicking GameCenter dimmer.");
+                Assert.IsTrue(_controller.WorldButtons[i].HitCollider.enabled, $"Button {i} should be restored after clicking GameCenter back.");
             }
         }
 
         [Test]
-        public void GameCenter_DimmerLifecycle_DoesNotEmitDuplicateBackRequested()
+        public void GameCenter_Lifecycle_DoesNotEmitDuplicateEvents()
         {
             var panelGo = new GameObject("TestGameCenterPanel");
             _createdObjects.Add(panelGo);
@@ -110,18 +107,20 @@ namespace BlockBlast.Features.GameFlow.Navigation.Test
             _createdObjects.Add(backBtnObj);
             var backBtn = backBtnObj.AddComponent<Button>();
 
-            var dimmerBtnObj = new GameObject("DimmerBtn");
-            _createdObjects.Add(dimmerBtnObj);
-            var dimmerBtn = dimmerBtnObj.AddComponent<Button>();
-
-            panelView.SetReferences(backBtn, dimmerBtn);
-            panelView.SetReferences(backBtn, dimmerBtn);
+            panelView.SetReferences(backBtn);
+            panelView.SetReferences(backBtn);
 
             int backCount = 0;
             panelView.BackRequested += () => backCount++;
 
-            dimmerBtn.onClick.Invoke();
-            Assert.AreEqual(1, backCount, "Repeated SetReferences must not produce duplicate back events on dimmer click.");
+            backBtn.onClick.Invoke();
+            Assert.AreEqual(1, backCount, "Repeated SetReferences must not produce duplicate back events on back click.");
+
+            int openCount = 0;
+            panelView.Opened += () => openCount++;
+            panelView.Show(0f);
+            panelView.Show(0f); // repeated Show while already opened
+            Assert.AreEqual(1, openCount, "Repeated Show while open must not emit duplicate Opened events.");
         }
     }
 }

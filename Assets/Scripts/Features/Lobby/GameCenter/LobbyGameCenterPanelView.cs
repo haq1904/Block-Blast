@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -76,18 +77,20 @@ namespace BlockBlast.Features.Lobby.GameCenter
     [RequireComponent(typeof(CanvasGroup))]
     public sealed class LobbyGameCenterPanelView : LobbyPanelView
     {
+        private const int AchievementListTopPadding = 52;
+        private const int AchievementListBottomPadding = 12;
+        private const int AchievementListSpacing = 12;
+
         [Header("Controls")]
         [Tooltip("Header back button to return to Lobby home.")]
         [SerializeField] private Button _backButton;
-
-        [Tooltip("Full-screen dimmer button behind the dialog card.")]
-        [SerializeField] private Button _dimmerButton;
 
         [Header("Overview Stats")]
         [SerializeField] private TMP_Text _bestScoreText;
         [SerializeField] private TMP_Text _statsRowText;
         [SerializeField] private TMP_Text _totalGamesText;
         [SerializeField] private TMP_Text _totalLinesText;
+        [SerializeField] private TMP_Text _totalBlocksText;
         [SerializeField] private TMP_Text _bestComboText;
 
         [Header("Insights & Weekly")]
@@ -95,18 +98,41 @@ namespace BlockBlast.Features.Lobby.GameCenter
         [SerializeField] private TMP_Text _avgScoreChipText;
         [SerializeField] private TMP_Text _thisWeekScoreText;
         [SerializeField] private TMP_Text _lastWeekScoreText;
+        [SerializeField] private TMP_Text _performanceTrendText;
+
+        [Header("Core Stats")]
+        [SerializeField] private TMP_Text _linesPerGameText;
+        [SerializeField] private TMP_Text _linesPerBlockText;
+
+        [Header("Recent Games (7 slots)")]
+        [SerializeField] private TMP_Text _recentInsightText;
+        [SerializeField] private RecentGameBarBinding[] _recentBars;
+
+        [Header("Highlights (up to 2 cards)")]
+        [SerializeField] private GameObject _highlight1Card;
+        [SerializeField] private TMP_Text _highlight1Title;
+        [SerializeField] private TMP_Text _highlight1Desc;
+        [SerializeField] private GameObject _highlight2Card;
+        [SerializeField] private TMP_Text _highlight2Title;
+        [SerializeField] private TMP_Text _highlight2Desc;
+
+        [Header("Achievements Data-Driven")]
+        [SerializeField] private Transform _achievementRowsContainer;
+        [SerializeField] private AchievementRowView _achievementRowTemplate;
+        [SerializeField] private AchievementRowBinding[] _achievementRows;
 
         [Header("Status")]
         [SerializeField] private TMP_Text _statusText;
 
-        [Header("Recent Games (7 slots)")]
-        [SerializeField] private RecentGameBarBinding[] _recentBars;
-
-        [Header("Achievements (3 highlighted)")]
-        [SerializeField] private AchievementRowBinding[] _achievementRows;
+        private bool _isOpened;
+        private readonly List<AchievementRowView> _spawnedAchievementRows = new List<AchievementRowView>();
+        private VerticalLayoutGroup _achievementLayout;
+        private ContentSizeFitter _achievementContentSizeFitter;
+        private LayoutElement _achievementSectionLayout;
 
         public event Action BackRequested;
         public event Action Opened;
+        public event Action Closed;
 
         public Button BackButton
         {
@@ -126,36 +152,25 @@ namespace BlockBlast.Features.Lobby.GameCenter
             }
         }
 
-        public Button DimmerButton
-        {
-            get => _dimmerButton;
-            set
-            {
-                if (_dimmerButton != null)
-                {
-                    _dimmerButton.onClick.RemoveListener(HandleBackClicked);
-                }
-                _dimmerButton = value;
-                if (_dimmerButton != null)
-                {
-                    _dimmerButton.onClick.RemoveListener(HandleBackClicked);
-                    _dimmerButton.onClick.AddListener(HandleBackClicked);
-                }
-            }
-        }
-
         public TMP_Text BestScoreText => _bestScoreText;
         public TMP_Text StatsRowText => _statsRowText;
         public TMP_Text TotalGamesText => _totalGamesText;
         public TMP_Text TotalLinesText => _totalLinesText;
+        public TMP_Text TotalBlocksText => _totalBlocksText;
         public TMP_Text BestComboText => _bestComboText;
         public TMP_Text PersonalBestChipText => _personalBestChipText;
         public TMP_Text AvgScoreChipText => _avgScoreChipText;
         public TMP_Text ThisWeekScoreText => _thisWeekScoreText;
         public TMP_Text LastWeekScoreText => _lastWeekScoreText;
+        public TMP_Text PerformanceTrendText => _performanceTrendText;
+        public TMP_Text LinesPerGameText => _linesPerGameText;
+        public TMP_Text LinesPerBlockText => _linesPerBlockText;
+        public TMP_Text RecentInsightText => _recentInsightText;
         public TMP_Text StatusText => _statusText;
         public RecentGameBarBinding[] RecentBars => _recentBars;
         public AchievementRowBinding[] AchievementRows => _achievementRows;
+        public AchievementRowView AchievementRowTemplate => _achievementRowTemplate;
+        public Transform AchievementRowsContainer => _achievementRowsContainer;
 
         protected override void Awake()
         {
@@ -165,23 +180,50 @@ namespace BlockBlast.Features.Lobby.GameCenter
 
         private void OnDestroy()
         {
+            if (_isOpened)
+            {
+                _isOpened = false;
+                Closed?.Invoke();
+            }
+
             UnregisterListeners();
             BackRequested = null;
             Opened = null;
+            Closed = null;
         }
 
         public override void Show(float duration = 0.25f)
         {
             base.Show(duration);
-            Opened?.Invoke();
+            if (!_isOpened)
+            {
+                _isOpened = true;
+                Opened?.Invoke();
+            }
+        }
+
+        public override void Hide(float duration = 0.25f)
+        {
+            if (_isOpened)
+            {
+                _isOpened = false;
+                Closed?.Invoke();
+            }
+            base.Hide(duration);
         }
 
         public override void SetImmediate(bool isVisible)
         {
             base.SetImmediate(isVisible);
-            if (isVisible)
+            if (isVisible && !_isOpened)
             {
+                _isOpened = true;
                 Opened?.Invoke();
+            }
+            else if (!isVisible && _isOpened)
+            {
+                _isOpened = false;
+                Closed?.Invoke();
             }
         }
 
@@ -190,11 +232,10 @@ namespace BlockBlast.Features.Lobby.GameCenter
             HandleBackClicked();
         }
 
-        public void SetReferences(Button backButton, Button dimmerButton)
+        public void SetReferences(Button backButton)
         {
             UnregisterListeners();
             _backButton = backButton;
-            _dimmerButton = dimmerButton;
             RegisterListeners();
         }
 
@@ -224,6 +265,36 @@ namespace BlockBlast.Features.Lobby.GameCenter
             _achievementRows = achievementRows;
         }
 
+        public void SetExtendedReferences(
+            TMP_Text performanceTrend,
+            TMP_Text totalBlocks,
+            TMP_Text linesPerGame,
+            TMP_Text linesPerBlock,
+            TMP_Text recentInsight,
+            GameObject highlight1Card,
+            TMP_Text highlight1Title,
+            TMP_Text highlight1Desc,
+            GameObject highlight2Card,
+            TMP_Text highlight2Title,
+            TMP_Text highlight2Desc,
+            Transform achievementContainer,
+            AchievementRowView achievementTemplate)
+        {
+            _performanceTrendText = performanceTrend;
+            _totalBlocksText = totalBlocks;
+            _linesPerGameText = linesPerGame;
+            _linesPerBlockText = linesPerBlock;
+            _recentInsightText = recentInsight;
+            _highlight1Card = highlight1Card;
+            _highlight1Title = highlight1Title;
+            _highlight1Desc = highlight1Desc;
+            _highlight2Card = highlight2Card;
+            _highlight2Title = highlight2Title;
+            _highlight2Desc = highlight2Desc;
+            _achievementRowsContainer = achievementContainer;
+            _achievementRowTemplate = achievementTemplate;
+        }
+
         public void Render(GameCenterViewData data)
         {
             if (data == null)
@@ -231,20 +302,44 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 return;
             }
 
+            // Overview stats
             if (_bestScoreText != null) _bestScoreText.text = data.BestScoreText;
             if (_statsRowText != null) _statsRowText.text = $"{data.TotalGamesText} GAMES      {data.TotalLinesText} LINES      x{data.BestComboText} COMBO";
             if (_totalGamesText != null) _totalGamesText.text = data.TotalGamesText;
             if (_totalLinesText != null) _totalLinesText.text = data.TotalLinesText;
+            if (_totalBlocksText != null) _totalBlocksText.text = data.TotalBlocksText;
             if (_bestComboText != null) _bestComboText.text = data.BestComboText;
 
+            // Chips & weekly
             if (_personalBestChipText != null) _personalBestChipText.text = $"BEST: {data.BestScoreText}";
             if (_avgScoreChipText != null) _avgScoreChipText.text = $"AVG: {data.AverageScoreText}";
-
             if (_thisWeekScoreText != null) _thisWeekScoreText.text = $"THIS WEEK\n{data.CurrentWeekScoreText}";
             if (_lastWeekScoreText != null) _lastWeekScoreText.text = $"LAST WEEK\n{data.PreviousWeekScoreText}";
+            // The current panel has no dedicated, non-overlapping slot for this optional label.
+            // Keep the value in the DTO for a future layout revision, but do not render it over the weekly card.
+            if (_performanceTrendText != null)
+            {
+                _performanceTrendText.text = string.Empty;
+                _performanceTrendText.gameObject.SetActive(false);
+            }
 
-            if (_statusText != null) _statusText.text = data.SyncStatusText;
+            // Core stats
+            if (_linesPerGameText != null) _linesPerGameText.text = data.LinesPerGameText;
+            if (_linesPerBlockText != null) _linesPerBlockText.text = data.LinesPerBlockText;
 
+            // Recent insight
+            if (_recentInsightText != null) _recentInsightText.text = data.RecentInsightText;
+
+            // Status
+            // The status placeholder currently overlaps the title artwork. Synchronization state remains
+            // available to the data layer until the panel receives a dedicated status slot.
+            if (_statusText != null)
+            {
+                _statusText.text = string.Empty;
+                _statusText.gameObject.SetActive(false);
+            }
+
+            // Recent 7 games bars
             if (_recentBars != null && data.RecentGames != null)
             {
                 int count = Mathf.Min(_recentBars.Length, data.RecentGames.Count);
@@ -254,13 +349,129 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 }
             }
 
-            if (_achievementRows != null && data.Achievements != null)
+            // Highlights
+            RenderHighlights(data.Highlights);
+
+            // Achievements data-driven list
+            RenderAchievements(data.Achievements);
+        }
+
+        private void RenderHighlights(IReadOnlyList<InsightCardViewData> highlights)
+        {
+            if (highlights != null && highlights.Count > 0)
             {
-                int count = Mathf.Min(_achievementRows.Length, data.Achievements.Count);
+                if (_highlight1Card != null)
+                {
+                    _highlight1Card.SetActive(true);
+                    if (_highlight1Title != null) _highlight1Title.text = highlights[0].Title;
+                    if (_highlight1Desc != null) _highlight1Desc.text = highlights[0].Description;
+                }
+
+                if (_highlight2Card != null)
+                {
+                    if (highlights.Count > 1)
+                    {
+                        _highlight2Card.SetActive(true);
+                        if (_highlight2Title != null) _highlight2Title.text = highlights[1].Title;
+                        if (_highlight2Desc != null) _highlight2Desc.text = highlights[1].Description;
+                    }
+                    else
+                    {
+                        _highlight2Card.SetActive(false);
+                    }
+                }
+            }
+            else
+            {
+                if (_highlight1Card != null) _highlight1Card.SetActive(false);
+                if (_highlight2Card != null) _highlight2Card.SetActive(false);
+            }
+        }
+
+        private void RenderAchievements(IReadOnlyList<AchievementRowViewData> achievements)
+        {
+            if (achievements == null) return;
+
+            // If we have an instantiated row template, use data-driven 18 rows
+            if (_achievementRowTemplate != null)
+            {
+                var container = _achievementRowsContainer != null ? _achievementRowsContainer : _achievementRowTemplate.transform.parent;
+                ConfigureAchievementListLayout(container);
+
+                while (_spawnedAchievementRows.Count < achievements.Count)
+                {
+                    var newRow = Instantiate(_achievementRowTemplate, container);
+                    newRow.gameObject.SetActive(true);
+                    _spawnedAchievementRows.Add(newRow);
+                }
+
+                for (int i = 0; i < _spawnedAchievementRows.Count; i++)
+                {
+                    if (i < achievements.Count)
+                    {
+                        _spawnedAchievementRows[i].gameObject.SetActive(true);
+                        _spawnedAchievementRows[i].Bind(achievements[i]);
+                    }
+                    else
+                    {
+                        _spawnedAchievementRows[i].gameObject.SetActive(false);
+                    }
+                }
+
+                if (container is RectTransform containerRect)
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(containerRect);
+                    if (containerRect.parent is RectTransform contentRect)
+                    {
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+                    }
+                }
+            }
+            else if (_achievementRows != null)
+            {
+                // Fallback to static array bindings
+                int count = Mathf.Min(_achievementRows.Length, achievements.Count);
                 for (int i = 0; i < count; i++)
                 {
-                    _achievementRows[i]?.Bind(data.Achievements[i]);
+                    _achievementRows[i]?.Bind(achievements[i]);
                 }
+            }
+        }
+
+        private void ConfigureAchievementListLayout(Transform container)
+        {
+            if (container == null)
+            {
+                return;
+            }
+
+            _achievementLayout ??= container.GetComponent<VerticalLayoutGroup>();
+            if (_achievementLayout == null)
+            {
+                _achievementLayout = container.gameObject.AddComponent<VerticalLayoutGroup>();
+            }
+
+            _achievementLayout.padding = new RectOffset(0, 0, AchievementListTopPadding, AchievementListBottomPadding);
+            _achievementLayout.childAlignment = TextAnchor.UpperCenter;
+            _achievementLayout.spacing = AchievementListSpacing;
+            _achievementLayout.childControlWidth = false;
+            _achievementLayout.childControlHeight = false;
+            _achievementLayout.childForceExpandWidth = false;
+            _achievementLayout.childForceExpandHeight = false;
+
+            _achievementContentSizeFitter ??= container.GetComponent<ContentSizeFitter>();
+            if (_achievementContentSizeFitter == null)
+            {
+                _achievementContentSizeFitter = container.gameObject.AddComponent<ContentSizeFitter>();
+            }
+
+            _achievementContentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            _achievementContentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            _achievementSectionLayout ??= container.GetComponent<LayoutElement>();
+            if (_achievementSectionLayout != null)
+            {
+                _achievementSectionLayout.preferredHeight = -1f;
             }
         }
 
@@ -273,7 +484,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 cg.blocksRaycasts = interactable;
             }
             if (_backButton != null) _backButton.interactable = interactable;
-            if (_dimmerButton != null) _dimmerButton.interactable = interactable;
         }
 
         private void RegisterListeners()
@@ -283,12 +493,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 _backButton.onClick.RemoveListener(HandleBackClicked);
                 _backButton.onClick.AddListener(HandleBackClicked);
             }
-
-            if (_dimmerButton != null)
-            {
-                _dimmerButton.onClick.RemoveListener(HandleBackClicked);
-                _dimmerButton.onClick.AddListener(HandleBackClicked);
-            }
         }
 
         private void UnregisterListeners()
@@ -296,11 +500,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
             if (_backButton != null)
             {
                 _backButton.onClick.RemoveListener(HandleBackClicked);
-            }
-
-            if (_dimmerButton != null)
-            {
-                _dimmerButton.onClick.RemoveListener(HandleBackClicked);
             }
         }
 

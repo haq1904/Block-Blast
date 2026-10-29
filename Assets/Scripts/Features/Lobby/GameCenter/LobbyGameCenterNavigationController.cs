@@ -39,34 +39,57 @@ namespace BlockBlast.Features.Lobby.GameCenter
 
         private void OnEnable()
         {
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+            UnlockInteraction();
+        }
+
+        public void Construct(LobbyGameCenterPanelView panelView, LobbyController lobbyController)
+        {
+            UnsubscribeEvents();
+            _panelView = panelView;
+            _lobbyController = lobbyController;
+            SubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
             if (_panelView != null)
             {
+                _panelView.Opened -= HandlePanelOpened;
+                _panelView.Opened += HandlePanelOpened;
+                _panelView.Closed -= HandlePanelClosed;
+                _panelView.Closed += HandlePanelClosed;
+                _panelView.BackRequested -= HandleBackRequested;
                 _panelView.BackRequested += HandleBackRequested;
             }
+        }
 
+        private void UnsubscribeEvents()
+        {
+            if (_panelView != null)
+            {
+                _panelView.Opened -= HandlePanelOpened;
+                _panelView.Closed -= HandlePanelClosed;
+                _panelView.BackRequested -= HandleBackRequested;
+            }
+        }
+
+        private void HandlePanelOpened()
+        {
             if (_lobbyController != null)
             {
                 _lobbyController.SetGameCenterInteractionActive(true);
             }
         }
 
-        private void OnDisable()
+        private void HandlePanelClosed()
         {
-            if (_panelView != null)
-            {
-                _panelView.BackRequested -= HandleBackRequested;
-            }
-
-            if (_lobbyController != null)
-            {
-                _lobbyController.SetGameCenterInteractionActive(false);
-            }
-        }
-
-        public void Construct(LobbyGameCenterPanelView panelView, LobbyController lobbyController)
-        {
-            _panelView = panelView;
-            _lobbyController = lobbyController;
+            UnlockInteraction();
         }
 
         private void HandleBackRequested()
@@ -74,6 +97,15 @@ namespace BlockBlast.Features.Lobby.GameCenter
             if (_lobbyController != null)
             {
                 _lobbyController.ReturnHomeFromGameCenter();
+            }
+            UnlockInteraction();
+        }
+
+        private void UnlockInteraction()
+        {
+            if (_lobbyController != null)
+            {
+                _lobbyController.SetGameCenterInteractionActive(false);
             }
         }
     }

@@ -3,6 +3,30 @@ using System.Collections.Generic;
 
 namespace BlockBlast.Features.Lobby.GameCenter
 {
+    public enum GameCenterPresentationState
+    {
+        Loading,
+        Ready,
+        Empty,
+        OfflineCached,
+        Error
+    }
+
+    [Serializable]
+    public readonly struct InsightCardViewData
+    {
+        public string InsightId { get; }
+        public string Title { get; }
+        public string Description { get; }
+
+        public InsightCardViewData(string insightId, string title, string description)
+        {
+            InsightId = insightId ?? string.Empty;
+            Title = title ?? string.Empty;
+            Description = description ?? string.Empty;
+        }
+    }
+
     [Serializable]
     public readonly struct RecentGameBarViewData
     {
@@ -39,17 +63,65 @@ namespace BlockBlast.Features.Lobby.GameCenter
 
     public sealed class GameCenterViewData
     {
+        public GameCenterPresentationState State { get; }
         public string BestScoreText { get; }
-        public string TotalGamesText { get; }
-        public string TotalLinesText { get; }
-        public string BestComboText { get; }
         public string AverageScoreText { get; }
-        public string CurrentWeekScoreText { get; }
-        public string PreviousWeekScoreText { get; }
+        public string GamesPlayedText { get; }
+        public string TotalGamesText => GamesPlayedText;
+        public string PerformanceTrendText { get; }
+        public string TotalLinesText { get; }
+        public string TotalBlocksText { get; }
+        public string BestComboText { get; }
+        public string LinesPerGameText { get; }
+        public string LinesPerBlockText { get; }
+        public string RecentInsightText { get; }
+        public IReadOnlyList<InsightCardViewData> Highlights { get; }
         public IReadOnlyList<RecentGameBarViewData> RecentGames { get; }
         public IReadOnlyList<AchievementRowViewData> Achievements { get; }
         public string SyncStatusText { get; }
         public bool HasData { get; }
+        public string CurrentWeekScoreText { get; }
+        public string PreviousWeekScoreText { get; }
+
+        public GameCenterViewData(
+            GameCenterPresentationState state,
+            string bestScoreText,
+            string averageScoreText,
+            string gamesPlayedText,
+            string performanceTrendText,
+            string totalLinesText,
+            string totalBlocksText,
+            string bestComboText,
+            string linesPerGameText,
+            string linesPerBlockText,
+            string recentInsightText,
+            IReadOnlyList<InsightCardViewData> highlights,
+            IReadOnlyList<RecentGameBarViewData> recentGames,
+            IReadOnlyList<AchievementRowViewData> achievements,
+            string syncStatusText,
+            bool hasData,
+            string currentWeekScoreText = "0",
+            string previousWeekScoreText = "0")
+        {
+            State = state;
+            BestScoreText = bestScoreText ?? "0";
+            AverageScoreText = averageScoreText ?? "0";
+            GamesPlayedText = gamesPlayedText ?? "0";
+            PerformanceTrendText = performanceTrendText ?? string.Empty;
+            TotalLinesText = totalLinesText ?? "0";
+            TotalBlocksText = totalBlocksText ?? "0";
+            BestComboText = bestComboText ?? "0";
+            LinesPerGameText = linesPerGameText ?? "0.0";
+            LinesPerBlockText = linesPerBlockText ?? "0.0";
+            RecentInsightText = recentInsightText ?? string.Empty;
+            Highlights = highlights ?? Array.Empty<InsightCardViewData>();
+            RecentGames = recentGames ?? Array.Empty<RecentGameBarViewData>();
+            Achievements = achievements ?? Array.Empty<AchievementRowViewData>();
+            SyncStatusText = syncStatusText ?? string.Empty;
+            HasData = hasData;
+            CurrentWeekScoreText = currentWeekScoreText ?? "0";
+            PreviousWeekScoreText = previousWeekScoreText ?? "0";
+        }
 
         public GameCenterViewData(
             string bestScoreText,
@@ -63,18 +135,26 @@ namespace BlockBlast.Features.Lobby.GameCenter
             IReadOnlyList<AchievementRowViewData> achievements,
             string syncStatusText,
             bool hasData)
+            : this(
+                hasData ? GameCenterPresentationState.Ready : GameCenterPresentationState.Empty,
+                bestScoreText,
+                averageScoreText,
+                totalGamesText,
+                string.Empty,
+                totalLinesText,
+                "0",
+                bestComboText,
+                "0.0",
+                "0.0",
+                string.Empty,
+                Array.Empty<InsightCardViewData>(),
+                recentGames,
+                achievements,
+                syncStatusText,
+                hasData,
+                currentWeekScoreText,
+                previousWeekScoreText)
         {
-            BestScoreText = bestScoreText ?? "0";
-            TotalGamesText = totalGamesText ?? "0";
-            TotalLinesText = totalLinesText ?? "0";
-            BestComboText = bestComboText ?? "0";
-            AverageScoreText = averageScoreText ?? "0";
-            CurrentWeekScoreText = currentWeekScoreText ?? "0";
-            PreviousWeekScoreText = previousWeekScoreText ?? "0";
-            RecentGames = recentGames ?? Array.Empty<RecentGameBarViewData>();
-            Achievements = achievements ?? Array.Empty<AchievementRowViewData>();
-            SyncStatusText = syncStatusText ?? string.Empty;
-            HasData = hasData;
         }
     }
 }
