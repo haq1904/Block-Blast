@@ -77,10 +77,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
     [RequireComponent(typeof(CanvasGroup))]
     public sealed class LobbyGameCenterPanelView : LobbyPanelView
     {
-        private const int AchievementListTopPadding = 52;
-        private const int AchievementListBottomPadding = 12;
-        private const int AchievementListSpacing = 12;
-
         [Header("Controls")]
         [Tooltip("Header back button to return to Lobby home.")]
         [SerializeField] private Button _backButton;
@@ -126,9 +122,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
 
         private bool _isOpened;
         private readonly List<AchievementRowView> _spawnedAchievementRows = new List<AchievementRowView>();
-        private VerticalLayoutGroup _achievementLayout;
-        private ContentSizeFitter _achievementContentSizeFitter;
-        private LayoutElement _achievementSectionLayout;
 
         public event Action BackRequested;
         public event Action Opened;
@@ -396,7 +389,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
             if (_achievementRowTemplate != null)
             {
                 var container = _achievementRowsContainer != null ? _achievementRowsContainer : _achievementRowTemplate.transform.parent;
-                ConfigureAchievementListLayout(container);
 
                 while (_spawnedAchievementRows.Count < achievements.Count)
                 {
@@ -435,43 +427,6 @@ namespace BlockBlast.Features.Lobby.GameCenter
                 {
                     _achievementRows[i]?.Bind(achievements[i]);
                 }
-            }
-        }
-
-        private void ConfigureAchievementListLayout(Transform container)
-        {
-            if (container == null)
-            {
-                return;
-            }
-
-            _achievementLayout ??= container.GetComponent<VerticalLayoutGroup>();
-            if (_achievementLayout == null)
-            {
-                _achievementLayout = container.gameObject.AddComponent<VerticalLayoutGroup>();
-            }
-
-            _achievementLayout.padding = new RectOffset(0, 0, AchievementListTopPadding, AchievementListBottomPadding);
-            _achievementLayout.childAlignment = TextAnchor.UpperCenter;
-            _achievementLayout.spacing = AchievementListSpacing;
-            _achievementLayout.childControlWidth = false;
-            _achievementLayout.childControlHeight = false;
-            _achievementLayout.childForceExpandWidth = false;
-            _achievementLayout.childForceExpandHeight = false;
-
-            _achievementContentSizeFitter ??= container.GetComponent<ContentSizeFitter>();
-            if (_achievementContentSizeFitter == null)
-            {
-                _achievementContentSizeFitter = container.gameObject.AddComponent<ContentSizeFitter>();
-            }
-
-            _achievementContentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            _achievementContentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            _achievementSectionLayout ??= container.GetComponent<LayoutElement>();
-            if (_achievementSectionLayout != null)
-            {
-                _achievementSectionLayout.preferredHeight = -1f;
             }
         }
 
